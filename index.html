@@ -175,13 +175,13 @@ table.tabla-corte tr.cortada td.chk { text-decoration: none; }
 /* Tapacantos en la ficha */
 .tcard { border: 1px solid var(--borde); border-radius: 12px; background: var(--card2); padding: 10px 12px; margin-bottom: 8px; }
 .tcard select, .tcard input { min-width: 0 !important; width: 100%; }
-.tc-top { display: grid; grid-template-columns: 1fr 110px 110px auto; gap: 10px; align-items: end; }
+.tc-top { display: grid; grid-template-columns: 1fr 110px auto; gap: 10px; align-items: end; }
 .tc-acc { white-space: nowrap; padding-bottom: 4px; }
 .tc-lados { display: grid; grid-template-columns: auto repeat(4, minmax(96px, 1fr)); gap: 8px; align-items: end; margin-top: 8px; }
 .tc-lados > .l { align-self: center; padding-top: 18px; max-width: 90px; line-height: 1.2; }
 .tc-mat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
 .tc-aviso { margin-top: 8px; font-size: 12px; color: var(--warn); }
-@media (max-width: 760px) { .tc-top { grid-template-columns: 1fr 90px 90px; } .tc-acc { grid-column: 1 / -1; } .tc-lados { grid-template-columns: repeat(2, 1fr); } .tc-lados > .l { grid-column: 1 / -1; padding-top: 0; max-width: none; } .tc-mat { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .tc-top { grid-template-columns: 1fr 90px; } .tc-acc { grid-column: 1 / -1; } .tc-lados { grid-template-columns: repeat(2, 1fr); } .tc-lados > .l { grid-column: 1 / -1; padding-top: 0; max-width: none; } .tc-mat { grid-template-columns: 1fr; } }
 nav.tabs { align-items: center; }
 /* Etiquetas */
 .etiquetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
@@ -652,7 +652,6 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       mapa.get(clave).push({
         cantidad: num(row.cantidad) || 0,
         arr: num(row.arr) || 0, ab: num(row.ab) || 0, izq: num(row.izq) || 0, der: num(row.der) || 0,
-        gira: /^s[ií]$/i.test(str(row.gira).trim()) ? 'Si' : (/^no$/i.test(str(row.gira).trim()) ? 'No' : 'Auto'),
         materialPlaca: parseIdCatalogo_(row.materialPlaca),
         tapacantoPrincipal: parseIdCatalogo_(row.tapPrincipal),
         tapacantoSecundario: parseIdCatalogo_(row.tapSecundario),
@@ -859,7 +858,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       tapacantoPrincipal: f.canto.tapacantoPrincipal ? f.canto.tapacantoPrincipal.etiqueta : '',
       tapacantoSecundario: f.canto.tapacantoSecundario ? f.canto.tapacantoSecundario.etiqueta : '',
       largo: f.largo, ancho: f.ancho, espesor: f.espesor, cantidad: f.cantidad,
-      arr: f.canto.arr, ab: f.canto.ab, izq: f.canto.izq, der: f.canto.der, gira: f.canto.gira || 'Auto',
+      arr: f.canto.arr, ab: f.canto.ab, izq: f.canto.izq, der: f.canto.der,
     }));
 
     // Orden de Fabricación: bloques de módulo + secciones de sueltas
@@ -1179,8 +1178,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     // Se guardan las medidas y la veta (las necesita el JSON de Dilegno); se descartan precios y otros datos del proveedor.
     return arr.map(x => {
       const o = { id: Number(x.id), code: String(x.code || x.codigo || ''), description: String(x.description || x.descripcion || ''), tipo: Number(x.tipo) || 0 };
-      ['base', 'altura', 'espesor'].forEach(k => { if (x[k] !== undefined && x[k] !== null && x[k] !== '' && !isNaN(Number(x[k]))) o[k] = Number(x[k]); });
-      if (x.veta !== undefined && x.veta !== null) o.veta = (x.veta === true || x.veta === 1 || /^(true|1|si|sí)$/i.test(String(x.veta)));
+      // medidas y veta: el catálogo de Dilegno las llama width / height / thickness / hasGrain (también se aceptan base / altura / espesor / veta)
+      [['base', 'width'], ['altura', 'height'], ['espesor', 'thickness']].forEach(([k, alt]) => { const v = (x[alt] !== undefined && x[alt] !== null) ? x[alt] : x[k]; if (v !== undefined && v !== null && v !== '' && !isNaN(Number(v))) o[k] = Number(v); });
+      const vt = (x.hasGrain !== undefined && x.hasGrain !== null) ? x.hasGrain : x.veta;
+      if (vt !== undefined && vt !== null) o.veta = (vt === true || vt === 1 || /^(true|1|si|sí)$/i.test(String(vt)));
       return o;
     }).filter(x => !isNaN(x.id));
   }
@@ -1397,6 +1398,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (!v.tp2) { v.tiposPuerta = unirTiposPuerta(v.tiposPuerta); v.tp2 = true; v.pendiente = true; compGuardar(v); }
     return v;
   }
+  // Tipos de apertura que definen el corte de la puerta: siempre disponibles, estén o no en la lista compartida
+  const TIPOS_APERTURA = ['Perfil L', 'Push', 'Cierre suave', 'Con manija', 'Piso aplicado'];
   function unirTiposPuerta(lista) { return limpiarLista((lista || []).concat(LISTAS_BASE.tiposPuerta)); }
   // Tipo de apertura → corte de puerta: perfil L = Puerta32 · push / cierre suave / con manija = Puerta2 · alacena con piso aplicado = Puerta18
   function corteDeApertura(tipo) {
@@ -1584,7 +1587,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     guardarListasPorDefecto, slug, serializar, descargar,
     catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, catalogoSugerir, etiquetaCatalogo,
     get catalogo() { return catalogo; },
-    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
+    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, TIPOS_APERTURA, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
     ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
   };
 })(window);
@@ -1613,13 +1616,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   // Canto: ¿melamínico (fino) o ABS (grueso)? Por el espesor del catálogo; si no se sabe, null.
   function tipoCanto(it) { return (it && typeof it.espesor === 'number') ? (it.espesor <= 1 ? 'mel' : 'abs') : null; }
 
-  // ¿Puede girar? 'Si' / 'No' se respetan; 'Auto' (o vacío) = la placa no tiene veta. Sin dato de veta: no gira (lo seguro).
-  function girar(valor, placa) {
-    const v = String(valor === undefined || valor === null ? '' : valor).trim().toLowerCase();
-    if (v === 'si' || v === 'sí' || v === '1') return true;
-    if (v === 'no' || v === '0') return false;
-    return !!(placa && placa.veta === false);
-  }
+  // ¿Puede girar? Siempre automático: gira si la placa NO tiene veta. Sin dato de veta: no gira (lo seguro).
+  function girar(placa) { return !!(placa && placa.veta === false); }
 
   // Máscara de bits de una pieza. Devuelve { mask, mel, abs, faltan } (mel/abs = id de canto usado en cada grupo).
   function cantos(f, catalogoMapa) {
@@ -1675,7 +1673,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
           cortes: g.items.map((it, i) => ({
             id: i, cantidad: num(it.f.cantidad) || 1, base: num(it.f.largo), altura: num(it.f.ancho),
             descripcion: (String(it.f.pieza || '') + (it.f.idModulo ? ' ' + it.f.idModulo : '')).trim(),
-            rota: girar(it.f.gira, placa), tapacantos: it.c.mask, mecanizados: [],
+            rota: girar(placa), tapacantos: it.c.mask, mecanizados: [],
           })),
           mecxcorte: [], stock: [], sucursal_id: CONST.sucursal_id, sucursal_aux_id: CONST.sucursal_aux_id, multi_ped_id: -1, multi_ped_len: 1,
           despachar: false, modificado: false, planilla_vid: '', opcion_opt: 0,
@@ -1965,7 +1963,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   // Ambientes, tipos de puerta y tipos de pieza: listas compartidas (GitHub). Además de la lista, se ofrece lo que ya usa el proyecto abierto.
   function unicos(arr) { const v = new Set(), out = []; arr.forEach(x => { const s = String(x === undefined || x === null ? '' : x).trim(), k = s.toLowerCase(); if (s && !v.has(k)) { v.add(k); out.push(s); } }); return out; }
   function nombresAmbiente() { return unicos(St.listaCompartida('ambientes').map(a => a.nombre).concat(D.modulos.map(m => m.ambiente))); }
-  function opcionesTipoPuerta() { return unicos(St.listaCompartida('tiposPuerta').concat(D.puertas.map(r => r.tipo))); }
+  function opcionesTipoPuerta() { return unicos(St.TIPOS_APERTURA.concat(St.listaCompartida('tiposPuerta'), D.puertas.map(r => r.tipo))); }
   function opcionesTipoPieza() { return unicos(St.listaCompartida('categoriasSueltas').concat(D.sueltas.map(r => r.categoria))); }
   function codigoAmbiente(nombre) { const a = St.listaCompartida('ambientes').find(x => x.nombre === nombre) || (D.listas.ambientes || []).find(x => x.nombre === nombre); return a ? a.codigo : ''; }
 
@@ -2048,15 +2046,15 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     },
     puertas: {
       titulo: 'Puertas', arr: 'puertas',
-      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir el Tipo (apertura) el corte se completa solo. Modalidad “Simétrica”: el ancho se calcula solo, (L del módulo − 3 mm × cant.) ÷ cant. “Personalizada”: largo y ancho a mano.',
+      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir la Apertura (Perfil L, Push, Cierre suave, Con manija o Piso aplicado) el corte se completa solo. Modalidad “Simétrica”: el ancho se calcula solo, (L del módulo − 3 mm × cant.) ÷ cant. “Personalizada”: largo y ancho a mano.',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '—', rr: true },
+        { k: 'tipo', t: 'Apertura', tipo: 'sel', opts: () => opcionesTipoPuerta(), vacio: '—', rr: true },
         { k: 'cant', t: 'Cant.', tipo: 'num', rr: true, ocultar: (r) => esSimetrica(r) },
         { k: 'corte', t: 'Corte', tipo: 'sel', opts: () => CORTES, vacio: '—', rr: true },
         { k: 'modalidad', t: 'Modalidad', tipo: 'sel', opts: () => [{ v: 'Manual', l: 'Manual' }, { v: 'Simetrica', l: 'Simétrica' }], dis: (r) => !(r.corte in M.PUERTA_OFFSETS), rr: true },
         { k: 'largo', t: 'Largo', tipo: 'num', dis: (r) => r.corte !== 'Personalizada' && r.corte !== 'Manual', ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.corte in M.PUERTA_OFFSETS) ? String(Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte])) : ''; } },
         { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS) && num(m.l) > 0) ? String(Math.round(M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r)))) : ''; } },
-        { k: 'tipo', t: 'Tipo (apertura)', tipo: 'sel', opts: () => opcionesTipoPuerta(), vacio: '—', rr: true },
       ],
       nuevo() { const u = D.puertas[D.puertas.length - 1]; return { idModulo: u ? u.idModulo : '', cant: 1, corte: u ? u.corte : 'Puerta18', modalidad: u ? u.modalidad : 'Manual', largo: '', ancho: '', tipo: u ? u.tipo : '' }; },
       alCambiar(row, k) {
@@ -2111,10 +2109,9 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
         { k: 'tapPrincipal', t: 'Tapacanto principal', tipo: 'cat', cat: 1, ancho: 180 },
         { k: 'tapSecundario', t: 'Tapacanto secundario', tipo: 'cat', cat: 1, ancho: 180 },
         { k: 'cantidad', t: 'Cant. a enviar', tipo: 'num', ph: () => 'todas' },
-        { k: 'gira', t: 'Gira', tipo: 'sel', opts: () => [{ v: 'Auto', l: 'Auto (según veta)' }, { v: 'Si', l: 'Gira' }, { v: 'No', l: 'No gira' }] },
         { k: '_aviso', t: '', tipo: 'aviso' },
       ],
-      nuevo() { return { idModulo: '', pieza: '', arr: 0, ab: 0, izq: 0, der: 0, materialPlaca: '', tapPrincipal: '', tapSecundario: '', cantidad: '', gira: 'Auto' }; },
+      nuevo() { return { idModulo: '', pieza: '', arr: 0, ab: 0, izq: 0, der: 0, materialPlaca: '', tapPrincipal: '', tapSecundario: '', cantidad: '' }; },
       alCambiar(row, k) {
         if (k === 'idModulo') row.pieza = '';
         if (k === 'pieza' || k === 'idModulo') {
@@ -2536,7 +2533,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (!R || !R.ok) return sinResultado();
     const P = R.proveedor;
     let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
-      '<p class="hint">Son las piezas cargadas en “Tapacantos”: no están en la lista de corte del taller. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira: Auto” sale de la veta de la placa.</p>';
+      '<p class="hint">Son las piezas cargadas en “Tapacantos”: no están en la lista de corte del taller. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira” siempre es automático: gira si la placa no tiene veta.</p>';
     h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
       P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
       : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
@@ -2973,11 +2970,11 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     window.addEventListener('afterprint', fin);
     window.print();
   }
-  // ¿Gira esta pieza del proveedor? Lo que se eligió en Tapacantos o, en Auto, lo que dice la veta de la placa en el catálogo.
+  // ¿Gira esta pieza del proveedor? Siempre automático: gira si la placa no tiene veta (según el catálogo).
   function giraDe(f) {
     const id = window.Dilegno.idDe(f.materialPlaca);
     const placa = id === null ? null : St.catalogo.find(x => Number(x.id) === id);
-    return window.Dilegno.girar(f.gira, placa);
+    return window.Dilegno.girar(placa);
   }
   function exportarProveedorJSON() {
     const r = window.Dilegno.armar(R.proveedor, St.catalogo, D.proyecto.nombre);
