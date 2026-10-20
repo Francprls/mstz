@@ -1153,6 +1153,7 @@ nav.tabs { align-items: center; }
     try {
       const j = await gh('PUT', '/contents/' + encRuta(ruta), cuerpo);
       d.meta.sha = j.content.sha;
+      j._nuevo = !sha;
       return j;
     } catch (e) {
       if (e.status === 409 || e.status === 422) { e.conflicto = true; e.message = 'El archivo cambió en GitHub desde la última vez que lo abriste (otra persona o otro dispositivo lo guardó).'; }
@@ -1161,7 +1162,7 @@ nav.tabs { align-items: center; }
   }
   async function ghHistorial(nombreArchivo) {
     const c = ghConfig();
-    const j = await gh('GET', '/commits?path=' + encodeURIComponent(rutaArchivo(nombreArchivo)) + '&sha=' + encodeURIComponent(c.branch) + '&per_page=30');
+    const j = await gh('GET', '/commits?path=' + encodeURIComponent(rutaArchivo(nombreArchivo)) + '&sha=' + encodeURIComponent(c.branch) + '&per_page=100');
     return (j || []).map(x => ({ sha: x.sha, mensaje: x.commit.message.split('\n')[0], fecha: x.commit.author.date, autor: x.commit.author.name }));
   }
   async function ghBorrar(nombreArchivo) {
@@ -1170,6 +1171,89 @@ nav.tabs { align-items: center; }
     const ex = await gh('GET', '/contents/' + encRuta(ruta) + '?ref=' + encodeURIComponent(c.branch));
     return gh('DELETE', '/contents/' + encRuta(ruta), { message: 'Borrar ' + nombreArchivo, sha: ex.sha, branch: c.branch });
   }
+  /* ---------- Listas compartidas (materiales y módulos tipo): se sincronizan con catalogo/listas.json del repositorio privado ---------- */
+  const K_COMP = 'despiece:comp';
+  const RUTA_LISTAS = 'catalogo/listas.json';
+  const MATERIALES_BASE = ['Blanco', 'Sahara', 'Roble Americano', 'Kendal Nat.', 'Gris arcilla', 'Blanco W954', 'Warnia Marrón', 'Beige Caramelo', 'Laca Blanca SM'];
+  function limpiarLista(arr) {
+    const vistos = new Set(), out = [];
+    (arr || []).forEach(x => { const t = String(x === undefined || x === null ? '' : x).trim(); const k = t.toLowerCase(); if (t && !vistos.has(k)) { vistos.add(k); out.push(t); } });
+    return out;
+  }
+  function limpiarTipos(arr) {
+    const vistos = new Set(), out = [];
+    (arr || []).forEach(x => { if (!x || !x.nombre || !x.modulo) return; const k = String(x.nombre).trim().toLowerCase(); if (k && !vistos.has(k)) { vistos.add(k); out.push(x); } });
+    return out;
+  }
+  function compLeer() {
+    const v = lsJson(K_COMP, null);
+    const base = { materiales: MATERIALES_BASE.slice(), modulosTipo: JSON.parse(JSON.stringify(LISTAS_BASE.modulosTipo)), sha: '', pendiente: false, origen: 'base' };
+    if (!v || !Array.isArray(v.materiales)) return base;
+    if (!Array.isArray(v.modulosTipo)) v.modulosTipo = base.modulosTipo;
+    return v;
+  }
+  function compGuardar(c) { lsSet(K_COMP, JSON.stringify(c)); }
+  function materialesCompartidos() { return compLeer().materiales; }
+  function tiposCompartidos() { return compLeer().modulosTipo; }
+  function compEstado() { const c = compLeer(); return { pendiente: !!c.pendiente, origen: c.origen || '', materiales: c.materiales.length, tipos: c.modulosTipo.length }; }
+  function materialesEstado() { return compEstado(); }
+  function materialesGuardarLocal(lista) { const c = compLeer(); c.materiales = limpiarLista(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
+  function tiposGuardarLocal(lista) { const c = compLeer(); c.modulosTipo = limpiarTipos(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
+  function compRestaurar(texto) {
+    const o = JSON.parse(texto) || {}, c = compLeer();
+    if (Array.isArray(o.materiales)) c.materiales = limpiarLista(o.materiales);
+    if (Array.isArray(o.modulosTipo)) c.modulosTipo = limpiarTipos(o.modulosTipo);
+    c.pendiente = true; c.origen = 'local'; compGuardar(c);
+  }
+  async function leerListasRemotas() {
+    const c = ghConfig();
+    try {
+      const j = await gh('GET', '/contents/' + encRuta(RUTA_LISTAS) + '?ref=' + encodeURIComponent(c.branch));
+      const texto = j.content ? deB64(j.content) : await (await fetch(j.download_url)).text();
+      const o = JSON.parse(texto) || {};
+      return { sha: j.sha, materiales: limpiarLista(o.materiales), modulosTipo: Array.isArray(o.modulosTipo) ? limpiarTipos(o.modulosTipo) : null };
+    } catch (e) { if (e.noExiste) return null; throw e; }
+  }
+  // Baja las listas del repositorio (si hay cambios locales sin subir, no los pisa, salvo que se pida).
+  async function ghTraerListas(forzar) {
+    const c = compLeer();
+    if (c.pendiente && !forzar) return { omitido: true };
+    const r = await leerListasRemotas();
+    if (!r) return { noExiste: true };
+    compGuardar({ materiales: r.materiales, modulosTipo: r.modulosTipo || c.modulosTipo, sha: r.sha, pendiente: !r.modulosTipo, origen: 'github' });
+    return { ok: true, materiales: r.materiales.length, tipos: (r.modulosTipo || c.modulosTipo).length };
+  }
+  // Sube las listas. Si otra persona las cambió desde la última vez, se UNEN (nunca se pierde un material o plantilla agregados).
+  async function ghGuardarListas() {
+    const cfg = ghConfig();
+    let c = compLeer(), unido = false;
+    for (let intento = 0; intento < 2; intento++) {
+      const remoto = await leerListasRemotas();
+      let materiales = c.materiales, tipos = c.modulosTipo;
+      if (remoto && remoto.sha !== c.sha) {
+        const base = materiales.map(x => x.toLowerCase());
+        const extra = remoto.materiales.filter(x => base.indexOf(x.toLowerCase()) < 0);
+        if (extra.length) { materiales = materiales.concat(extra); unido = true; }
+        if (remoto.modulosTipo) {
+          const nb = tipos.map(x => String(x.nombre).toLowerCase());
+          const ex = remoto.modulosTipo.filter(x => nb.indexOf(String(x.nombre).toLowerCase()) < 0);
+          if (ex.length) { tipos = tipos.concat(ex); unido = true; }
+        }
+      }
+      const cuerpo = { message: 'Actualizar listas compartidas (materiales y módulos tipo)', content: b64(JSON.stringify({ version: 1, materiales, modulosTipo: tipos }, null, 2)), branch: cfg.branch };
+      if (remoto) cuerpo.sha = remoto.sha;
+      try {
+        const j = await gh('PUT', '/contents/' + encRuta(RUTA_LISTAS), cuerpo);
+        compGuardar({ materiales, modulosTipo: tipos, sha: j.content.sha, pendiente: false, origen: 'github' });
+        return { ok: true, unido, nuevo: !remoto };
+      } catch (e) {
+        if ((e.status === 409 || e.status === 422) && intento === 0) { c = compLeer(); c.sha = ''; continue; }
+        throw e;
+      }
+    }
+    throw new Error('No se pudieron guardar las listas.');
+  }
+
   // Verifica la conexión de verdad: el repositorio existe, el token llega a él y puede escribir.
   async function ghProbar() {
     const c = ghConfig();
@@ -1213,12 +1297,73 @@ nav.tabs { align-items: center; }
     throw err;
   }
 
+  /* ---------- Respaldos: copias de todo el repositorio de datos en respaldos/AAAA-MM-DD_HHMM/ ----------
+     Se arman con la API de Git: cada copia apunta a los MISMOS archivos ya guardados (no se vuelven a subir), en un solo guardado. */
+  const MAX_RESPALDOS = 40;
+  function pad2(n) { return ('0' + n).slice(-2); }
+  function etiquetaRespaldo(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + '_' + pad2(d.getHours()) + pad2(d.getMinutes()); }
+  function rutaRef(c, plural) { return '/git/' + (plural ? 'refs' : 'ref') + '/heads/' + c.branch.split('/').map(encodeURIComponent).join('/'); }
+  async function leerArbol() {
+    const c = ghConfig();
+    const head = (await gh('GET', rutaRef(c))).object.sha;
+    const commit = await gh('GET', '/git/commits/' + head);
+    const arbol = await gh('GET', '/git/trees/' + commit.tree.sha + '?recursive=1');
+    return { head, treeSha: commit.tree.sha, items: (arbol.tree || []).filter(e => e.type === 'blob') };
+  }
+  function carpetasRespaldo(items) {
+    const m = {};
+    items.forEach(e => { const x = /^respaldos\/([^/]+)\/(.+)$/.exec(e.path); if (x) (m[x[1]] = m[x[1]] || []).push({ path: e.path, relativa: x[2], sha: e.sha }); });
+    return m;
+  }
+  // opciones: { soloSiNoHayHoy } -> no hace nada si ya hay una copia con la fecha de hoy.
+  async function ghRespaldo(motivo, opciones) {
+    opciones = opciones || {};
+    const c = ghConfig();
+    for (let intento = 0; intento < 2; intento++) {
+      const { head, treeSha, items } = await leerArbol();
+      const existentes = carpetasRespaldo(items), hoy = etiquetaRespaldo(new Date()).slice(0, 10);
+      if (opciones.soloSiNoHayHoy && Object.keys(existentes).some(k => k.indexOf(hoy) === 0)) return { omitido: true };
+      const carpeta = (c.carpeta || 'proyectos').replace(/^\/|\/$/g, '');
+      const origen = items.filter(e => !/^respaldos\//.test(e.path) && (e.path.indexOf(carpeta + '/') === 0 || e.path.indexOf('catalogo/') === 0));
+      if (!origen.length) return { omitido: true, vacio: true };
+      const nombre = etiquetaRespaldo(new Date());
+      const entradas = origen.map(e => ({ path: 'respaldos/' + nombre + '/' + e.path, mode: '100644', type: 'blob', sha: e.sha }));
+      // se conservan las últimas MAX_RESPALDOS copias
+      const claves = Object.keys(existentes).filter(k => k !== nombre).sort();
+      const sobran = claves.length + 1 - MAX_RESPALDOS;
+      if (sobran > 0) claves.slice(0, sobran).forEach(k => existentes[k].forEach(f => entradas.push({ path: f.path, mode: '100644', type: 'blob', sha: null })));
+      try {
+        const arbol = await gh('POST', '/git/trees', { base_tree: treeSha, tree: entradas });
+        const commit = await gh('POST', '/git/commits', { message: 'Respaldo automático' + (motivo ? ' (' + motivo + ')' : ''), tree: arbol.sha, parents: [head] });
+        await gh('PATCH', rutaRef(c, true), { sha: commit.sha });
+        return { ok: true, carpeta: nombre, archivos: origen.length };
+      } catch (e) { if ((e.status === 409 || e.status === 422) && intento === 0) continue; throw e; }
+    }
+    throw new Error('No se pudo crear el respaldo.');
+  }
+  async function ghRespaldos() {
+    const { items } = await leerArbol();
+    const m = carpetasRespaldo(items);
+    return Object.keys(m).sort().reverse().map(k => ({ carpeta: k, archivos: m[k].map(f => ({ relativa: f.relativa, sha: f.sha })) }));
+  }
+  async function ghLeerBlob(sha) {
+    const j = await gh('GET', '/git/blobs/' + sha);
+    return deB64(j.content);
+  }
+  async function ghLeerBlobProyecto(sha) { return migrar(JSON.parse(await ghLeerBlob(sha))); }
+  function respaldoDelDiaHecho() { return lsGet('despiece:respaldoDia') === etiquetaRespaldo(new Date()).slice(0, 10); }
+  function marcarRespaldoDelDia() { lsSet('despiece:respaldoDia', etiquetaRespaldo(new Date()).slice(0, 10)); }
+  // Autoguardado: minutos entre subidas a GitHub (0 = apagado)
+  function autoMinutos() { const v = lsGet('despiece:autoMin'); return v === null ? 3 : Math.max(0, Number(v) || 0); }
+  function setAutoMinutos(n) { lsSet('despiece:autoMin', String(n)); }
+
   root.Store = {
     VERSION_DATOS, LISTAS_BASE, nuevoProyecto, migrar, indice, guardarLocal, cargarLocal, borrarLocal, ultimoId, localDisponible,
     guardarListasPorDefecto, slug, serializar, descargar,
     catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, etiquetaCatalogo,
     get catalogo() { return catalogo; },
-    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar,
+    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
+    ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
   };
 })(window);
 
@@ -1395,6 +1540,7 @@ nav.tabs { align-items: center; }
   let agruparPor = 'modulo';     // vista de la pestaña Taller: 'modulo' (por módulo, con marcas de corte) o una agrupación
   let subPieza = '';             // subfiltro cuando se agrupa por tipo de pieza (Base, Lateral…)
   let catalogoOrigen = '';
+  let timerAuto = null, autoPausado = false, modulosSubidos = 0;
   let ultimoManual = 'modulos';  // última tabla abierta dentro de “Control manual”
   let busq = { largo: '', ancho: '', espesor: '' };
   let sucioRemoto = false;
@@ -1442,7 +1588,7 @@ nav.tabs { align-items: center; }
       let r = null;
       const inp = $('#dlgTxt', dlg); inp.focus(); inp.select();
       const fin = () => { r = inp.value.trim(); dlg.close(); };
-      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fin(); });
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); fin(); } });
       dlg.addEventListener('click', (e) => { const b = e.target.closest('button[data-r]'); if (b) { if (b.dataset.r === '1') fin(); else dlg.close(); } });
       dlg.addEventListener('close', () => res(r));
     });
@@ -1454,6 +1600,7 @@ nav.tabs { align-items: center; }
   function moduloPorId(id) { return D.modulos.find(m => String(m.id).trim() === id); }
   function materialesConocidos() {
     const s = new Set((D.listas.materiales || []).filter(Boolean));
+    St.materialesCompartidos().forEach(x => s.add(x));
     const p = D.proyecto;
     [p.materialProyecto, p.materialInteriores, p.materialFrentesBajos, p.materialFrentesAlacenas].forEach(x => x && s.add(x));
     D.modulos.forEach(m => m.material && s.add(m.material));
@@ -2019,8 +2166,74 @@ nav.tabs { align-items: center; }
     const L = D.listas;
     const filasAmb = (L.ambientes || []).map((a, i) => '<tr><td><input data-k="amb:' + i + ':nombre" value="' + esc(a.nombre) + '"></td><td><input data-k="amb:' + i + ':codigo" value="' + esc(a.codigo) + '" style="width:90px"></td><td class="acc"><button class="peligro ico" data-acc="amb-del" data-i="' + i + '">✕</button></td></tr>').join('');
     return '<div class="card"><h2>Ambientes y códigos</h2><p class="hint">El código forma el ID del módulo (ej. 01Coc). Cambiar un código no renombra IDs ya creados.</p><div class="tabla-wrap"><table class="t" style="max-width:520px"><thead><tr><th>Ambiente</th><th>Código</th><th></th></tr></thead><tbody>' + filasAmb + '</tbody></table></div><button class="sec mini" data-acc="amb-add" style="margin-top:8px">+ Ambiente</button></div>' +
-      '<div class="grid2">' + listaTexto('materiales', 'Materiales', 'Uno por línea. Aparecen como sugerencias en los campos de material.') + listaTexto('tiposPuerta', 'Tipos de puerta (apertura)', 'Push, Abatible, c·Buña…') + listaTexto('categoriasSueltas', 'Categorías de piezas sueltas', 'Perfil L, Aplicados, Ajustes…') + '</div>' +
+      tarjetaMateriales() + tarjetaTipos() + '<div class="grid2">' + listaTexto('tiposPuerta', 'Tipos de puerta (apertura)', 'Push, Abatible, c·Buña…') + listaTexto('categoriasSueltas', 'Categorías de piezas sueltas', 'Perfil L, Aplicados, Ajustes…') + '</div>' +
       '<div class="card"><button class="sec" data-acc="listas-def">Usar estas listas como predeterminadas para proyectos nuevos</button><p class="hint" style="margin-top:8px">Quedan guardadas en este navegador.</p></div>';
+  }
+  // Materiales: lista compartida por todo el equipo, guardada en el repositorio privado (catalogo/listas.json).
+  function tarjetaMateriales() {
+    const lista = St.materialesCompartidos(), est = St.materialesEstado(), gh = St.ghListo();
+    const estado = !gh ? '<span class="chip">Sólo en este navegador · conectá GitHub para compartirla</span>'
+      : (est.pendiente ? '<span class="chip" style="color:var(--warn)">Cambios sin subir a GitHub</span>' : '<span class="chip" style="color:var(--ok)">Sincronizada con GitHub</span>');
+    return '<div class="card"><div class="barra"><div><h2>Materiales <span class="chip">' + lista.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + estado +
+      (gh ? '<button class="sec mini" data-acc="mat-subir">Guardar en GitHub</button><button class="sec mini" data-acc="mat-traer">Traer de GitHub</button>' : '') + '</div></div>' +
+      '<p class="hint">Lista compartida por todo el equipo: aparece como sugerencia en todos los campos de material de cualquier proyecto. Al agregar, quitar o cambiar un material se guarda en GitHub automáticamente.</p>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="matNuevo" placeholder="Nuevo material, ej. Roble Natural" style="flex:1"><button data-acc="mat-add">+ Agregar</button></div>' +
+      '<textarea data-matlista style="min-height:180px">' + esc(lista.join('\n')) + '</textarea></div>';
+  }
+  let timerMat = null;
+  function chipListas() {
+    const est = St.compEstado();
+    if (!St.ghListo()) return '<span class="chip">Sólo en este navegador · conectá GitHub para compartirla</span>';
+    return est.pendiente ? '<span class="chip" style="color:var(--warn)">Cambios sin subir a GitHub</span>' : '<span class="chip" style="color:var(--ok)">Sincronizada con GitHub</span>';
+  }
+  function tarjetaTipos() {
+    const lista = St.tiposCompartidos(), gh = St.ghListo();
+    return '<div class="card"><div class="barra"><div><h2>Módulos tipo <span class="chip">' + lista.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + chipListas() +
+      (gh ? '<button class="sec mini" data-acc="mat-subir">Guardar en GitHub</button><button class="sec mini" data-acc="mat-traer">Traer de GitHub</button>' : '') + '</div></div>' +
+      '<p class="hint">Plantillas compartidas con todo el equipo (se guardan en GitHub junto con los materiales). Se crean con la ☆ de cualquier módulo y se usan con “+ Módulo tipo”.</p>' +
+      (lista.length ? lista.map((x, i) => '<div class="pieza-row"><span><strong>' + esc(x.nombre) + '</strong> · ' + esc(describirTipo(x)) + '</span><button class="peligro ico" data-acc="tipo-del" data-i="' + i + '" title="Borrar plantilla">✕</button></div>').join('') : '<div class="vacio">Todavía no hay plantillas.</div>') + '</div>';
+  }
+  function tarjetaMateriales() {
+    const lista = St.materialesCompartidos(), gh = St.ghListo();
+    return '<div class="card"><div class="barra"><div><h2>Materiales <span class="chip">' + lista.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + chipListas() +
+      (gh ? '<button class="sec mini" data-acc="mat-subir">Guardar en GitHub</button><button class="sec mini" data-acc="mat-traer">Traer de GitHub</button>' : '') + '</div></div>' +
+      '<p class="hint">Lista compartida por todo el equipo: aparece como sugerencia en todos los campos de material de cualquier proyecto. Al agregar, quitar o cambiar un material se guarda en GitHub automáticamente.</p>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="matNuevo" placeholder="Nuevo material, ej. Roble Natural" style="flex:1"><button data-acc="mat-add">+ Agregar</button></div>' +
+      '<textarea data-matlista style="min-height:180px">' + esc(lista.join('\n')) + '</textarea></div>';
+  }
+  // Si un cambio deja una lista con muy poco de lo que tenía (por ejemplo, se vació por accidente), pide confirmación y hace un respaldo antes.
+  async function protegerReduccion(antes, despues, que) {
+    if (!St.ghListo() || antes < 3) return true;
+    if (!(despues === 0 || despues < antes * 0.5)) return true;
+    if (!(await confirmar('Vas a dejar ' + que + ' con ' + despues + ' elemento(s) (antes había ' + antes + '). ¿Seguro? Antes de guardar se hace un respaldo, por si te arrepentís.', 'Sí, continuar'))) return false;
+    try { await St.ghRespaldo('antes de reducir ' + que); St.marcarRespaldoDelDia(); }
+    catch (e) { if (!(await confirmar('No pude hacer el respaldo previo (' + e.message + '). ¿Continuar igual?', 'Continuar sin respaldo'))) return false; }
+    return true;
+  }
+  function programarSubidaListas() {
+    if (!St.ghListo()) { toast('Guardado en este navegador. Conectá GitHub para compartirlo con el equipo.', 'ok'); return; }
+    clearTimeout(timerMat);
+    timerMat = setTimeout(() => subirListas(), 700);
+  }
+  async function cambioMateriales(lista) {
+    if (!(await protegerReduccion(St.materialesCompartidos().length, St.limpiarLista(lista).length, 'la lista de materiales'))) { render(); return; }
+    St.materialesGuardarLocal(lista); render(); programarSubidaListas();
+  }
+  async function cambioTipos(lista, que) {
+    if (!(await protegerReduccion(St.tiposCompartidos().length, lista.length, 'la lista de módulos tipo'))) return false;
+    St.tiposGuardarLocal(lista); if (tab === 'listas') render(); programarSubidaListas(); return true;
+  }
+  async function subirListas() {
+    try {
+      const r = await St.ghGuardarListas();
+      toast(r.unido ? 'Listas guardadas en GitHub (se unieron con cambios de otra persona)' : 'Listas guardadas en GitHub', 'ok');
+      postSubida(r.nuevo, 'listas compartidas nuevas');
+    } catch (e) { toast('No se pudo subir las listas: ' + e.message + ' (queda pendiente en este navegador)', 'err'); }
+    if (tab === 'listas') render();
+  }
+  function tiposDisponibles() {
+    const comp = St.tiposCompartidos(), nombres = new Set(comp.map(x => String(x.nombre).toLowerCase()));
+    return comp.concat((D.listas.modulosTipo || []).filter(x => x && x.nombre && x.modulo && !nombres.has(String(x.nombre).toLowerCase())));
   }
   function listaTexto(k, t, ayuda) {
     return '<div class="card"><h2>' + t + '</h2><p class="hint">' + ayuda + '</p><textarea data-lista="' + k + '" style="min-height:160px">' + esc((D.listas[k] || []).join('\n')) + '</textarea></div>';
@@ -2119,6 +2332,7 @@ nav.tabs { align-items: center; }
     clearTimeout(timerGuardado);
     timerGuardado = setTimeout(() => {
       const ok = St.guardarLocal(D);
+      armarAuto();
       setEstado(ok ? 'Guardado en este navegador ' + hora() + (St.ghListo() ? ' · sin subir a GitHub' : '') : 'No se pudo guardar en el navegador — descargá el .json', ok ? (St.ghListo() ? 'warn' : 'ok') : 'err');
     }, 350);
   }
@@ -2173,6 +2387,7 @@ nav.tabs { align-items: center; }
       if (el.dataset.busq !== undefined) { busq[el.dataset.busq] = el.value; render(); return; }
       if (el.dataset.agrupar !== undefined) { agruparPor = el.value; subPieza = ''; render(); return; }
       if (el.dataset.subpieza !== undefined) { subPieza = el.value; render(); return; }
+      if (el.dataset.matlista !== undefined) { cambioMateriales(el.value.split('\n')); return; }
       if (el.dataset.lista) { D.listas[el.dataset.lista] = el.value.split('\n').map(s => s.trim()).filter(Boolean); tocado(true); render(); return; }
       const k = el.dataset.k; if (!k) return;
       const p = k.split(':');
@@ -2197,6 +2412,7 @@ nav.tabs { align-items: center; }
       accion(b.dataset.acc, b.dataset.i !== undefined ? Number(b.dataset.i) : null, b);
     });
     document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target && e.target.id === 'matNuevo') { e.preventDefault(); accion('mat-add', null, null); return; }
       if (!(e.ctrlKey || e.metaKey)) return;
       const k = e.key.toLowerCase();
       if (k === 's') { e.preventDefault(); guardar(); return; }
@@ -2220,6 +2436,23 @@ nav.tabs { align-items: center; }
       tocado(true); render(); return;
     }
     if (a === 'cut-clear') { if (await confirmar('¿Sacar la marca de “cortada” a todas las piezas?', 'Limpiar marcas')) { D.cortadas = {}; tocado(true); render(); } return; }
+    if (a === 'mat-add') {
+      const inp = document.getElementById('matNuevo'); const v = inp ? inp.value.trim() : '';
+      if (!v) { toast('Escribí el nombre del material.', 'err'); return; }
+      const lista = St.materialesCompartidos();
+      if (lista.some(x => x.toLowerCase() === v.toLowerCase())) { toast('Ese material ya está en la lista.', 'err'); return; }
+      cambioMateriales(lista.concat([v])); return;
+    }
+    if (a === 'mat-subir') { clearTimeout(timerMat); await subirListas(); return; }
+    if (a === 'tipo-del') {
+      const lista = St.tiposCompartidos(), x = lista[i]; if (!x) return;
+      if (!(await confirmar('¿Borrar la plantilla “' + x.nombre + '”?', 'Borrar'))) return;
+      await cambioTipos(lista.filter((_, k) => k !== i)); return;
+    }
+    if (a === 'mat-traer') {
+      try { const r = await St.ghTraerListas(true); toast(r.noExiste ? 'Todavía no hay listas en GitHub: tocá “Guardar en GitHub” para crearlas.' : 'Listas traídas de GitHub (' + r.materiales + ' materiales, ' + r.tipos + ' módulos tipo)', r.noExiste ? '' : 'ok'); render(); } catch (e) { toast('No pude traer la lista: ' + e.message, 'err'); }
+      return;
+    }
     if (a === 'tipo-nuevo') { dialogoTipo(); return; }
     if (a === 'f-nuevo') {
       const sel = moduloPorId(fichaSel), amb = sel ? sel.ambiente : '';
@@ -2331,26 +2564,47 @@ nav.tabs { align-items: center; }
   /* ------------------------------------------------------------------ proyectos, guardado, GitHub */
   function abrir(datos) {
     D = datos; sucioRemoto = false; recalcular(); tab = D.proyecto.nombre ? tab : 'proyecto'; busq = { largo: '', ancho: '', espesor: '' };
-    St.guardarLocal(D); reiniciarDeshacer(); setEstado('Proyecto abierto', ''); render();
+    St.guardarLocal(D); reiniciarDeshacer(); autoPausado = false; clearTimeout(timerAuto); timerAuto = null; modulosSubidos = D.meta.sha ? D.modulos.length : 0; setEstado('Proyecto abierto', ''); render();
   }
 
-  async function guardar() {
+  // Autoguardado en GitHub: cada N minutos (3 por defecto) si hay cambios sin subir. Se configura en el botón GitHub.
+  function armarAuto() {
+    const min = St.autoMinutos();
+    if (!min || !St.ghListo() || !D || !D.proyecto.nombre || autoPausado || timerAuto || !sucioRemoto) return;
+    timerAuto = setTimeout(async () => { timerAuto = null; if (sucioRemoto) await guardar(true); }, min * 60000);
+  }
+  async function postSubida(nuevo, motivo) {
+    // Respaldo automático: al agregar un archivo nuevo, y una vez por día en el primer guardado.
+    try {
+      if (nuevo) { const r = await St.ghRespaldo(motivo); St.marcarRespaldoDelDia(); if (r.ok) toast('Respaldo automático creado (' + r.archivos + ' archivos)', 'ok'); }
+      else if (!St.respaldoDelDiaHecho()) { const r = await St.ghRespaldo('diario', { soloSiNoHayHoy: true }); St.marcarRespaldoDelDia(); if (r.ok) toast('Respaldo diario creado (' + r.archivos + ' archivos)', 'ok'); }
+    } catch (e) { /* silencioso: se reintenta en el próximo guardado */ }
+  }
+  async function guardar(auto) {
+    const esAuto = auto === true;
     clearTimeout(timerGuardado);
     const okLocal = St.guardarLocal(D);
     if (!St.ghListo()) {
+      if (esAuto) return;
       setEstado(okLocal ? 'Guardado en este navegador ' + hora() : 'No se pudo guardar en el navegador', okLocal ? 'ok' : 'err');
       toast(okLocal ? 'Guardado en este navegador. Para tener historial, conectá GitHub.' : 'No se pudo guardar localmente: usá “Descargar .json”', okLocal ? 'ok' : 'err');
       return;
     }
-    if (!D.proyecto.nombre) { toast('Ponele nombre al proyecto antes de subirlo.', 'err'); tab = 'proyecto'; render(); return; }
-    setEstado('Subiendo a GitHub…', '');
+    if (!D.proyecto.nombre) { if (esAuto) return; toast('Ponele nombre al proyecto antes de subirlo.', 'err'); tab = 'proyecto'; render(); return; }
+    if (!esAuto) autoPausado = false;
+    // Protección: el autoguardado no sube un proyecto que quedó sin módulos si antes tenía (por si se borró todo sin querer).
+    if (esAuto && D.modulos.length === 0 && modulosSubidos > 0) { autoPausado = true; setEstado('Autoguardado en pausa: el proyecto quedó sin módulos. Si fue a propósito, tocá Guardar; si no, usá Deshacer.', 'warn'); return; }
+    setEstado(esAuto ? 'Autoguardando en GitHub…' : 'Subiendo a GitHub…', '');
     try {
-      await St.ghGuardar(D);
-      St.guardarLocal(D); sucioRemoto = false;
-      setEstado('Guardado en GitHub ' + hora(), 'ok'); toast('Guardado en GitHub', 'ok'); actualizarBotones();
+      const j = await St.ghGuardar(D, esAuto ? 'Autoguardado: ' + D.proyecto.nombre : undefined);
+      St.guardarLocal(D); sucioRemoto = false; modulosSubidos = D.modulos.length;
+      setEstado((esAuto ? 'Autoguardado en GitHub ' : 'Guardado en GitHub ') + hora(), 'ok'); if (!esAuto) toast('Guardado en GitHub', 'ok'); actualizarBotones();
+      postSubida(j._nuevo, 'proyecto nuevo: ' + D.proyecto.nombre);
     } catch (e) {
-      if (e.conflicto) { setEstado('Conflicto con GitHub', 'err'); resolverConflicto(); }
-      else { setEstado('No se pudo subir: ' + e.message, 'err'); toast(e.message, 'err'); }
+      if (e.conflicto) {
+        autoPausado = true; setEstado('Conflicto con GitHub', 'err');
+        if (!document.querySelector('dialog[open]')) resolverConflicto();
+      } else { setEstado('No se pudo subir' + (esAuto ? ' (autoguardado, se reintenta)' : '') + ': ' + e.message, 'err'); if (!esAuto) toast(e.message, 'err'); else armarAuto(); }
     }
   }
   function resolverConflicto() {
@@ -2359,14 +2613,14 @@ nav.tabs { align-items: center; }
     dlg.addEventListener('click', async (e) => {
       const b = e.target.closest('button[data-r]'); if (!b) return; dlg.close();
       try {
-        if (b.dataset.r === 'pisar') { await St.ghGuardar(D, 'Guardar ' + D.proyecto.nombre + ' (reemplaza versión anterior)', true); St.guardarLocal(D); sucioRemoto = false; setEstado('Guardado en GitHub ' + hora(), 'ok'); toast('Guardado en GitHub', 'ok'); }
+        if (b.dataset.r === 'pisar') { await St.ghGuardar(D, 'Guardar ' + D.proyecto.nombre + ' (reemplaza versión anterior)', true); St.guardarLocal(D); sucioRemoto = false; autoPausado = false; modulosSubidos = D.modulos.length; setEstado('Guardado en GitHub ' + hora(), 'ok'); toast('Guardado en GitHub', 'ok'); }
         if (b.dataset.r === 'bajar') { const r = await St.ghLeer(D.meta.archivo); r.datos.meta.id = D.meta.id; r.datos.meta.archivo = D.meta.archivo; r.datos.meta.sha = r.sha; abrir(r.datos); toast('Se cargó la versión de GitHub', 'ok'); }
       } catch (err) { toast(err.message, 'err'); }
     });
   }
 
   function dialogoProyectos() {
-    const dlg = dialogo('<h3>Proyectos</h3><div id="pLista"></div><div class="pie-d" style="justify-content:space-between"><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-r="nuevo">+ Nuevo proyecto</button><button class="sec" data-r="import">Abrir archivo .json</button></div><button class="sec" data-r="x">Cerrar</button></div>');
+    const dlg = dialogo('<h3>Proyectos</h3><div id="pLista"></div><div class="pie-d" style="justify-content:space-between"><div style="display:flex;gap:8px;flex-wrap:wrap"><button data-r="nuevo">+ Nuevo proyecto</button><button class="sec" data-r="import">Abrir archivo .json</button>' + (St.ghListo() ? '<button class="sec" data-r="resp">Respaldos…</button>' : '') + '</div><button class="sec" data-r="x">Cerrar</button></div>');
     const lista = $('#pLista', dlg);
     async function pintar() {
       const loc = St.indice();
@@ -2390,10 +2644,20 @@ nav.tabs { align-items: center; }
         if (b.dataset.dup) { const d = St.cargarLocal(b.dataset.dup); d.meta.id = 'p' + Date.now().toString(36); d.meta.archivo = ''; d.meta.sha = ''; d.proyecto.nombre += ' (copia)'; St.guardarLocal(d); dlg.close(); abrir(d); toast('Proyecto duplicado', 'ok'); return; }
         if (b.dataset.borrar) { if (b.dataset.borrar === D.meta.id) { toast('Ese es el proyecto abierto: abrí otro antes de borrarlo.', 'err'); return; } if (await confirmar('¿Borrar este proyecto del navegador? (Si está en GitHub, queda ahí.)', 'Borrar')) { St.borrarLocal(b.dataset.borrar); pintar(); } return; }
         if (b.dataset.gh) { const r = await St.ghLeer(b.dataset.gh); const ex = St.indice().find(x => x.archivo === b.dataset.gh); if (ex) r.datos.meta.id = ex.id; r.datos.meta.archivo = b.dataset.gh; r.datos.meta.sha = r.sha; dlg.close(); abrir(r.datos); toast('Proyecto abierto desde GitHub', 'ok'); return; }
-        if (b.dataset.ghdel) { if (await confirmar('¿Borrar “' + b.dataset.ghdel + '” de GitHub? El historial de versiones del repositorio queda, pero el archivo desaparece de la lista.', 'Borrar de GitHub')) { await St.ghBorrar(b.dataset.ghdel); pintar(); } return; }
+        if (b.dataset.ghdel) {
+          if (await confirmar('¿Borrar “' + b.dataset.ghdel + '” de GitHub? Antes se hace un respaldo de todo: podés recuperarlo desde Proyectos → Respaldos.', 'Borrar de GitHub')) {
+            try { await St.ghRespaldo('antes de borrar ' + b.dataset.ghdel); St.marcarRespaldoDelDia(); }
+            catch (e) { if (!(await confirmar('No pude hacer el respaldo previo (' + e.message + '). ¿Borrar igual?', 'Borrar sin respaldo'))) return; }
+            await St.ghBorrar(b.dataset.ghdel);
+            if (D && D.meta && D.meta.archivo === b.dataset.ghdel) { clearTimeout(timerAuto); timerAuto = null; autoPausado = true; D.meta.sha = ''; sucioRemoto = true; setEstado('Ese proyecto se borró de GitHub: autoguardado en pausa. Tocá Guardar si querés volver a subirlo.', 'warn'); }
+            pintar();
+          }
+          return;
+        }
         if (b.dataset.r === 'x') dlg.close();
         if (b.dataset.r === 'nuevo') { const n = await pedirTexto('Nombre del proyecto', '', 'Crear'); if (n) { dlg.close(); const d = St.nuevoProyecto(n); abrir(d); tab = 'ficha'; render(); } }
         if (b.dataset.r === 'import') { dlg.close(); importarArchivo(); }
+        if (b.dataset.r === 'resp') { dlg.close(); dialogoRespaldos(); }
       } catch (err) { toast(err.message, 'err'); }
     });
   }
@@ -2414,13 +2678,16 @@ nav.tabs { align-items: center; }
       '<div class="grid2"><div><label class="l">Usuario u organización</label><input id="gOwner" value="' + esc(c.owner) + '"></div><div><label class="l">Repositorio</label><input id="gRepo" value="' + esc(c.repo) + '" placeholder="mestizo-proyectos"></div><div><label class="l">Rama</label><input id="gBranch" value="' + esc(c.branch) + '"></div><div><label class="l">Carpeta</label><input id="gCarpeta" value="' + esc(c.carpeta) + '"></div></div>' +
       '<div style="margin-top:12px"><label class="l">Token</label><input id="gToken" type="password" value="' + esc(c.token) + '" autocomplete="off" placeholder="github_pat_…"></div>' +
       (St.ghListo() ? '<div style="margin-top:12px"><button class="sec mini" data-r="enlace">🔗 Copiar enlace de configuración para el equipo</button><p class="hint" style="margin:6px 0 0">Quien abra ese enlace queda conectado sin tipear nada. <strong>El enlace contiene el token: mandalo sólo por un canal privado</strong> y no lo pegues en lugares públicos.</p></div>' : '') +
+      (St.ghListo() ? '<div style="margin-top:12px"><label class="l">Autoguardado en GitHub</label><select id="gAuto" style="max-width:240px">' + [[0, 'Apagado'], [1, 'Cada 1 minuto'], [3, 'Cada 3 minutos'], [5, 'Cada 5 minutos'], [10, 'Cada 10 minutos']].map(o => '<option value="' + o[0] + '"' + (St.autoMinutos() === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select><p class="hint" style="margin:6px 0 0">Sube el proyecto solo si hay cambios sin subir, además del botón Guardar. Cada subida es una versión en el Historial (se marcan como “Autoguardado”). Con 3 minutos son, como máximo, 20 por hora: muy por debajo de los límites de GitHub.</p><button class="sec mini" data-r="resp" style="margin-top:8px">Respaldos…</button></div>' : '') +
       (St.ghEmbebida() ? '<p class="hint" style="margin-top:8px">Esta copia de la app trae datos de conexión incluidos.</p>' : '') +
       '<div class="pie-d"><button class="sec" data-r="x">Cancelar</button>' + (St.ghListo() ? '<button class="peligro" data-r="off">Desconectar</button>' : '') + '<button class="sec" data-r="test">Probar</button><button data-r="ok">Guardar</button></div><div id="gMsg" class="hint" style="margin-top:8px"></div>');
     const leer = () => ({ owner: $('#gOwner', dlg).value.trim(), repo: $('#gRepo', dlg).value.trim(), branch: $('#gBranch', dlg).value.trim() || 'main', carpeta: $('#gCarpeta', dlg).value.trim().replace(/^\/|\/$/g, ''), token: $('#gToken', dlg).value.trim() });
+    dlg.addEventListener('change', (e) => { if (e.target.id === 'gAuto') { St.setAutoMinutos(Number(e.target.value)); clearTimeout(timerAuto); timerAuto = null; armarAuto(); toast(Number(e.target.value) ? 'Autoguardado cada ' + e.target.value + ' min' : 'Autoguardado apagado', 'ok'); } });
     dlg.addEventListener('click', async (e) => {
       const b = e.target.closest('button[data-r]'); if (!b) return;
       const r = b.dataset.r;
       if (r === 'x') { dlg.close(); return; }
+      if (r === 'resp') { dlg.close(); dialogoRespaldos(); return; }
       if (r === 'off') { St.ghGuardarConfig({ owner: '', repo: '', branch: 'main', carpeta: 'proyectos', token: '', off: true }); dlg.close(); render(); toast('GitHub desconectado'); return; }
       if (r === 'enlace') {
         const url = St.configAEnlace(St.ghConfig(), location.href);
@@ -2487,7 +2754,7 @@ nav.tabs { align-items: center; }
     return [t.modulo.tipo, pu || 'sin puertas', (t.cajones || []).length ? (t.cajones.length + ' cajón(es)') : ''].filter(Boolean).join(' · ');
   }
   function dialogoTipo() {
-    const tipos = D.listas.modulosTipo || [];
+    const tipos = tiposDisponibles();
     if (!tipos.length) { toast('No hay módulos tipo. Armá uno con la ☆ de cualquier módulo.', 'err'); return; }
     const ult = D.modulos[D.modulos.length - 1];
     const amb0 = ult ? ult.ambiente : ((D.listas.ambientes[0] || {}).nombre || '');
@@ -2506,7 +2773,7 @@ nav.tabs { align-items: center; }
       const b = e.target.closest('button[data-r]'); if (!b) return;
       const idx = Number(sel.value), t = tipos[idx];
       if (b.dataset.r === 'x') { dlg.close(); return; }
-      if (b.dataset.r === 'del') { if (await confirmar('¿Borrar la plantilla “' + t.nombre + '”? Los módulos ya creados con ella no cambian.', 'Borrar')) { tipos.splice(idx, 1); tocado(true); dlg.close(); toast('Plantilla borrada'); } return; }
+      if (b.dataset.r === 'del') { if (await confirmar('¿Borrar la plantilla “' + t.nombre + '”? Los módulos ya creados con ella no cambian.', 'Borrar')) { const nom = String(t.nombre).toLowerCase(); const ok = await cambioTipos(St.tiposCompartidos().filter(x => String(x.nombre).toLowerCase() !== nom)); if (ok) { D.listas.modulosTipo = (D.listas.modulosTipo || []).filter(x => String(x.nombre).toLowerCase() !== nom); tocado(true); dlg.close(); toast('Plantilla borrada'); } } return; }
       if (b.dataset.r === 'ok') {
         const amb = $('#tpAmb', dlg).value, n = Math.max(1, Math.min(50, Math.floor(num($('#tpN', dlg).value) || 1)));
         const L = $('#tpL', dlg).value, H = $('#tpH', dlg).value, P = $('#tpP', dlg).value;
@@ -2538,11 +2805,66 @@ nav.tabs { align-items: center; }
       puertas: D.puertas.filter(r => String(r.idModulo).trim() === id).map(r => { const c = JSON.parse(JSON.stringify(r)); delete c.idModulo; return c; }),
       cajones: D.cajones.filter(r => String(r.idModulo).trim() === id).map(r => ({ h: r.h, dl: rel(r.l), p: r.p, fondo: r.fondo, dlPlaca: rel(r.lPlaca), aPlaca: r.aPlaca })),
     };
-    const lista = D.listas.modulosTipo || (D.listas.modulosTipo = []);
-    const ya = lista.findIndex(t => t.nombre.toLowerCase() === nombre.toLowerCase());
+    const lista = St.tiposCompartidos().slice();
+    const ya = lista.findIndex(x => String(x.nombre).toLowerCase() === nombre.toLowerCase());
     if (ya >= 0) { if (!(await confirmar('Ya existe una plantilla llamada “' + lista[ya].nombre + '”. ¿La reemplazo?', 'Reemplazar'))) return; lista[ya] = tipo; } else lista.push(tipo);
-    tocado(true);
-    toast('Guardado como módulo tipo “' + nombre + '”. Para tenerlo en proyectos nuevos: Listas → “Usar estas listas como predeterminadas”.', 'ok');
+    St.tiposGuardarLocal(lista); programarSubidaListas();
+    toast('Guardado como módulo tipo “' + nombre + '”' + (St.ghListo() ? ' y compartido con el equipo.' : ' (sólo en este navegador: conectá GitHub para compartirlo).'), 'ok');
+  }
+
+  /* ---- Respaldos ---- */
+  function fechaRespaldo(k) { const m = /^(\d{4})-(\d{2})-(\d{2})_(\d{2})(\d{2})$/.exec(k); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : k; }
+  async function dialogoRespaldos() {
+    const cfg = St.ghConfig(), carpeta = (cfg.carpeta || 'proyectos').replace(/^\/|\/$/g, '');
+    const dlg = dialogo('<h3>Respaldos</h3><p class="hint">Copias de todos tus proyectos y listas. Se crean solas al agregar un proyecto nuevo, una vez por día, y antes de borrar un proyecto o de reducir mucho una lista. Se conservan las últimas 40. Si algo se borra por accidente, se recupera desde acá.</p>' +
+      '<div style="margin-bottom:10px"><button class="sec mini" data-r="ahora">Crear respaldo ahora</button></div><div id="rLista"><div class="vacio">Consultando…</div></div><div class="pie-d"><button class="sec" data-r="x">Cerrar</button></div>');
+    let datos = [];
+    async function pintar() {
+      try {
+        datos = await St.ghRespaldos();
+        $('#rLista', dlg).innerHTML = datos.length ? datos.map((r, i) => '<div class="fila" style="flex-wrap:wrap"><div><strong>' + esc(fechaRespaldo(r.carpeta)) + '</strong><small>' + r.archivos.length + ' archivo(s)</small></div><button class="mini" data-ver="' + i + '">Ver</button><div id="rf-' + i + '" style="width:100%"></div></div>').join('') : '<div class="vacio">Todavía no hay respaldos. Se crean solos al agregar un proyecto nuevo o al guardar por primera vez en el día.</div>';
+      } catch (e) { $('#rLista', dlg).innerHTML = '<div class="vacio" style="color:var(--err)">' + esc(e.message) + '</div>'; }
+    }
+    pintar();
+    dlg.addEventListener('click', async (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      try {
+        if (b.dataset.r === 'x') { dlg.close(); return; }
+        if (b.dataset.r === 'ahora') { b.disabled = true; const r = await St.ghRespaldo('manual'); St.marcarRespaldoDelDia(); toast(r.ok ? 'Respaldo creado (' + r.archivos + ' archivos)' : 'No hay archivos para respaldar todavía', r.ok ? 'ok' : ''); b.disabled = false; pintar(); return; }
+        if (b.dataset.ver !== undefined) {
+          const i = Number(b.dataset.ver), r = datos[i], cont = $('#rf-' + i, dlg);
+          if (cont.innerHTML) { cont.innerHTML = ''; return; }
+          cont.innerHTML = r.archivos.map((f, j) => {
+            const esProy = f.relativa.indexOf(carpeta + '/') === 0, esListas = f.relativa === 'catalogo/listas.json', esCat = f.relativa === 'catalogo/materiales.json';
+            const boton = esProy ? '<button class="mini" data-abrir="' + i + ':' + j + '">Abrir</button>' : esListas ? '<button class="mini" data-restl="' + i + ':' + j + '">Restaurar listas</button>' : esCat ? '<button class="mini" data-restc="' + i + ':' + j + '">Restaurar catálogo</button>' : '';
+            return '<div class="fila" style="background:var(--card);margin-top:6px"><div><strong>' + esc(f.relativa.split('/').pop().replace(/\.json$/i, '')) + '</strong><small>' + esc(f.relativa) + '</small></div>' + boton + '</div>';
+          }).join('');
+          return;
+        }
+        const ref = (k) => { const [i, j] = k.split(':').map(Number); return { r: datos[i], f: datos[i].archivos[j] }; };
+        if (b.dataset.abrir) {
+          const { r, f } = ref(b.dataset.abrir);
+          const d = await St.ghLeerBlobProyecto(f.sha);
+          const nombreArch = f.relativa.split('/').pop();
+          const existe = (await St.ghListar()).some(x => x.nombre === nombreArch);
+          d.meta.id = 'p' + Date.now().toString(36); d.meta.sha = '';
+          if (existe) { d.meta.archivo = ''; d.proyecto.nombre = (d.proyecto.nombre || nombreArch) + ' (respaldo ' + fechaRespaldo(r.carpeta) + ')'; } else d.meta.archivo = nombreArch;
+          dlg.close(); abrir(d); sucioRemoto = true; tab = 'proyecto'; render();
+          setEstado('Respaldo abierto — tocá Guardar para dejarlo en GitHub', 'warn');
+          toast(existe ? 'Abierto como copia: el proyecto original sigue en GitHub' : 'Proyecto recuperado: tocá Guardar para volver a subirlo', 'ok');
+          return;
+        }
+        if (b.dataset.restl) {
+          const { r, f } = ref(b.dataset.restl);
+          if (!(await confirmar('¿Restaurar los materiales y módulos tipo de la copia del ' + fechaRespaldo(r.carpeta) + '? Reemplaza las listas actuales (se guardan en GitHub).', 'Restaurar'))) return;
+          St.compRestaurar(await St.ghLeerBlob(f.sha)); dlg.close(); render(); await subirListas(); return;
+        }
+        if (b.dataset.restc) {
+          const { f } = ref(b.dataset.restc);
+          const items = St.normalizarCatalogo(JSON.parse(await St.ghLeerBlob(f.sha))); await St.catalogoGuardar(items); toast('Catálogo restaurado en este navegador (' + items.length + ' ítems)', 'ok'); return;
+        }
+      } catch (err) { toast(err.message, 'err'); }
+    });
   }
 
   /* ---- Comparar versiones ---- */
@@ -2574,6 +2896,9 @@ nav.tabs { align-items: center; }
     }
     await St.catalogoCargarLocal();
     St.catalogoAutomatico().then((o) => { catalogoOrigen = o; if (D) render(); });
+    if (St.ghListo()) {
+      (St.materialesEstado().pendiente ? St.ghGuardarListas() : St.ghTraerListas().then(r => (r && r.noExiste) ? St.ghGuardarListas() : r)).then(() => { if (D) render(); }).catch(() => { /* sin conexión: se usa la lista guardada */ });
+    }
     eventos();
     $('#btnUndo').onclick = deshacer; $('#btnRedo').onclick = rehacer;
     $('#btnProy').onclick = dialogoProyectos;
