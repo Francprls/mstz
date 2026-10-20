@@ -1170,11 +1170,47 @@ nav.tabs { align-items: center; }
     const ex = await gh('GET', '/contents/' + encRuta(ruta) + '?ref=' + encodeURIComponent(c.branch));
     return gh('DELETE', '/contents/' + encRuta(ruta), { message: 'Borrar ' + nombreArchivo, sha: ex.sha, branch: c.branch });
   }
+  // Verifica la conexión de verdad: el repositorio existe, el token llega a él y puede escribir.
+  async function ghProbar() {
+    const c = ghConfig();
+    let repo;
+    try { repo = await gh('GET', ''); }
+    catch (e) {
+      if (e.status === 404) throw new Error('No encuentro el repositorio “' + c.owner + '/' + c.repo + '”. Revisá que el usuario y el nombre estén bien escritos y que el token tenga acceso a ESE repositorio (en un repositorio privado, GitHub responde “no encontrado” cuando el token no tiene permiso).');
+      throw e;
+    }
+    if (repo && repo.permissions && repo.permissions.push === false) throw new Error('El token puede leer “' + c.repo + '” pero no escribir: en Permissions → Contents elegí “Read and write”.');
+    return repo;
+  }
+  async function leerArchivoTexto(ruta) {
+    const c = ghConfig();
+    const j = await gh('GET', '/contents/' + encRuta(ruta) + '?ref=' + encodeURIComponent(c.branch));
+    if (Array.isArray(j)) return null;
+    return j.content ? deB64(j.content) : await (await fetch(j.download_url)).text();
+  }
+  // Busca el catálogo en catalogo/materiales.json y, si no está, en lugares cercanos; si no lo encuentra, explica qué hay en el repositorio.
   async function ghTraerCatalogo() {
     const c = ghConfig();
-    const j = await gh('GET', '/contents/catalogo/materiales.json?ref=' + encodeURIComponent(c.branch));
-    let texto = j.content ? deB64(j.content) : await (await fetch(j.download_url)).text();
-    return normalizarCatalogo(JSON.parse(texto));
+    const candidatos = ['catalogo/materiales.json', 'materiales.json'];
+    try {
+      const carp = await gh('GET', '/contents/catalogo?ref=' + encodeURIComponent(c.branch));
+      if (Array.isArray(carp)) carp.filter(f => f.type === 'file' && /\.json$/i.test(f.name) && /material/i.test(f.name)).forEach(f => { if (candidatos.indexOf(f.path) < 0) candidatos.push(f.path); });
+    } catch (e) { /* no hay carpeta catalogo */ }
+    for (const ruta of candidatos) {
+      let texto = null;
+      try { texto = await leerArchivoTexto(ruta); } catch (e) { if (!e.noExiste) throw e; }
+      if (texto) return normalizarCatalogo(JSON.parse(texto));
+    }
+    let hay = '';
+    try {
+      const raiz = await gh('GET', '/contents/?ref=' + encodeURIComponent(c.branch));
+      hay = Array.isArray(raiz) && raiz.length ? ' En la raíz del repositorio veo: ' + raiz.map(f => f.name + (f.type === 'dir' ? '/' : '')).join(', ') + '.' : ' El repositorio está vacío en la rama “' + c.branch + '”.';
+    } catch (e) {
+      hay = e.status === 404 ? ' No puedo ver el contenido de la rama “' + c.branch + '” (¿la rama se llama distinto?).' : '';
+    }
+    const err = new Error('No encontré “catalogo/materiales.json” en ' + c.owner + '/' + c.repo + ' (rama ' + c.branch + ').' + hay);
+    err.catalogoNoEncontrado = true;
+    throw err;
   }
 
   root.Store = {
@@ -1182,7 +1218,7 @@ nav.tabs { align-items: center; }
     guardarListasPorDefecto, slug, serializar, descargar,
     catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, etiquetaCatalogo,
     get catalogo() { return catalogo; },
-    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo,
+    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar,
   };
 })(window);
 
@@ -2237,7 +2273,7 @@ nav.tabs { align-items: center; }
     if (a === 'prov-csv') { exportarProveedorCSV(); return; }
     if (a === 'prov-json') { St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.json', JSON.stringify(R.proveedor, null, 2)); return; }
     if (a === 'cat-file') { elegirArchivo('.json', async (txt) => { try { const items = St.normalizarCatalogo(JSON.parse(txt)); await St.catalogoGuardar(items); toast('Catálogo cargado: ' + items.length + ' ítems', 'ok'); render(); } catch (err) { toast(err.message, 'err'); } }); return; }
-    if (a === 'cat-gh') { try { const items = await St.ghTraerCatalogo(); await St.catalogoGuardar(items); toast('Catálogo traído de GitHub: ' + items.length + ' ítems', 'ok'); render(); } catch (err) { toast('No pude traer el catálogo: ' + err.message, 'err'); } return; }
+    if (a === 'cat-gh') { try { const items = await St.ghTraerCatalogo(); await St.catalogoGuardar(items); toast('Catálogo traído de GitHub: ' + items.length + ' ítems', 'ok'); render(); } catch (err) { dialogo('<h3>No pude traer el catálogo</h3><p style="font-size:13.5px;line-height:1.5">' + esc(err.message) + '</p><div class="pie-d"><button data-r="x" onclick="this.closest(\'dialog\').close()">Entendido</button></div>'); } return; }
   }
 
   // Imprime sólo una sección de la pantalla (el resto se oculta mientras dura la impresión).
@@ -2398,6 +2434,7 @@ nav.tabs { align-items: center; }
         St.ghGuardarConfig(cfg);
         const msg = $('#gMsg', dlg); msg.style.color = ''; msg.textContent = 'Probando…';
         try {
+          await St.ghProbar();
           const arch = await St.ghListar();
           msg.style.color = 'var(--ok)'; msg.textContent = 'Conexión correcta. Proyectos en el repositorio: ' + arch.length + '.';
           if (r === 'ok') { dlg.close(); render(); toast('GitHub conectado', 'ok'); setEstado('GitHub conectado', 'ok'); }
