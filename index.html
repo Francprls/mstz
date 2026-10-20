@@ -175,13 +175,13 @@ table.tabla-corte tr.cortada td.chk { text-decoration: none; }
 /* Tapacantos en la ficha */
 .tcard { border: 1px solid var(--borde); border-radius: 12px; background: var(--card2); padding: 10px 12px; margin-bottom: 8px; }
 .tcard select, .tcard input { min-width: 0 !important; width: 100%; }
-.tc-top { display: grid; grid-template-columns: 1fr 110px auto; gap: 10px; align-items: end; }
+.tc-top { display: grid; grid-template-columns: 1fr 110px 110px auto; gap: 10px; align-items: end; }
 .tc-acc { white-space: nowrap; padding-bottom: 4px; }
 .tc-lados { display: grid; grid-template-columns: auto repeat(4, minmax(96px, 1fr)); gap: 8px; align-items: end; margin-top: 8px; }
 .tc-lados > .l { align-self: center; padding-top: 18px; max-width: 90px; line-height: 1.2; }
 .tc-mat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
 .tc-aviso { margin-top: 8px; font-size: 12px; color: var(--warn); }
-@media (max-width: 760px) { .tc-top { grid-template-columns: 1fr 90px; } .tc-acc { grid-column: 1 / -1; } .tc-lados { grid-template-columns: repeat(2, 1fr); } .tc-lados > .l { grid-column: 1 / -1; padding-top: 0; max-width: none; } .tc-mat { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .tc-top { grid-template-columns: 1fr 90px 90px; } .tc-acc { grid-column: 1 / -1; } .tc-lados { grid-template-columns: repeat(2, 1fr); } .tc-lados > .l { grid-column: 1 / -1; padding-top: 0; max-width: none; } .tc-mat { grid-template-columns: 1fr; } }
 nav.tabs { align-items: center; }
 /* Etiquetas */
 .etiquetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
@@ -559,6 +559,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       materialPredeterminado: r.material || '',
       cantEstantesFijos: num(r.eFijo), cantEstantesMoviles: num(r.eMovil), cantParantesExtras: num(r.pteExtra),
       conFondo: r.fondo !== false,
+      puertasHechas: r.puertasHechas === true,   // las puertas ya están hechas: no entran al despiece
       observaciones: r.observaciones || '',
     }));
   }
@@ -584,11 +585,13 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     (d.puertas || []).filter(r => str(r.idModulo) !== '').forEach(r => {
       const id = str(r.idModulo).trim();
       const corte = r.corte || '';
+      const modalidad = normModalidad_(r.modalidad) || (esCorteConOffsetFijo_(corte) ? 'Manual' : '');
       const p = {
         cortePuerta: corte,
-        modalidad: normModalidad_(r.modalidad) || (esCorteConOffsetFijo_(corte) ? 'Manual' : ''),
+        modalidad: modalidad,
         tipoApertura: r.tipo || '',
-        cantidad: num(r.cant) || 1,
+        // Modalidad Simétrica = siempre un par de puertas: la cantidad cargada no cuenta.
+        cantidad: (modalidad === 'Simetrica' && esCorteConOffsetFijo_(corte)) ? 2 : (num(r.cant) || 1),
         anchoPuerta: Number(r.ancho),
         largoManual: num(r.largo) || 0,
       };
@@ -649,6 +652,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       mapa.get(clave).push({
         cantidad: num(row.cantidad) || 0,
         arr: num(row.arr) || 0, ab: num(row.ab) || 0, izq: num(row.izq) || 0, der: num(row.der) || 0,
+        gira: /^s[ií]$/i.test(str(row.gira).trim()) ? 'Si' : (/^no$/i.test(str(row.gira).trim()) ? 'No' : 'Auto'),
         materialPlaca: parseIdCatalogo_(row.materialPlaca),
         tapacantoPrincipal: parseIdCatalogo_(row.tapPrincipal),
         tapacantoSecundario: parseIdCatalogo_(row.tapSecundario),
@@ -738,8 +742,11 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
         });
       }
 
-      const listaPuertas = puertas.get(m.idModulo) || [];
-      if (cat.puertaObligatoria && listaPuertas.length === 0) {
+      let listaPuertas = puertas.get(m.idModulo) || [];
+      if (m.puertasHechas) {
+        if (listaPuertas.length) alertas.push('Módulo ' + m.idModulo + ': está marcado como “Puertas ya hechas”, así que sus ' + listaPuertas.length + ' fila(s) de Puertas no se despiezan.');
+        listaPuertas = [];
+      } else if (cat.puertaObligatoria && listaPuertas.length === 0) {
         alertas.push('Módulo ' + m.idModulo + ' (' + m.tipo + '): no tiene puertas cargadas.');
       }
       listaPuertas.forEach((p, i) => {
@@ -852,7 +859,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       tapacantoPrincipal: f.canto.tapacantoPrincipal ? f.canto.tapacantoPrincipal.etiqueta : '',
       tapacantoSecundario: f.canto.tapacantoSecundario ? f.canto.tapacantoSecundario.etiqueta : '',
       largo: f.largo, ancho: f.ancho, espesor: f.espesor, cantidad: f.cantidad,
-      arr: f.canto.arr, ab: f.canto.ab, izq: f.canto.izq, der: f.canto.der,
+      arr: f.canto.arr, ab: f.canto.ab, izq: f.canto.izq, der: f.canto.der, gira: f.canto.gira || 'Auto',
     }));
 
     // Orden de Fabricación: bloques de módulo + secciones de sueltas
@@ -915,7 +922,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       } else vistos.get(clave).cantidad += cant;
     };
     try { explotarModulo(m, overrides, proy).forEach(agregar); } catch (e) { /* ya se avisa en generar */ }
-    (leerPuertas_(d).get(idModulo) || []).forEach(p => {
+    (m.puertasHechas ? [] : (leerPuertas_(d).get(idModulo) || [])).forEach(p => {
       try { agregar(armarFila_(m, explotarPuerta_(p, m.h, m.largo), overrides, proy, cat)); } catch (e) { /* idem */ }
     });
     (leerCajones_(d).get(idModulo) || []).forEach(c => {
@@ -949,7 +956,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (num(m.eFijo) > 0) nombres.push('Estante fijo');
       if (num(m.eMovil) > 0) nombres.push('Estante móvil');
     }
-    if ((d.puertas || []).some(r => str(r.idModulo).trim() === idModulo)) nombres.push('Puerta');
+    if (m.puertasHechas !== true && (d.puertas || []).some(r => str(r.idModulo).trim() === idModulo)) nombres.push('Puerta');
     if ((d.cajones || []).some(r => str(r.idModulo).trim() === idModulo)) {
       nombres.push('Lateral de cajón', 'Trasera', 'Fondo de cajón', 'Frente Cajón');
     }
@@ -1037,7 +1044,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       { nombre: 'Home Office/Estudio', codigo: 'HO' }, { nombre: 'Baño Principal', codigo: 'BñoP' },
     ],
     materiales: [],
-    tiposPuerta: ['Push', 'Abatible', 'c·Buña'],
+    tiposPuerta: ['Push', 'Perfil L', 'Cierre suave', 'Con manija', 'Piso aplicado', 'Abatible', 'c·Buña'],
     categoriasSueltas: ['Perfil L', 'Aplicados', 'Ajustes', 'Otros', 'Pisos'],
     // Módulos tipo: plantillas de carga. Los de acá son ejemplos editables; los propios se agregan con “Guardar como tipo”.
     // cajones: dl / dlPlaca = diferencia respecto del L del módulo, para que escalen cuando cambia el ancho.
@@ -1045,7 +1052,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       { nombre: 'Bajo 2 puertas', modulo: { tipo: 'Bajos', h: 720, l: '', p: 560, material: '', eMovil: 0, eFijo: 0, pteExtra: 0, fondo: true, observaciones: '' },
         puertas: [{ cant: 2, corte: 'Puerta32', modalidad: 'Simetrica', largo: '', ancho: '', tipo: '' }], cajones: [] },
       { nombre: 'Bajo 1 puerta', modulo: { tipo: 'Bajos', h: 720, l: '', p: 560, material: '', eMovil: 0, eFijo: 0, pteExtra: 0, fondo: true, observaciones: '' },
-        puertas: [{ cant: 1, corte: 'Puerta32', modalidad: 'Simetrica', largo: '', ancho: '', tipo: '' }], cajones: [] },
+        puertas: [{ cant: 1, corte: 'Puerta32', modalidad: 'Manual', largo: '', ancho: '', tipo: '' }], cajones: [] },
       { nombre: 'Alacena 2 puertas', modulo: { tipo: 'Alacena', h: 700, l: '', p: 320, material: '', eMovil: 0, eFijo: 0, pteExtra: 0, fondo: true, observaciones: '' },
         puertas: [{ cant: 2, corte: 'Puerta2', modalidad: 'Simetrica', largo: '', ancho: '', tipo: '' }], cajones: [] },
       { nombre: 'Nicho abierto', modulo: { tipo: 'Nicho Abierto', h: 720, l: '', p: 560, material: '', eMovil: 0, eFijo: 0, pteExtra: 0, fondo: true, observaciones: '' },
@@ -1098,6 +1105,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (desc.toLowerCase() !== cat.toLowerCase()) c.observaciones = desc + (String(c.observaciones || '').trim() ? ' — ' + String(c.observaciones).trim() : '');
       return c;
     });
+    // Puertas: la modalidad Simétrica siempre son 2 puertas (la cantidad ya no se carga).
+    out.puertas = out.puertas.map(r => (r && /^sim[eé]trica$/i.test(String(r.modalidad || '').trim()) && Number(r.cant) !== 2) ? Object.assign({}, r, { cant: 2 }) : r);
     if (!out.cortadas || typeof out.cortadas !== 'object' || Array.isArray(out.cortadas)) out.cortadas = {};
     if (!Array.isArray(out.listas.modulosTipo)) out.listas.modulosTipo = JSON.parse(JSON.stringify(LISTAS_BASE.modulosTipo));
     out.version = VERSION_DATOS;
@@ -1167,12 +1176,17 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   }
   function normalizarCatalogo(arr) {
     if (!Array.isArray(arr)) throw new Error('El catálogo tiene que ser una lista (array) de materiales.');
-    return arr.map(x => ({ id: Number(x.id), code: String(x.code || ''), description: String(x.description || ''), tipo: Number(x.tipo) || 0 }))
-      .filter(x => !isNaN(x.id));
+    // Se guardan las medidas y la veta (las necesita el JSON de Dilegno); se descartan precios y otros datos del proveedor.
+    return arr.map(x => {
+      const o = { id: Number(x.id), code: String(x.code || x.codigo || ''), description: String(x.description || x.descripcion || ''), tipo: Number(x.tipo) || 0 };
+      ['base', 'altura', 'espesor'].forEach(k => { if (x[k] !== undefined && x[k] !== null && x[k] !== '' && !isNaN(Number(x[k]))) o[k] = Number(x[k]); });
+      if (x.veta !== undefined && x.veta !== null) o.veta = (x.veta === true || x.veta === 1 || /^(true|1|si|sí)$/i.test(String(x.veta)));
+      return o;
+    }).filter(x => !isNaN(x.id));
   }
   // Orden de preferencia: el catálogo incluido en el HTML → catalogo/materiales.json junto al HTML → el del repositorio privado en GitHub.
   async function catalogoAutomatico() {
-    const firma = (a) => a.length + ':' + (a[0] ? a[0].id : '') + ':' + (a[a.length - 1] ? a[a.length - 1].id : '');
+    const firma = (a) => 'v2:' + a.length + ':' + (a[0] ? a[0].id : '') + ':' + (a[a.length - 1] ? a[a.length - 1].id : '');
     try {
       const emb = leerJsonEmbebido('catalogo-embebido');
       if (Array.isArray(emb) && emb.length) {
@@ -1200,6 +1214,25 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (toks.every(t => hay.indexOf(t) !== -1)) out.push(it);
     }
     return out;
+  }
+  // Sugerencias "inteligentes": primero lo que coincide con TODAS las palabras; si no hay nada, lo que coincide con más palabras
+  // (así “Roble Kendal encerado” sugiere los “Kendal…” aunque el catálogo no tenga justo ese nombre).
+  function catalogoSugerir(texto, tipo, max) {
+    const exacto = catalogoBuscar(texto, tipo, max);
+    if (exacto.length) return exacto;
+    const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const vacias = { de: 1, del: 1, la: 1, el: 1, con: 1, sin: 1, y: 1, en: 1, para: 1 };
+    const toks = norm(texto).split(/[^a-z0-9]+/).filter(t => t.length >= 3 && !vacias[t]);
+    if (!toks.length) return [];
+    const punt = [];
+    catalogo.forEach(it => {
+      if (tipo !== undefined && tipo !== null && it.tipo !== tipo) return;
+      const hay = norm(it.code + ' ' + it.description);
+      let sc = 0; toks.forEach(t => { if (hay.indexOf(t) !== -1) sc += 1 + Math.min(t.length, 8) / 10; });
+      if (sc > 0) punt.push([sc, it]);
+    });
+    punt.sort((a, b) => b[0] - a[0]);
+    return punt.slice(0, max || 40).map(x => x[1]);
   }
   function etiquetaCatalogo(it) { return it.id + ' — ' + (it.description || it.code); }
 
@@ -1338,24 +1371,53 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     (arr || []).forEach(x => { if (!x || !x.nombre || !x.modulo) return; const k = String(x.nombre).trim().toLowerCase(); if (k && !vistos.has(k)) { vistos.add(k); out.push(x); } });
     return out;
   }
+  function limpiarAmbientes(arr) {
+    const vistos = new Set(), out = [];
+    (arr || []).forEach(x => { if (!x) return; const n = String(x.nombre === undefined || x.nombre === null ? '' : x.nombre).trim(), k = n.toLowerCase(); if (n && !vistos.has(k)) { vistos.add(k); out.push({ nombre: n, codigo: String(x.codigo === undefined || x.codigo === null ? '' : x.codigo).trim() }); } });
+    return out;
+  }
+  // Todo lo que se puede agregar desde “Listas” se comparte por GitHub: cada clave con su forma de limpiar y de identificar un elemento.
+  const LISTAS_COMP = {
+    materiales: { limpiar: limpiarLista, id: x => String(x).toLowerCase() },
+    modulosTipo: { limpiar: limpiarTipos, id: x => String(x.nombre).toLowerCase() },
+    ambientes: { limpiar: limpiarAmbientes, id: x => String(x.nombre).toLowerCase() },
+    tiposPuerta: { limpiar: limpiarLista, id: x => String(x).toLowerCase() },
+    categoriasSueltas: { limpiar: limpiarLista, id: x => String(x).toLowerCase() },
+  };
+  function compBase() {
+    return { materiales: MATERIALES_BASE.slice(), modulosTipo: JSON.parse(JSON.stringify(LISTAS_BASE.modulosTipo)), ambientes: JSON.parse(JSON.stringify(LISTAS_BASE.ambientes)),
+             tiposPuerta: LISTAS_BASE.tiposPuerta.slice(), categoriasSueltas: LISTAS_BASE.categoriasSueltas.slice(), sha: '', pendiente: false, origen: 'base' };
+  }
   function compLeer() {
     const v = lsJson(K_COMP, null);
-    const base = { materiales: MATERIALES_BASE.slice(), modulosTipo: JSON.parse(JSON.stringify(LISTAS_BASE.modulosTipo)), sha: '', pendiente: false, origen: 'base' };
+    const base = compBase();
     if (!v || !Array.isArray(v.materiales)) return base;
-    if (!Array.isArray(v.modulosTipo)) v.modulosTipo = base.modulosTipo;
+    Object.keys(LISTAS_COMP).forEach(k => { if (!Array.isArray(v[k])) v[k] = base[k]; });
+    // una sola vez: los tipos de apertura que definen el corte de la puerta se suman a la lista que ya había
+    if (!v.tp2) { v.tiposPuerta = unirTiposPuerta(v.tiposPuerta); v.tp2 = true; v.pendiente = true; compGuardar(v); }
     return v;
+  }
+  function unirTiposPuerta(lista) { return limpiarLista((lista || []).concat(LISTAS_BASE.tiposPuerta)); }
+  // Tipo de apertura → corte de puerta: perfil L = Puerta32 · push / cierre suave / con manija = Puerta2 · alacena con piso aplicado = Puerta18
+  function corteDeApertura(tipo) {
+    const t = String(tipo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (/perfil\s*l\b/.test(t)) return 'Puerta32';
+    if (/piso/.test(t)) return 'Puerta18';
+    if (/push|cierr[ae]\s*suave|manija/.test(t)) return 'Puerta2';
+    return '';
   }
   function compGuardar(c) { lsSet(K_COMP, JSON.stringify(c)); }
   function materialesCompartidos() { return compLeer().materiales; }
   function tiposCompartidos() { return compLeer().modulosTipo; }
+  function listaCompartida(clave) { return compLeer()[clave]; }
   function compEstado() { const c = compLeer(); return { pendiente: !!c.pendiente, origen: c.origen || '', materiales: c.materiales.length, tipos: c.modulosTipo.length }; }
   function materialesEstado() { return compEstado(); }
-  function materialesGuardarLocal(lista) { const c = compLeer(); c.materiales = limpiarLista(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
-  function tiposGuardarLocal(lista) { const c = compLeer(); c.modulosTipo = limpiarTipos(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
+  function listaGuardarLocal(clave, lista) { const c = compLeer(); c[clave] = LISTAS_COMP[clave].limpiar(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
+  function materialesGuardarLocal(lista) { return listaGuardarLocal('materiales', lista); }
+  function tiposGuardarLocal(lista) { return listaGuardarLocal('modulosTipo', lista); }
   function compRestaurar(texto) {
     const o = JSON.parse(texto) || {}, c = compLeer();
-    if (Array.isArray(o.materiales)) c.materiales = limpiarLista(o.materiales);
-    if (Array.isArray(o.modulosTipo)) c.modulosTipo = limpiarTipos(o.modulosTipo);
+    Object.keys(LISTAS_COMP).forEach(k => { if (Array.isArray(o[k])) c[k] = LISTAS_COMP[k].limpiar(o[k]); });
     c.pendiente = true; c.origen = 'local'; compGuardar(c);
   }
   async function leerListasRemotas() {
@@ -1364,7 +1426,9 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const j = await gh('GET', '/contents/' + encRuta(RUTA_LISTAS) + '?ref=' + encodeURIComponent(c.branch));
       const texto = j.content ? deB64(j.content) : await (await fetch(j.download_url)).text();
       const o = JSON.parse(texto) || {};
-      return { sha: j.sha, materiales: limpiarLista(o.materiales), modulosTipo: Array.isArray(o.modulosTipo) ? limpiarTipos(o.modulosTipo) : null };
+      const r = { sha: j.sha, version: Number(o.version) || 1, materiales: limpiarLista(o.materiales) };
+      Object.keys(LISTAS_COMP).forEach(k => { if (k !== 'materiales') r[k] = Array.isArray(o[k]) ? LISTAS_COMP[k].limpiar(o[k]) : null; });
+      return r;
     } catch (e) { if (e.noExiste) return null; throw e; }
   }
   // Baja las listas del repositorio (si hay cambios locales sin subir, no los pisa, salvo que se pida).
@@ -1373,31 +1437,36 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (c.pendiente && !forzar) return { omitido: true };
     const r = await leerListasRemotas();
     if (!r) return { noExiste: true };
-    compGuardar({ materiales: r.materiales, modulosTipo: r.modulosTipo || c.modulosTipo, sha: r.sha, pendiente: !r.modulosTipo, origen: 'github' });
-    return { ok: true, materiales: r.materiales.length, tipos: (r.modulosTipo || c.modulosTipo).length };
+    const nuevo = { materiales: r.materiales, sha: r.sha, origen: 'github' };
+    let faltan = false;   // si el archivo es de una versión anterior y le faltan listas, se suben las locales
+    Object.keys(LISTAS_COMP).forEach(k => { if (k === 'materiales') return; if (r[k]) nuevo[k] = r[k]; else { nuevo[k] = c[k]; faltan = true; } });
+    if (r.version < 2) { nuevo.tiposPuerta = unirTiposPuerta(nuevo.tiposPuerta); faltan = true; }
+    nuevo.tp2 = true;
+    nuevo.pendiente = faltan;
+    compGuardar(nuevo);
+    return { ok: true, materiales: nuevo.materiales.length, tipos: nuevo.modulosTipo.length };
   }
-  // Sube las listas. Si otra persona las cambió desde la última vez, se UNEN (nunca se pierde un material o plantilla agregados).
+  // Sube las listas. Si otra persona las cambió desde la última vez, se UNEN (nunca se pierde un elemento agregado).
   async function ghGuardarListas() {
     const cfg = ghConfig();
     let c = compLeer(), unido = false;
     for (let intento = 0; intento < 2; intento++) {
       const remoto = await leerListasRemotas();
-      let materiales = c.materiales, tipos = c.modulosTipo;
-      if (remoto && remoto.sha !== c.sha) {
-        const base = materiales.map(x => x.toLowerCase());
-        const extra = remoto.materiales.filter(x => base.indexOf(x.toLowerCase()) < 0);
-        if (extra.length) { materiales = materiales.concat(extra); unido = true; }
-        if (remoto.modulosTipo) {
-          const nb = tipos.map(x => String(x.nombre).toLowerCase());
-          const ex = remoto.modulosTipo.filter(x => nb.indexOf(String(x.nombre).toLowerCase()) < 0);
-          if (ex.length) { tipos = tipos.concat(ex); unido = true; }
+      const listas = {};
+      Object.keys(LISTAS_COMP).forEach(k => {
+        let l = c[k];
+        if (remoto && remoto.sha !== c.sha && remoto[k]) {
+          const ids = l.map(LISTAS_COMP[k].id);
+          const extra = remoto[k].filter(x => ids.indexOf(LISTAS_COMP[k].id(x)) < 0);
+          if (extra.length) { l = l.concat(extra); unido = true; }
         }
-      }
-      const cuerpo = { message: 'Actualizar listas compartidas (materiales y módulos tipo)', content: b64(JSON.stringify({ version: 1, materiales, modulosTipo: tipos }, null, 2)), branch: cfg.branch };
+        listas[k] = l;
+      });
+      const cuerpo = { message: 'Actualizar listas compartidas', content: b64(JSON.stringify(Object.assign({ version: 2 }, listas), null, 2)), branch: cfg.branch };
       if (remoto) cuerpo.sha = remoto.sha;
       try {
         const j = await gh('PUT', '/contents/' + encRuta(RUTA_LISTAS), cuerpo);
-        compGuardar({ materiales, modulosTipo: tipos, sha: j.content.sha, pendiente: false, origen: 'github' });
+        compGuardar(Object.assign({}, listas, { sha: j.content.sha, pendiente: false, origen: 'github', tp2: true }));
         return { ok: true, unido, nuevo: !remoto };
       } catch (e) {
         if ((e.status === 409 || e.status === 422) && intento === 0) { c = compLeer(); c.sha = ''; continue; }
@@ -1513,12 +1582,137 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   root.Store = {
     VERSION_DATOS, LISTAS_BASE, nuevoProyecto, migrar, indice, guardarLocal, cargarLocal, borrarLocal, ultimoId, localDisponible,
     guardarListasPorDefecto, slug, serializar, descargar,
-    catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, etiquetaCatalogo,
+    catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, catalogoSugerir, etiquetaCatalogo,
     get catalogo() { return catalogo; },
-    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
+    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
     ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
   };
 })(window);
+
+</script>
+<script>
+/* Exportación al formato JSON de Dilegno (a partir de las piezas del proveedor + el catálogo de materiales).
+   Formato tomado de un archivo real que Dilegno acepta (Chaco_Blanco_prueba.json):
+     { placa:{id,base,altura,espesor,descripcion,veta,codigo}, tapa_mel:{id,espesor,descripcion,codigo}, tapa_abs:{...},
+       proyecto, vendedor, direccion, notes, email_aux, cortes:[{id,cantidad,base,altura,descripcion,rota,tapacantos,mecanizados}], ... }
+   - Un archivo por placa (y por combinación de cantos que no se pueda juntar).
+   - base = Largo de la pieza, altura = Ancho. Arr./Ab. corren a lo largo de la base; Izq./Der. a lo largo de la altura.
+   - tapacantos = máscara de bits. CONFIRMADO con el archivo real: Arr. = 64 y Ab. = 128 (canto en ABS, grupo de bits 4-7).
+     SUPUESTO (a verificar con la prueba de lados): grupo de bits 0-3 = canto melamínico, 4-7 = canto ABS; orden dentro del grupo: Izq., Der., Arr., Ab.
+   - rota = la pieza puede girar = la placa NO tiene veta. */
+(function (root) {
+  'use strict';
+  const LADOS = { izq: 0, der: 1, arr: 2, ab: 3 };          // posición dentro del grupo de 4 bits
+  const GRUPO = { mel: 0, abs: 4 };                           // desplazamiento del grupo
+  const CONST = { sucursal_id: 364, sucursal_aux_id: 364 };   // cuenta de Mestizo en Dilegno (iguales en el archivo de ejemplo)
+
+  function idDe(etiqueta) { const m = String(etiqueta || '').trim().match(/^(\d+)/); return m ? Number(m[1]) : null; }
+  function mapa(catalogo) { const m = new Map(); (catalogo || []).forEach(x => m.set(Number(x.id), x)); return m; }
+  function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+
+  // Canto: ¿melamínico (fino) o ABS (grueso)? Por el espesor del catálogo; si no se sabe, null.
+  function tipoCanto(it) { return (it && typeof it.espesor === 'number') ? (it.espesor <= 1 ? 'mel' : 'abs') : null; }
+
+  // ¿Puede girar? 'Si' / 'No' se respetan; 'Auto' (o vacío) = la placa no tiene veta. Sin dato de veta: no gira (lo seguro).
+  function girar(valor, placa) {
+    const v = String(valor === undefined || valor === null ? '' : valor).trim().toLowerCase();
+    if (v === 'si' || v === 'sí' || v === '1') return true;
+    if (v === 'no' || v === '0') return false;
+    return !!(placa && placa.veta === false);
+  }
+
+  // Máscara de bits de una pieza. Devuelve { mask, mel, abs, faltan } (mel/abs = id de canto usado en cada grupo).
+  function cantos(f, catalogoMapa) {
+    const p = idDe(f.tapacantoPrincipal), s = idDe(f.tapacantoSecundario);
+    let slotP = p !== null ? (tipoCanto(catalogoMapa.get(p)) || 'mel') : null;
+    let slotS = s !== null ? (tipoCanto(catalogoMapa.get(s)) || (slotP === 'mel' ? 'abs' : 'mel')) : null;
+    if (p !== null && s !== null && p !== s && slotP === slotS) { slotP = 'mel'; slotS = 'abs'; }   // sin poder distinguirlos: principal = mel, secundario = abs
+    const usados = { mel: null, abs: null }; let mask = 0, faltan = 0;
+    if (p !== null) usados[slotP] = p;      // los cantos elegidos viajan en el archivo aunque la pieza no los use en ningún lado
+    if (s !== null) usados[slotS] = s;
+    ['izq', 'der', 'arr', 'ab'].forEach(lado => {
+      const v = num(f[lado]); if (!v) return;
+      const id = v === 1 ? p : s, slot = v === 1 ? slotP : slotS;
+      if (id === null) { faltan++; return; }
+      mask |= 1 << (GRUPO[slot] + LADOS[lado]); usados[slot] = id;
+    });
+    return { mask, mel: usados.mel, abs: usados.abs, faltan };
+  }
+
+  // piezas = R.proveedor · catalogo = St.catalogo · proyecto = nombre
+  function armar(piezas, catalogo, proyecto) {
+    const cat = mapa(catalogo), avisos = [], porPlaca = new Map();
+    let sinPlaca = 0, sinCanto = 0, sinDatosPlaca = new Set(), sinDatosCanto = new Set();
+    (piezas || []).forEach(f => {
+      const pid = idDe(f.materialPlaca);
+      if (pid === null) { sinPlaca++; return; }
+      const c = cantos(f, cat); sinCanto += c.faltan;
+      if (!porPlaca.has(pid)) porPlaca.set(pid, []);
+      porPlaca.get(pid).push({ f, c });
+    });
+    if (sinPlaca) avisos.push(sinPlaca + ' pieza(s) sin “Material placa” en Tapacantos: no se exportaron.');
+    if (sinCanto) avisos.push(sinCanto + ' lado(s) con canto pero sin tapacanto elegido (principal / secundario): quedaron sin canto.');
+    const archivos = [];
+    porPlaca.forEach((lista, pid) => {
+      // se agrupan las piezas de una placa en archivos; una pieza entra donde sus cantos no choquen (cada archivo admite un canto mel y uno abs)
+      const grupos = [];
+      lista.forEach(it => {
+        let g = grupos.find(x => (it.c.mel === null || x.mel === null || x.mel === it.c.mel) && (it.c.abs === null || x.abs === null || x.abs === it.c.abs));
+        if (!g) { g = { mel: null, abs: null, items: [] }; grupos.push(g); }
+        if (it.c.mel !== null) g.mel = it.c.mel; if (it.c.abs !== null) g.abs = it.c.abs;
+        g.items.push(it);
+      });
+      const placa = cat.get(pid);
+      if (!placa) { avisos.push('La placa ' + pid + ' no está en el catálogo cargado: no se exportó.'); return; }
+      ['base', 'altura', 'espesor'].forEach(k => { if (typeof placa[k] !== 'number') sinDatosPlaca.add(k); });
+      if (typeof placa.veta !== 'boolean') sinDatosPlaca.add('veta');
+      grupos.forEach((g, gi) => {
+        const tapa = (id) => { if (id === null) return null; const t = cat.get(id); if (!t) { avisos.push('El canto ' + id + ' no está en el catálogo cargado.'); return { id: id, espesor: 0, descripcion: '', codigo: '' }; } if (typeof t.espesor !== 'number') sinDatosCanto.add('espesor'); return { id: t.id, espesor: typeof t.espesor === 'number' ? t.espesor : 0, descripcion: t.description || '', codigo: t.code || '' }; };
+        const obj = {
+          placa: { id: placa.id, base: placa.base || 0, altura: placa.altura || 0, espesor: placa.espesor || 0, descripcion: placa.description || '', veta: placa.veta === true, codigo: placa.code || '' },
+          tapa_mel: tapa(g.mel), tapa_abs: tapa(g.abs),
+          proyecto: proyecto || '', vendedor: '', direccion: '', notes: '', email_aux: '',
+          cortes: g.items.map((it, i) => ({
+            id: i, cantidad: num(it.f.cantidad) || 1, base: num(it.f.largo), altura: num(it.f.ancho),
+            descripcion: (String(it.f.pieza || '') + (it.f.idModulo ? ' ' + it.f.idModulo : '')).trim(),
+            rota: girar(it.f.gira, placa), tapacantos: it.c.mask, mecanizados: [],
+          })),
+          mecxcorte: [], stock: [], sucursal_id: CONST.sucursal_id, sucursal_aux_id: CONST.sucursal_aux_id, multi_ped_id: -1, multi_ped_len: 1,
+          despachar: false, modificado: false, planilla_vid: '', opcion_opt: 0,
+        };
+        const limpio = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+        archivos.push({ nombre: limpio(proyecto || 'Proyecto').replace(/ /g, '_') + '_' + limpio(placa.description).replace(/ /g, '_').slice(0, 60) + (grupos.length > 1 ? '_' + (gi + 1) : '') + '.json', json: obj });
+      });
+    });
+    if (sinDatosPlaca.size) avisos.push('El catálogo cargado no trae ' + Array.from(sinDatosPlaca).join(', ') + ' de la placa: volvé a cargar el materiales.json completo de Dilegno (Control manual → Tapacantos).');
+    if (sinDatosCanto.size) avisos.push('El catálogo cargado no trae el espesor de los cantos: volvé a cargar el materiales.json completo de Dilegno.');
+    return { archivos, avisos };
+  }
+
+  /* ---------- ZIP mínimo (sin compresión) para bajar varios archivos juntos ---------- */
+  let tablaCrc = null;
+  function crc32(bytes) {
+    if (!tablaCrc) { tablaCrc = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); tablaCrc[n] = c >>> 0; } }
+    let c = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) c = tablaCrc[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+  function zip(archivos) {   // archivos: [{nombre, texto}]
+    const enc = new TextEncoder(), partes = [], central = []; let pos = 0;
+    const u16 = (n) => [n & 255, (n >>> 8) & 255], u32 = (n) => [n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255];
+    archivos.forEach(a => {
+      const nom = enc.encode(a.nombre), dat = enc.encode(a.texto), crc = crc32(dat);
+      const loc = [0x50, 0x4b, 3, 4, 20, 0, 0, 8, 0, 0, 0, 0, 0, 0].concat(u32(crc), u32(dat.length), u32(dat.length), u16(nom.length), [0, 0]);   // bit 11 = nombre UTF-8
+      partes.push(Uint8Array.from(loc), nom, dat);
+      central.push(Uint8Array.from([0x50, 0x4b, 1, 2, 20, 0, 20, 0, 0, 8, 0, 0, 0, 0, 0, 0].concat(u32(crc), u32(dat.length), u32(dat.length), u16(nom.length), [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], u32(pos))), nom);
+      pos += loc.length + nom.length + dat.length;
+    });
+    const tamCentral = central.reduce((s, x) => s + x.length, 0);
+    const fin = Uint8Array.from([0x50, 0x4b, 5, 6, 0, 0, 0, 0].concat(u16(archivos.length), u16(archivos.length), u32(tamCentral), u32(pos), [0, 0]));
+    const todo = partes.concat(central, [fin]); const out = new Uint8Array(todo.reduce((s, x) => s + x.length, 0)); let o = 0; todo.forEach(x => { out.set(x, o); o += x.length; });
+    return out;
+  }
+
+  root.Dilegno = { armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
+})(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
 <script>
@@ -1768,18 +1962,45 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     D.overrides.forEach(m => m.material && m.material !== 'Por defecto' && s.add(m.material));
     return Array.from(s).sort((a, b) => a.localeCompare(b, 'es'));
   }
-  function codigoAmbiente(nombre) { const a = (D.listas.ambientes || []).find(x => x.nombre === nombre); return a ? a.codigo : ''; }
+  // Ambientes, tipos de puerta y tipos de pieza: listas compartidas (GitHub). Además de la lista, se ofrece lo que ya usa el proyecto abierto.
+  function unicos(arr) { const v = new Set(), out = []; arr.forEach(x => { const s = String(x === undefined || x === null ? '' : x).trim(), k = s.toLowerCase(); if (s && !v.has(k)) { v.add(k); out.push(s); } }); return out; }
+  function nombresAmbiente() { return unicos(St.listaCompartida('ambientes').map(a => a.nombre).concat(D.modulos.map(m => m.ambiente))); }
+  function opcionesTipoPuerta() { return unicos(St.listaCompartida('tiposPuerta').concat(D.puertas.map(r => r.tipo))); }
+  function opcionesTipoPieza() { return unicos(St.listaCompartida('categoriasSueltas').concat(D.sueltas.map(r => r.categoria))); }
+  function codigoAmbiente(nombre) { const a = St.listaCompartida('ambientes').find(x => x.nombre === nombre) || (D.listas.ambientes || []).find(x => x.nombre === nombre); return a ? a.codigo : ''; }
 
   function renombrarModulo(viejo, nuevo) {
     if (!viejo || viejo === nuevo) return;
     ['puertas', 'cajones', 'overrides', 'sueltas', 'tapacantos'].forEach(k => D[k].forEach(r => { if (String(r.idModulo).trim() === viejo) r.idModulo = nuevo; }));
+    // las marcas de “cortada” van por ID de módulo: se mudan con él
+    if (D.cortadas) Object.keys(D.cortadas).forEach(k => { if (k.indexOf(viejo + '|') === 0) { D.cortadas[nuevo + k.slice(viejo.length)] = D.cortadas[k]; delete D.cortadas[k]; } });
   }
   function borrarDependientes(id) {
     ['puertas', 'cajones', 'overrides', 'sueltas', 'tapacantos'].forEach(k => { D[k] = D[k].filter(r => String(r.idModulo).trim() !== id); });
+    if (D.cortadas) Object.keys(D.cortadas).forEach(k => { if (k.indexOf(id + '|') === 0) delete D.cortadas[k]; });
+  }
+  // Tras borrar un módulo, los del mismo ambiente se vuelven a numerar en el orden de la lista (01, 02, 03…).
+  // Sólo se tocan los IDs automáticos (NN + código del ambiente); uno escrito a mano se respeta.
+  function renumerarAmbiente(amb) {
+    const cod = codigoAmbiente(amb); if (!cod) return;
+    const auto = new RegExp('^\\d{2,}' + cod.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i');
+    const mods = D.modulos.filter(m => m.ambiente === amb && auto.test(String(m.id).trim()));
+    const fijos = new Set(D.modulos.filter(m => mods.indexOf(m) < 0).map(m => String(m.id).trim()));
+    let n = 0; const cambios = [];
+    mods.forEach(m => {
+      let nuevo; do { n++; nuevo = ('0' + n).slice(-2) + cod; } while (fijos.has(nuevo));
+      const viejo = String(m.id).trim(); if (viejo !== nuevo) cambios.push([m, viejo, nuevo]);
+    });
+    // en dos pasos (por nombres temporales) para que dos IDs nunca se pisen en el camino
+    const selAntes = fichaSel;
+    cambios.forEach(([m, viejo], i) => { renombrarModulo(viejo, '\u0000t' + i); m.id = '\u0000t' + i; });
+    cambios.forEach(([m, viejo, nuevo], i) => { renombrarModulo('\u0000t' + i, nuevo); m.id = nuevo; if (selAntes === viejo) fichaSel = nuevo; });
+    return cambios.length;
   }
 
   /* ------------------------------------------------------------------ definición de tablas */
   const SI_NO = null;
+  let sinSel = false;   // true mientras la app devuelve el foco sola (no seleccionar)
   const CORTES = ['Puerta2', 'Puerta18', 'Puerta32', 'Personalizada'];
   const LADO = [{ v: 0, l: '0 · no' }, { v: 1, l: '1 · principal' }, { v: 2, l: '2 · secundario' }];
   const TC = [{ v: 0, l: '0' }, { v: 1, l: '1' }, { v: 2, l: '2' }];
@@ -1791,18 +2012,19 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       titulo: 'Módulos', arr: 'modulos',
       ayuda: 'Una fila por módulo. El ID se arma solo (contador del ambiente + código); si lo cambiás a mano, se actualiza en Puertas, Cajones, Override, Piezas Sueltas y Tapacantos. “Fondo” destildado = el módulo no lleva panel trasero.',
       cols: [
-        { k: 'ambiente', t: 'Ambiente', tipo: 'sel', opts: () => (D.listas.ambientes || []).map(a => a.nombre), vacio: '—', rr: true },
+        { k: 'ambiente', t: 'Ambiente', tipo: 'sel', opts: () => nombresAmbiente(), vacio: '—', rr: true },
         { k: 'id', t: 'ID', tipo: 'text', ancho: 84, rr: true },
         { k: 'tipo', t: 'Módulo', tipo: 'sel', opts: () => Object.keys(M.CATALOGO), vacio: '—', rr: true },
         { k: 'h', t: 'H', tipo: 'num' }, { k: 'l', t: 'L', tipo: 'num' }, { k: 'p', t: 'P', tipo: 'num' },
         { k: 'material', t: 'Material', tipo: 'dl' },
         { k: 'eMovil', t: 'E. Móvil', tipo: 'num' }, { k: 'eFijo', t: 'E. Fijo', tipo: 'num' }, { k: 'pteExtra', t: 'Pte. Extra', tipo: 'num' },
         { k: 'fondo', t: 'Fondo', tipo: 'chk' },
+        { k: 'puertasHechas', t: 'Puertas hechas', tipo: 'chk', def: false },
         { k: 'observaciones', t: 'Observaciones', tipo: 'text' },
       ],
       nuevo() {
         const ult = D.modulos[D.modulos.length - 1];
-        const amb = ult ? ult.ambiente : ((D.listas.ambientes[0] || {}).nombre || '');
+        const amb = ult ? ult.ambiente : (nombresAmbiente()[0] || '');
         const m = { ambiente: amb, id: '', tipo: 'Bajos', h: ult ? ult.h : 800, l: '', p: ult ? ult.p : 560, material: '', eMovil: 0, eFijo: 0, pteExtra: 0, fondo: true, observaciones: '' };
         m.id = M.siguienteId(D.modulos, amb, codigoAmbiente(amb));
         return m;
@@ -1822,33 +2044,35 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
         if (dep > 0) return await confirmar('El módulo ' + id + ' tiene ' + dep + ' fila(s) asociada(s) (puertas, cajones, overrides, piezas sueltas o tapacantos). Si lo borrás, se borran también.', 'Borrar todo');
         return true;
       },
-      despuesBorrar(row) { borrarDependientes(String(row.id).trim()); },
+      despuesBorrar(row) { borrarDependientes(String(row.id).trim()); renumerarAmbiente(row.ambiente); },
     },
     puertas: {
       titulo: 'Puertas', arr: 'puertas',
-      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Modalidad “Simétrica”: el ancho se calcula solo, (L del módulo − 3 mm × cant.) ÷ cant. “Personalizada”: largo y ancho a mano.',
+      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir el Tipo (apertura) el corte se completa solo. Modalidad “Simétrica”: el ancho se calcula solo, (L del módulo − 3 mm × cant.) ÷ cant. “Personalizada”: largo y ancho a mano.',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '—', rr: true },
-        { k: 'cant', t: 'Cant.', tipo: 'num', rr: true },
+        { k: 'cant', t: 'Cant.', tipo: 'num', rr: true, ocultar: (r) => esSimetrica(r) },
         { k: 'corte', t: 'Corte', tipo: 'sel', opts: () => CORTES, vacio: '—', rr: true },
         { k: 'modalidad', t: 'Modalidad', tipo: 'sel', opts: () => [{ v: 'Manual', l: 'Manual' }, { v: 'Simetrica', l: 'Simétrica' }], dis: (r) => !(r.corte in M.PUERTA_OFFSETS), rr: true },
         { k: 'largo', t: 'Largo', tipo: 'num', dis: (r) => r.corte !== 'Personalizada' && r.corte !== 'Manual', ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.corte in M.PUERTA_OFFSETS) ? String(Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte])) : ''; } },
-        { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS) && num(m.l) > 0) ? String(Math.round(M.calcularAnchoSimetrico_(num(m.l), num(r.cant) || 1))) : ''; } },
-        { k: 'tipo', t: 'Tipo (apertura)', tipo: 'sel', opts: () => D.listas.tiposPuerta || [], vacio: '—' },
+        { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS) && num(m.l) > 0) ? String(Math.round(M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r)))) : ''; } },
+        { k: 'tipo', t: 'Tipo (apertura)', tipo: 'sel', opts: () => opcionesTipoPuerta(), vacio: '—', rr: true },
       ],
       nuevo() { const u = D.puertas[D.puertas.length - 1]; return { idModulo: u ? u.idModulo : '', cant: 1, corte: u ? u.corte : 'Puerta18', modalidad: u ? u.modalidad : 'Manual', largo: '', ancho: '', tipo: u ? u.tipo : '' }; },
       alCambiar(row, k) {
+        if (k === 'tipo') { const c = St.corteDeApertura(row.tipo); if (c && row.corte !== 'Personalizada') { row.corte = c; if (!row.modalidad) row.modalidad = 'Manual'; } }
         if (k === 'corte') { if (!(row.corte in M.PUERTA_OFFSETS)) row.modalidad = ''; else if (!row.modalidad) row.modalidad = 'Manual'; }
+        if (k === 'modalidad' || k === 'corte') { if (esSimetrica(row)) row.cant = 2; }
       },
     },
     cajones: {
       titulo: 'Cajones', arr: 'cajones',
-      ayuda: 'Una fila por cajón. H, L y P son las medidas del cajón armado; el Frente Cajón (L placa × A placa) se carga a mano. Fondo: 5 o 15 mm. Alto mínimo funcional: 100 mm (sólo avisa).',
+      ayuda: 'Una fila por cajón. H, L y P son las medidas del cajón armado; el Frente Cajón (L Frente × A Frente) se carga a mano. Fondo: 5 o 15 mm. Alto mínimo funcional: 100 mm (sólo avisa).',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '—' },
         { k: 'h', t: 'H', tipo: 'num' }, { k: 'l', t: 'L', tipo: 'num' }, { k: 'p', t: 'P', tipo: 'num' },
         { k: 'fondo', t: 'Fondo', tipo: 'sel', opts: () => [{ v: 5, l: '5 mm' }, { v: 15, l: '15 mm' }] },
-        { k: 'lPlaca', t: 'L placa', tipo: 'num' }, { k: 'aPlaca', t: 'A placa', tipo: 'num' },
+        { k: 'lPlaca', t: 'L Frente', tipo: 'num' }, { k: 'aPlaca', t: 'A Frente', tipo: 'num' },
       ],
       nuevo() { const u = D.cajones[D.cajones.length - 1]; return u ? Object.assign({}, u) : { idModulo: '', h: '', l: '', p: '', fondo: 15, lPlaca: '', aPlaca: '' }; },
     },
@@ -1866,7 +2090,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       titulo: 'Piezas Sueltas', arr: 'sueltas',
       ayuda: 'Aplicados, ajustes, pisos, perfiles L… El motor no las calcula: las transporta. Apenas elegís el Tipo de Pieza ya figura en el despiece. Con ID Módulo sale dentro de ese módulo; sin módulo, en una sección propia por tipo de pieza. TC L / TC A = cantos en largo / en ancho (0, 1 o 2).',
       cols: [
-        { k: 'categoria', t: 'Tipo de Pieza', tipo: 'sel', opts: () => D.listas.categoriasSueltas || [], vacio: '—' },
+        { k: 'categoria', t: 'Tipo de Pieza', tipo: 'sel', opts: () => opcionesTipoPieza(), vacio: '—' },
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '(sin módulo)' },
         { k: 'cant', t: 'Cant.', tipo: 'num' }, { k: 'l', t: 'L', tipo: 'num' }, { k: 'a', t: 'A', tipo: 'num' }, { k: 'e', t: 'E', tipo: 'num', ph: () => '18' },
         { k: 'material', t: 'Material', tipo: 'dl' },
@@ -1887,9 +2111,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
         { k: 'tapPrincipal', t: 'Tapacanto principal', tipo: 'cat', cat: 1, ancho: 180 },
         { k: 'tapSecundario', t: 'Tapacanto secundario', tipo: 'cat', cat: 1, ancho: 180 },
         { k: 'cantidad', t: 'Cant. a enviar', tipo: 'num', ph: () => 'todas' },
+        { k: 'gira', t: 'Gira', tipo: 'sel', opts: () => [{ v: 'Auto', l: 'Auto (según veta)' }, { v: 'Si', l: 'Gira' }, { v: 'No', l: 'No gira' }] },
         { k: '_aviso', t: '', tipo: 'aviso' },
       ],
-      nuevo() { return { idModulo: '', pieza: '', arr: 0, ab: 0, izq: 0, der: 0, materialPlaca: '', tapPrincipal: '', tapSecundario: '', cantidad: '' }; },
+      nuevo() { return { idModulo: '', pieza: '', arr: 0, ab: 0, izq: 0, der: 0, materialPlaca: '', tapPrincipal: '', tapSecundario: '', cantidad: '', gira: 'Auto' }; },
       alCambiar(row, k) {
         if (k === 'idModulo') row.pieza = '';
         if (k === 'pieza' || k === 'idModulo') {
@@ -1923,11 +2148,12 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const val = row[c.k];
     const dis = c.dis && c.dis(row) ? ' disabled' : '';
     const ph = c.ph ? c.ph(row) : '';
+    if (c.ocultar && c.ocultar(row)) return '<td class="num"><span class="chip" title="Simétrica: siempre son 2 puertas">×2</span></td>';
     const w = c.ancho ? ' style="min-width:' + c.ancho + 'px"' : '';
     switch (c.tipo) {
       case 'text': return '<td><input data-k="' + key + '" value="' + esc(val) + '"' + dis + (c.ancho ? ' style="width:' + c.ancho + 'px"' : '') + '></td>';
       case 'num': return '<td class="num"><input type="number" inputmode="decimal" step="any" data-k="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + dis + '></td>';
-      case 'chk': return '<td class="chk"><input type="checkbox" data-k="' + key + '"' + (val !== false ? ' checked' : '') + '></td>';
+      case 'chk': return '<td class="chk"><input type="checkbox" data-k="' + key + '"' + ((c.def === false ? val === true : val !== false) ? ' checked' : '') + '></td>';
       case 'dl': return '<td>' + selMaterial(key, val, ph, dis, 'min-width:130px') + '</td>';
       case 'cat': return '<td><input class="cat" data-cat="' + c.cat + '" data-k="' + key + '" value="' + esc(val) + '" placeholder="buscar…" autocomplete="off"' + w + '></td>';
       case 'aviso': { const a = avisoTapacanto(row); return '<td title="' + esc(a) + '" style="color:var(--warn);cursor:help;width:24px">' + (a ? '⚠' : '') + '</td>'; }
@@ -2137,12 +2363,15 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (/repetido/.test(a)) return 'ID repetido';
     return 'revisar aviso';
   }
+  // Modalidad Simétrica = siempre 2 puertas (la cantidad no se carga).
+  function esSimetrica(r) { return r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS); }
+  function cantPuerta(r) { return esSimetrica(r) ? 2 : (num(r.cant) || 1); }
   function medidaPuerta(r) {
     const m = moduloPorId(String(r.idModulo).trim());
     let largo = r.largo, ancho = r.ancho;
     if (r.corte in M.PUERTA_OFFSETS) {
       if (m && num(m.h)) largo = Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte]);
-      if (r.modalidad === 'Simetrica' && m && num(m.l) > 0) ancho = Math.round(M.calcularAnchoSimetrico_(num(m.l), num(r.cant) || 1));
+      if (r.modalidad === 'Simetrica' && m && num(m.l) > 0) ancho = Math.round(M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r)));
     }
     return (largo && ancho) ? (Math.round(num(largo)) + ' × ' + Math.round(num(ancho))) : '';
   }
@@ -2209,12 +2438,13 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const cabecera = '<div class="fsec"><div class="row-f" style="margin-bottom:10px"><strong style="font-size:16px;color:var(--crema)">' + esc(id) + '</strong><span class="chip">' + esc(m.ambiente || '—') + '</span><span class="chip">' + esc(m.tipo || '—') + '</span>' +
       '<span style="flex:1"></span><button class="mini" data-acc="f-guardar" title="Guardar el proyecto con este módulo">' + ICO.save + ' Guardar módulo</button><button class="sec mini" data-acc="f-tipo-guardar" title="Guardar este módulo como plantilla">☆ Guardar como tipo</button><button class="peligro mini" data-acc="f-borrar-mod">Borrar módulo</button></div>' + avHtml +
       '<div class="fgrid">' + campo('ambiente') + campo('id') + campo('tipo') + campo('h') + campo('l') + campo('p') + campo('eMovil') + campo('eFijo') + campo('pteExtra') + campo('material') +
-      '<div class="campo"><label class="l">Fondo</label>' + interiorCelda('modulos', idx, col('fondo'), m) + '</div></div>' +
+      '<div class="campo"><label class="l">Fondo</label>' + interiorCelda('modulos', idx, col('fondo'), m) + '</div>' +
+      '<div class="campo"><label class="l" title="Marcalo si las puertas de este módulo ya están hechas y no tienen que entrar al despiece">Puertas ya hechas</label>' + interiorCelda('modulos', idx, col('puertasHechas'), m) + '</div></div>' +
       '<div class="campo" style="margin-top:8px"><label class="l">Observaciones</label>' + interiorCelda('modulos', idx, col('observaciones'), m) + '</div></div>';
 
     const cat = M.CATALOGO[m.tipo] || {};
     const hayCajones = D.cajones.some(r => String(r.idModulo).trim() === id);
-    const sPuertas = seccionFicha('Puertas', 'puertas', id, '+ Puerta', { extraTh: 'Medida', extraTd: (r) => { const t = medidaPuerta(r); return t ? '<span class="pill-f">' + esc(t) + '</span>' : ''; }, ayuda: cat.puertaObligatoria ? 'Este tipo de módulo lleva puertas.' : '' });
+    const sPuertas = seccionFicha('Puertas', 'puertas', id, '+ Puerta', { extraTh: 'Medida', extraTd: (r) => { const t = medidaPuerta(r); return t ? '<span class="pill-f">' + esc(t) + '</span>' : ''; }, ayuda: m.puertasHechas === true ? 'Marcado como “Puertas ya hechas”: estas puertas no entran al despiece.' : (cat.puertaObligatoria ? 'Este tipo de módulo lleva puertas.' : '') });
     const sCajones = (cat.cajonera || hayCajones) ? seccionFicha('Cajones', 'cajones', id, '+ Cajón') : '';
     const sOver = seccionFicha('Material distinto en alguna pieza', 'overrides', id, '+ Excepción');
     const sSueltas = seccionFicha('Piezas sueltas de este módulo', 'sueltas', id, '+ Pieza');
@@ -2305,10 +2535,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   function vistaProveedores() {
     if (!R || !R.ok) return sinResultado();
     const P = R.proveedor;
-    let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON</button></div></div>' +
-      '<p class="hint">Son las piezas cargadas en “Tapacantos”: no están en la lista de corte del taller. El JSON trae los ids del catálogo (campo “etiqueta”) para armar la exportación.</p>';
-    h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
-      P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
+    let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
+      '<p class="hint">Son las piezas cargadas en “Tapacantos”: no están en la lista de corte del taller. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira: Auto” sale de la veta de la placa.</p>';
+    h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
+      P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
       : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
     h += '</div>';
 
@@ -2333,11 +2563,22 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 
   /* ---- Listas ---- */
   function vistaListas() {
-    const L = D.listas;
-    const filasAmb = (L.ambientes || []).map((a, i) => '<tr><td><input data-k="amb:' + i + ':nombre" value="' + esc(a.nombre) + '"></td><td><input data-k="amb:' + i + ':codigo" value="' + esc(a.codigo) + '" style="width:90px"></td><td class="acc"><button class="peligro ico" data-acc="amb-del" data-i="' + i + '">✕</button></td></tr>').join('');
-    return '<div class="card"><h2>Ambientes y códigos</h2><p class="hint">El código forma el ID del módulo (ej. 01Coc). Cambiar un código no renombra IDs ya creados.</p><div class="tabla-wrap"><table class="t" style="max-width:520px"><thead><tr><th>Ambiente</th><th>Código</th><th></th></tr></thead><tbody>' + filasAmb + '</tbody></table></div><button class="sec mini" data-acc="amb-add" style="margin-top:8px">+ Ambiente</button></div>' +
-      tarjetaMateriales() + tarjetaTipos() + '<div class="grid2">' + listaTexto('tiposPuerta', 'Tipos de puerta (apertura)', 'Push, Abatible, c·Buña…') + listaTexto('categoriasSueltas', 'Tipos de pieza (piezas sueltas)', 'Perfil L, Aplicados, Ajustes…') + '</div>' +
-      '<div class="card"><button class="sec" data-acc="listas-def">Usar estas listas como predeterminadas para proyectos nuevos</button><p class="hint" style="margin-top:8px">Quedan guardadas en este navegador.</p></div>';
+    return tarjetaAmbientes() + tarjetaMateriales() + tarjetaTipos() + '<div class="grid2">' +
+      tarjetaListaSimple('tiposPuerta', 'Tipos de puerta (apertura)', 'Push, Abatible, c/Buña…', 'Nuevo tipo de puerta') +
+      tarjetaListaSimple('categoriasSueltas', 'Tipos de pieza (piezas sueltas)', 'Perfil L, Aplicados, Ajustes…', 'Nuevo tipo de pieza') + '</div>';
+  }
+  function tarjetaAmbientes() {
+    const L = St.listaCompartida('ambientes');
+    const filas = L.map((a, i) => '<tr><td><input data-k="amb:' + i + ':nombre" value="' + esc(a.nombre) + '"></td><td><input data-k="amb:' + i + ':codigo" value="' + esc(a.codigo) + '" style="width:90px"></td><td class="acc"><button class="peligro ico" data-acc="amb-del" data-i="' + i + '">✕</button></td></tr>').join('');
+    return '<div class="card"><div class="barra"><h2>Ambientes y códigos <span class="chip">' + L.length + '</span></h2><div>' + chipListas() + '</div></div><p class="hint">Compartidos con todo el equipo (se guardan en GitHub solos). El código forma el ID del módulo (ej. 01Coc). Cambiar un código no renombra IDs ya creados.</p>' +
+      '<div class="tabla-wrap"><table class="t" style="max-width:520px"><thead><tr><th>Ambiente</th><th>Código</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="ambNuevo" placeholder="Nuevo ambiente, ej. Quincho" style="flex:2;min-width:160px"><input id="ambCod" placeholder="Código, ej. Qui" style="flex:1;min-width:90px"><button data-acc="amb-add">+ Agregar</button></div></div>';
+  }
+  function tarjetaListaSimple(clave, titulo, ayuda, placeholder) {
+    const lista = St.listaCompartida(clave);
+    return '<div class="card"><div class="barra"><h2>' + titulo + ' <span class="chip">' + lista.length + '</span></h2><div>' + chipListas() + '</div></div><p class="hint">' + ayuda + '. Compartida con todo el equipo: al agregar, quitar o cambiar se guarda en GitHub solo.</p>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px"><input id="nuevo-' + clave + '" data-nuevo="' + clave + '" placeholder="' + placeholder + '" style="flex:1"><button data-acc="lista-add" data-clave="' + clave + '">+ Agregar</button></div>' +
+      '<textarea data-compl="' + clave + '" style="min-height:120px">' + esc(lista.join('\n')) + '</textarea></div>';
   }
   // Materiales: lista compartida por todo el equipo, guardada en el repositorio privado (catalogo/listas.json).
   function tarjetaMateriales() {
@@ -2389,6 +2630,12 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (!(await protegerReduccion(St.materialesCompartidos().length, St.limpiarLista(lista).length, 'la lista de materiales'))) { render(); return; }
     St.materialesGuardarLocal(lista); render(); programarSubidaListas();
   }
+  const NOMBRE_LISTA = { ambientes: 'la lista de ambientes', tiposPuerta: 'la lista de tipos de puerta', categoriasSueltas: 'la lista de tipos de pieza' };
+  async function cambioLista(clave, lista) {
+    const nueva = clave === 'ambientes' ? St.limpiarAmbientes(lista) : St.limpiarLista(lista);
+    if (!(await protegerReduccion(St.listaCompartida(clave).length, nueva.length, NOMBRE_LISTA[clave]))) { render(); return false; }
+    St.listaGuardarLocal(clave, nueva); render(); programarSubidaListas(); return true;
+  }
   async function cambioTipos(lista, que) {
     if (!(await protegerReduccion(St.tiposCompartidos().length, lista.length, 'la lista de módulos tipo'))) return false;
     St.tiposGuardarLocal(lista); if (tab === 'listas') render(); programarSubidaListas(); return true;
@@ -2405,10 +2652,6 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const comp = St.tiposCompartidos(), nombres = new Set(comp.map(x => String(x.nombre).toLowerCase()));
     return comp.concat((D.listas.modulosTipo || []).filter(x => x && x.nombre && x.modulo && !nombres.has(String(x.nombre).toLowerCase())));
   }
-  function listaTexto(k, t, ayuda) {
-    return '<div class="card"><h2>' + t + '</h2><p class="hint">' + ayuda + '</p><textarea data-lista="' + k + '" style="min-height:160px">' + esc((D.listas[k] || []).join('\n')) + '</textarea></div>';
-  }
-
   /* ------------------------------------------------------------------ armado general */
   // Pestañas a la vista; las tablas de carga manual viven dentro de “Control manual”.
   const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['taller', 'Taller'], ['overrides', 'Override'], ['proveedores', 'Proveedores'], ['listas', 'Listas'], ['manual', 'Control manual']];
@@ -2457,6 +2700,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 
   function render() {
     const act = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
+    const actFresco = !!(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.sel === '1');
     const nav = PESTANAS.map(([k, t]) => { const n = contador(k); const act = k === tab || (k === 'manual' && esManual(tab)); return '<a data-tab="' + k + '" class="' + (act ? 'activa' : '') + '">' + t + (n ? '<span class="n">' + n + '</span>' : '') + '</a>'; }).join('') +
       '<span style="flex:1"></span><button class="mini" data-acc="etiquetas-pdf" title="Genera y descarga el PDF con una etiqueta por pieza">' + ICO.tag + ' Imprimir etiquetas</button>';
     $('#tabs').innerHTML = nav;
@@ -2471,7 +2715,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     $('#main').innerHTML = html;
     const dl = $('#dl-mat'); dl.innerHTML = materialesConocidos().map(m => '<option value="' + esc(m) + '">').join('');
     $('#nombreProyecto').textContent = D.proyecto.nombre || '(proyecto sin nombre)';
-    if (act) { const el = document.querySelector('[data-k="' + act.replace(/"/g, '') + '"]'); if (el && el.tagName !== 'SELECT') { el.focus(); try { if (el.setSelectionRange && el.type !== 'number') el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* no aplica */ } } }
+    if (act) { const el = document.querySelector('[data-k="' + act.replace(/"/g, '') + '"]'); if (el && el.tagName !== 'SELECT') { sinSel = true; el.focus(); sinSel = false; if (actFresco && el.type === 'number') { el.dataset.sel = '1'; try { el.select(); } catch (er) { /* no aplica */ } } try { if (el.setSelectionRange && el.type !== 'number') el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* no aplica */ } } }
     actualizarBotones(); actualizarPie();
   }
   // Pie de página de la impresión (margen inferior de la hoja): proyecto, cuándo se imprimió, cuándo se modificó por última vez y nº de página.
@@ -2563,10 +2807,15 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (el.dataset.agrupar !== undefined) { agruparPor = el.value; subPieza = ''; render(); return; }
       if (el.dataset.subpieza !== undefined) { subPieza = el.value; render(); return; }
       if (el.dataset.matlista !== undefined) { cambioMateriales(el.value.split('\n')); return; }
-      if (el.dataset.lista) { D.listas[el.dataset.lista] = el.value.split('\n').map(s => s.trim()).filter(Boolean); tocado(true); render(); return; }
+      if (el.dataset.compl) { cambioLista(el.dataset.compl, el.value.split('\n')); return; }
       const k = el.dataset.k; if (!k) return;
       const p = k.split(':');
-      if (p[0] === 'amb') { const a = D.listas.ambientes[Number(p[1])]; if (a) { a[p[2]] = el.value.trim(); tocado(); } return; }
+      if (p[0] === 'amb') {
+        const lista = St.listaCompartida('ambientes').map(x => Object.assign({}, x)), a = lista[Number(p[1])];
+        if (!a) return;
+        if (p[2] === 'nombre' && !el.value.trim()) { toast('El ambiente necesita un nombre.', 'err'); render(); return; }
+        a[p[2]] = el.value.trim(); cambioLista('ambientes', lista); return;
+      }
       if (p[0] === 'proyecto') { setVal('proyecto', 0, p[1], el.value); return; }
       const T = TABLAS[p[0]]; const c = T && T.cols.find(x => x.k === p[2]);
       setVal(p[0], Number(p[1]), p[2], valorDeEl(el, c));
@@ -2576,7 +2825,16 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (el.dataset && el.dataset.busq !== undefined) { busq[el.dataset.busq] = el.value; const pos = el.selectionStart; render(); const n = document.querySelector('[data-busq="' + el.dataset.busq + '"]'); if (n) { n.focus(); } return; }
       if (el.classList && el.classList.contains('cat')) mostrarSugerencias(el);
     });
-    document.addEventListener('focusin', (e) => { if (e.target.classList && e.target.classList.contains('cat')) mostrarSugerencias(e.target); });
+    document.addEventListener('focusin', (e) => {
+      if (e.target.classList && e.target.classList.contains('cat')) mostrarSugerencias(e.target);
+      // Campos numéricos: al entrar se selecciona todo, así se escribe encima sin tener que borrar.
+      const t = e.target;
+      if (!sinSel && t.tagName === 'INPUT' && t.type === 'number' && !t.disabled && !t.readOnly) { t.dataset.sel = '1'; try { t.select(); } catch (er) { /* no aplica */ } setTimeout(() => { try { if (document.activeElement === t && t.dataset.sel === '1') t.select(); } catch (er) { /* no aplica */ } }, 0); }
+    });
+    // apenas se escribe algo, ya no se vuelve a seleccionar todo
+    document.addEventListener('beforeinput', (e) => { if (e.target && e.target.dataset && e.target.dataset.sel) delete e.target.dataset.sel; }, true);
+    // el mouse coloca el cursor al soltar el clic: se vuelve a seleccionar todo (sólo si todavía no se escribió nada)
+    ['mouseup', 'click'].forEach((ev) => document.addEventListener(ev, (e) => { const t = e.target; if (t && t.dataset && t.dataset.sel === '1' && t.type === 'number') { const sel = () => { try { if (t.dataset.sel === '1' && document.activeElement === t) t.select(); } catch (er) { /* no aplica */ } }; sel(); setTimeout(sel, 0); setTimeout(sel, 30); } }));
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.sugerencias') && !(e.target.classList && e.target.classList.contains('cat'))) cerrarSugerencias();
       const ir = e.target.closest('[data-ir-tab]'); if (ir) { e.preventDefault(); irA(ir.dataset.irTab, ir.dataset.irId); return; }
@@ -2588,6 +2846,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     });
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && e.target && e.target.id === 'matNuevo') { e.preventDefault(); accion('mat-add', null, null); return; }
+      if (e.key === 'Enter' && e.target && e.target.dataset && e.target.dataset.nuevo) { e.preventDefault(); accion('lista-add', null, { dataset: { clave: e.target.dataset.nuevo } }); return; }
+      if (e.key === 'Enter' && e.target && (e.target.id === 'ambNuevo' || e.target.id === 'ambCod')) { e.preventDefault(); accion('amb-add', null, null); return; }
       if (!(e.ctrlKey || e.metaKey)) return;
       const k = e.key.toLowerCase();
       if (k === 's') { e.preventDefault(); guardar(); return; }
@@ -2683,11 +2943,24 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (a === 'print-sec') { imprimirSeccion(document.getElementById(btn.dataset.target)); return; }
     if (a === 'etiquetas-pdf') { await imprimirEtiquetas(); return; }
     if (a === 'limpiar-busq') { busq = { largo: '', ancho: '', espesor: '' }; render(); return; }
-    if (a === 'amb-add') { D.listas.ambientes.push({ nombre: '', codigo: '' }); tocado(true); render(); return; }
-    if (a === 'amb-del') { D.listas.ambientes.splice(i, 1); tocado(true); render(); return; }
-    if (a === 'listas-def') { St.guardarListasPorDefecto(D.listas); toast('Listas guardadas como predeterminadas', 'ok'); return; }
+    if (a === 'amb-add') {
+      const n = (document.getElementById('ambNuevo') || {}).value, c = (document.getElementById('ambCod') || {}).value;
+      const nombre = String(n || '').trim(), codigo = String(c || '').trim();
+      if (!nombre || !codigo) { toast('Escribí el nombre del ambiente y su código (ej. Quincho / Qui).', 'err'); return; }
+      const lista = St.listaCompartida('ambientes');
+      if (lista.some(x => x.nombre.toLowerCase() === nombre.toLowerCase())) { toast('Ese ambiente ya está en la lista.', 'err'); return; }
+      await cambioLista('ambientes', lista.concat([{ nombre, codigo }])); return;
+    }
+    if (a === 'amb-del') { const lista = St.listaCompartida('ambientes'); if (!lista[i]) return; if (!(await confirmar('¿Quitar el ambiente “' + lista[i].nombre + '” de la lista? Los módulos que ya lo usan no cambian.', 'Quitar'))) return; await cambioLista('ambientes', lista.filter((_, k) => k !== i)); return; }
+    if (a === 'lista-add') {
+      const clave = btn.dataset.clave, inp = document.getElementById('nuevo-' + clave), v = inp ? inp.value.trim() : '';
+      if (!v) { toast('Escribí el nombre que querés agregar.', 'err'); return; }
+      const lista = St.listaCompartida(clave);
+      if (lista.some(x => x.toLowerCase() === v.toLowerCase())) { toast('Ya está en la lista.', 'err'); return; }
+      await cambioLista(clave, lista.concat([v])); return;
+    }
     if (a === 'prov-csv') { exportarProveedorCSV(); return; }
-    if (a === 'prov-json') { St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.json', JSON.stringify(R.proveedor, null, 2)); return; }
+    if (a === 'prov-json') { exportarProveedorJSON(); return; }
     if (a === 'cat-file') { elegirArchivo('.json', async (txt) => { try { const items = St.normalizarCatalogo(JSON.parse(txt)); await St.catalogoGuardar(items); toast('Catálogo cargado: ' + items.length + ' ítems', 'ok'); render(); } catch (err) { toast(err.message, 'err'); } }); return; }
     if (a === 'cat-gh') { try { const items = await St.ghTraerCatalogo(); await St.catalogoGuardar(items); toast('Catálogo traído de GitHub: ' + items.length + ' ítems', 'ok'); render(); } catch (err) { dialogo('<h3>No pude traer el catálogo</h3><p style="font-size:13.5px;line-height:1.5">' + esc(err.message) + '</p><div class="pie-d"><button data-r="x" onclick="this.closest(\'dialog\').close()">Entendido</button></div>'); } return; }
   }
@@ -2700,11 +2973,27 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     window.addEventListener('afterprint', fin);
     window.print();
   }
+  // ¿Gira esta pieza del proveedor? Lo que se eligió en Tapacantos o, en Auto, lo que dice la veta de la placa en el catálogo.
+  function giraDe(f) {
+    const id = window.Dilegno.idDe(f.materialPlaca);
+    const placa = id === null ? null : St.catalogo.find(x => Number(x.id) === id);
+    return window.Dilegno.girar(f.gira, placa);
+  }
+  function exportarProveedorJSON() {
+    const r = window.Dilegno.armar(R.proveedor, St.catalogo, D.proyecto.nombre);
+    if (!r.archivos.length) { toast(r.avisos.length ? r.avisos[0] : 'No hay piezas para el proveedor.', 'err'); return; }
+    const nombre = St.slug(D.proyecto.nombre);
+    if (r.archivos.length === 1) St.descargar(r.archivos[0].nombre, JSON.stringify(r.archivos[0].json, null, 2));
+    else St.descargar(nombre + '-dilegno.zip', window.Dilegno.zip(r.archivos.map(a => ({ nombre: a.nombre, texto: JSON.stringify(a.json, null, 2) }))), 'application/zip');
+    if (r.avisos.length) { const dlg = dialogo('<h3>JSON para Dilegno</h3><p style="font-size:13.5px;line-height:1.5">Se descargó ' + (r.archivos.length === 1 ? '1 archivo' : r.archivos.length + ' archivos (uno por placa, en un .zip)') + '. Revisá:</p><ul style="font-size:13px;line-height:1.5">' + r.avisos.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul><div class="pie-d"><button data-r="x">Entendido</button></div>'); dlg.addEventListener('click', (e) => { if (e.target.closest('button[data-r]')) dlg.close(); }); }
+    else toast(r.archivos.length === 1 ? 'JSON para Dilegno descargado' : r.archivos.length + ' JSON para Dilegno en un .zip', 'ok');
+  }
   function exportarProveedorCSV() {
-    const cols = ['ID Módulo', 'Pieza', 'Material', 'Material Placa', 'Tapacanto Principal', 'Tapacanto Secundario', 'Largo', 'Ancho', 'Espesor', 'Cantidad', 'Arr.', 'Ab.', 'Izq.', 'Der.'];
+    // Orden para importar: cantidad, largo, ancho, nombre de pieza, gira (1 = gira, 0 = no gira), arr, ab, izq, der
+    const cols = ['Cantidad', 'Largo', 'Ancho', 'Pieza', 'Gira', 'Arr.', 'Ab.', 'Izq.', 'Der.'];
     const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
-    const filas = R.proveedor.map(f => [f.idModulo, f.pieza, f.material, f.materialPlaca, f.tapacantoPrincipal, f.tapacantoSecundario, f.largo, f.ancho, f.espesor, f.cantidad, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
-    St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.csv', '﻿' + [cols.map(q).join(';')].concat(filas).join('\r\n'), 'text/csv;charset=utf-8');
+    const filas = R.proveedor.map(f => [f.cantidad, f.largo, f.ancho, f.pieza, giraDe(f) ? 1 : 0, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
+    St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.csv', '\uFEFF' + [cols.map(q).join(';')].concat(filas).join('\r\n'), 'text/csv;charset=utf-8');
   }
   function elegirArchivo(accept, cb) {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = accept; inp.style.display = 'none';
@@ -2719,16 +3008,22 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const tipo = Number(inp.dataset.cat);
     if (!St.catalogo.length) { cerrarSugerencias(); return; }
     let q = inp.value;
-    // Si el campo está vacío, sugerir según el material que el despiece ya le asignó a la pieza.
-    if (!q && tipo === 0) {
+    // Si el campo está vacío, sugerir según el material que el despiece ya le asignó a la pieza
+    // (Material placa y Tapacanto principal; el principal es el mismo material que la pieza).
+    if (!q && (tipo === 0 || (tipo === 1 && /:tapPrincipal$/.test(inp.dataset.k)))) {
       const [tk, i] = inp.dataset.k.split(':'); const row = D[TABLAS[tk].arr][Number(i)];
       if (row && row.pieza && R && R.ok) {
         const clave = (String(row.idModulo).trim() + '|' + row.pieza).toLowerCase();
         const f = R.corte.concat(R.proveedor).find(x => (String(x.idModulo).trim() + '|' + String(x.pieza).trim()).toLowerCase() === clave);
         if (f && f.material) q = f.material;
       }
+      // sin pieza elegida (o sin resultado): el material del módulo o, si no, el del proyecto
+      if (!q && row) {
+        const m = moduloPorId(String(row.idModulo || '').trim()), p = D.proyecto || {};
+        q = (m && m.material) || p.materialInteriores || p.materialProyecto || '';
+      }
     }
-    const res = St.catalogoBuscar(q, tipo, 40);
+    const res = St.catalogoSugerir(q, tipo, 40);
     cerrarSugerencias();
     sugEl = document.createElement('div'); sugEl.className = 'sugerencias'; sugInput = inp;
     sugEl.innerHTML = res.length ? res.map(it => '<div data-id="' + it.id + '">' + esc(St.etiquetaCatalogo(it)) + ' <small>' + esc(it.code) + '</small></div>').join('') : '<div style="color:var(--mute2)">Sin resultados' + (q ? ' para “' + esc(q) + '”' : '') + '</div>';
@@ -2933,17 +3228,17 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 
   /* ---- Módulos tipo ---- */
   function describirTipo(t) {
-    const pu = (t.puertas || []).map(x => x.cant + ' ' + (x.corte || '?') + (x.modalidad === 'Simetrica' ? ' simétrica' : '')).join(' + ');
+    const pu = (t.puertas || []).map(x => (x.modalidad === 'Simetrica' ? 2 : x.cant) + ' ' + (x.corte || '?') + (x.modalidad === 'Simetrica' ? ' simétrica' : '')).join(' + ');
     return [t.modulo.tipo, pu || 'sin puertas', (t.cajones || []).length ? (t.cajones.length + ' cajón(es)') : ''].filter(Boolean).join(' · ');
   }
   function dialogoTipo() {
     const tipos = tiposDisponibles();
     if (!tipos.length) { toast('No hay módulos tipo. Armá uno con la ☆ de cualquier módulo.', 'err'); return; }
     const ult = D.modulos[D.modulos.length - 1];
-    const amb0 = ult ? ult.ambiente : ((D.listas.ambientes[0] || {}).nombre || '');
+    const amb0 = ult ? ult.ambiente : (nombresAmbiente()[0] || '');
     const dlg = dialogo('<h3>Módulo tipo</h3><p class="hint">Elegí una plantilla: se crean el módulo, sus puertas y sus cajones ya vinculados. Después podés ajustar cada fila como siempre.</p>' +
       '<div class="campo"><label class="l">Plantilla</label><select id="tpSel">' + tipos.map((t, i) => '<option value="' + i + '">' + esc(t.nombre) + '</option>').join('') + '</select><div class="hint" id="tpDesc" style="margin:6px 0 0"></div></div>' +
-      '<div class="grid2" style="margin-top:10px"><div class="campo"><label class="l">Ambiente</label><select id="tpAmb">' + (D.listas.ambientes || []).map(a => '<option' + (a.nombre === amb0 ? ' selected' : '') + '>' + esc(a.nombre) + '</option>').join('') + '</select></div>' +
+      '<div class="grid2" style="margin-top:10px"><div class="campo"><label class="l">Ambiente</label><select id="tpAmb">' + nombresAmbiente().map(a => '<option' + (a === amb0 ? ' selected' : '') + '>' + esc(a) + '</option>').join('') + '</select></div>' +
       '<div class="campo"><label class="l">Cantidad de módulos</label><input id="tpN" type="number" min="1" value="1"></div>' +
       '<div class="campo"><label class="l">L (ancho)</label><input id="tpL" type="number" inputmode="decimal" placeholder="mm"></div>' +
       '<div class="campo"><label class="l">H (alto)</label><input id="tpH" type="number" inputmode="decimal"></div>' +
@@ -2984,7 +3279,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const mL = num(m.l), rel = (v) => (v === '' || v === undefined || v === null || !(mL > 0)) ? '' : Number(v) - mL;
     const tipo = {
       nombre,
-      modulo: { tipo: m.tipo, h: m.h, l: m.l, p: m.p, material: m.material || '', eMovil: m.eMovil || 0, eFijo: m.eFijo || 0, pteExtra: m.pteExtra || 0, fondo: m.fondo !== false, observaciones: m.observaciones || '' },
+      modulo: { tipo: m.tipo, h: m.h, l: m.l, p: m.p, material: m.material || '', eMovil: m.eMovil || 0, eFijo: m.eFijo || 0, pteExtra: m.pteExtra || 0, fondo: m.fondo !== false, puertasHechas: m.puertasHechas === true, observaciones: m.observaciones || '' },
       puertas: D.puertas.filter(r => String(r.idModulo).trim() === id).map(r => { const c = JSON.parse(JSON.stringify(r)); delete c.idModulo; return c; }),
       cajones: D.cajones.filter(r => String(r.idModulo).trim() === id).map(r => ({ h: r.h, dl: rel(r.l), p: r.p, fondo: r.fondo, dlPlaca: rel(r.lPlaca), aPlaca: r.aPlaca })),
     };
@@ -3080,7 +3375,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     await St.catalogoCargarLocal();
     St.catalogoAutomatico().then((o) => { catalogoOrigen = o; if (D) render(); });
     if (St.ghListo()) {
-      (St.materialesEstado().pendiente ? St.ghGuardarListas() : St.ghTraerListas().then(r => (r && r.noExiste) ? St.ghGuardarListas() : r)).then(() => { if (D) render(); }).catch(() => { /* sin conexión: se usa la lista guardada */ });
+      (St.materialesEstado().pendiente ? St.ghGuardarListas() : St.ghTraerListas().then(r => ((r && r.noExiste) || St.materialesEstado().pendiente) ? St.ghGuardarListas() : r)).then(() => { if (D) render(); }).catch(() => { /* sin conexión: se usa la lista guardada */ });
     }
     eventos();
     $('#btnMas').onclick = (e) => { e.stopPropagation(); $('.acciones').classList.toggle('mas-abierto'); };
