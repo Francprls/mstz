@@ -28,6 +28,8 @@
     font-display: swap;
   }
 
+/* hoja que existe sólo para imprimir */
+.solo-papel { display: none; }
 :root {
   /* Grafito cálido: neutros de carbón + un solo acento de madera clara */
   --bg: #151413; --card: #1D1C1A; --card2: #161514; --borde: #2B2927; --borde2: #3A3835;
@@ -214,6 +216,7 @@ nav.tabs { align-items: center; }
   .pieza-row { background: #EFEFEF; border: 1px solid #ccc; color: #000; padding: 5px 10px; font-family: Arial, sans-serif; }
   .tabla-wrap { overflow: visible; }
   body.solo-impresion main > :not(.imprimir-esto) { display: none !important; }
+  .solo-papel.imprimir-esto { display: block !important; }
   .modulo-titulo { display: block; }
   table.tabla-corte tr.cortada td { text-decoration: line-through; color: #777; }
   table.tabla-corte td.chk input { width: 12px; height: 12px; }
@@ -807,11 +810,12 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     });
 
     const tapacantosPorClave = leerTapacantos_(d);
-    const filasCorte = [], filasProveedor = [];
+    const filasCorte = [], filasProveedor = [], filasCorteCompleta = [];
     agruparParaCorte_(piezasCrudas).forEach(f => {
       const nombreParaMatch = nombreParaCorte_(f);
       const clave = f.idModulo + '|' + nombreParaMatch.toLowerCase();
       const contexto = (f.idModulo || '(sin módulo)') + ' / ' + nombreParaMatch;
+      filasCorteCompleta.push(filaCorte_(f)); // la lista completa no se ve afectada por Tapacantos
 
       if (tapacantosPorClave.has(clave)) {
         const configs = tapacantosPorClave.get(clave);
@@ -874,9 +878,9 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 
     let msg = 'Listo. Se generaron ' + filasCorte.length + ' líneas de corte para ' + modulos.length + ' módulo(s).';
     if (filasProveedor.length > 0) {
-      msg += ' ' + filasProveedor.length + ' pieza(s) más se excluyeron de Lista de Corte por estar cargadas en Tapacantos (van a Piezas Proveedor).';
+      msg += ' ' + filasProveedor.length + ' pieza(s) están cargadas en Tapacantos (van a Piezas Proveedor); la lista completa de cortes las incluye igual.';
     }
-    return { ok: true, mensaje: msg, proyecto: proy, corte: filasCorte, orden, taller, proveedor, avisos: alertas,
+    return { ok: true, mensaje: msg, proyecto: proy, corte: filasCorte, corteCompleta: filasCorteCompleta, orden, taller, proveedor, avisos: alertas,
              modulos: modulos.length };
   }
 
@@ -1602,6 +1606,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
    - base = Largo de la pieza, altura = Ancho. Arr./Ab. corren a lo largo de la base; Izq./Der. a lo largo de la altura.
    - tapacantos = máscara de bits. CONFIRMADO con el archivo real: Arr. = 64 y Ab. = 128 (canto en ABS, grupo de bits 4-7).
      SUPUESTO (a verificar con la prueba de lados): grupo de bits 0-3 = canto melamínico, 4-7 = canto ABS; orden dentro del grupo: Izq., Der., Arr., Ab.
+   - CONFIRMADO en pruebas: Dilegno no carga placa ni cortes si tapa_mel o tapa_abs es null → siempre se mandan los dos (uno de relleno si no se usa).
    - rota = la pieza puede girar = la placa NO tiene veta. */
 (function (root) {
   'use strict';
@@ -1637,6 +1642,28 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return { mask, mel: usados.mel, abs: usados.abs, faltan };
   }
 
+
+  // Dilegno NO carga la placa ni los cortes si falta alguno de los dos cantos (tapa_mel / tapa_abs en null): hay que mandar siempre los dos.
+  // Si la pieza usa uno solo, el otro viaja de relleno (no se usa en ningún lado): se busca el mismo color en el otro espesor.
+  const RELLENO = { mel: 242512, abs: 242521 };   // cantos del archivo de ejemplo que Dilegno acepta (Mont Blanc 22x0.45 / Ceniza 22x2)
+  function fichas(desc) {
+    return String(desc || '').toLowerCase().split(/[^a-z0-9ñ]+/).filter(t => t.length >= 3 && !/^\d+(x\d*[.,]?\d+)?$/.test(t) && !/^\d+x/.test(t));
+  }
+  function cantoRelleno(cat, slot, ref) {
+    const cand = []; cat.forEach(x => { if (x.tipo === 1 && tipoCanto(x) === slot) cand.push(x); });
+    if (ref) {
+      const rf = new Set(fichas(ref.description));
+      let mejor = null, pts = 0;
+      cand.forEach(x => {
+        if (typeof ref.base === 'number' && typeof x.base === 'number' && x.base !== ref.base) return;
+        let n = 0; fichas(x.description).forEach(t => { if (rf.has(t)) n += /^[a-zñ]?\d{3,}$/.test(t) ? 3 : 1; });
+        if (n > pts) { pts = n; mejor = x; }
+      });
+      if (mejor) return mejor;
+    }
+    return cat.get(RELLENO[slot]) || cand.sort((a, b) => a.id - b.id)[0] || null;
+  }
+
   // piezas = R.proveedor · catalogo = St.catalogo · proyecto = nombre
   function armar(piezas, catalogo, proyecto) {
     const cat = mapa(catalogo), avisos = [], porPlaca = new Map();
@@ -1665,6 +1692,12 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       ['base', 'altura', 'espesor'].forEach(k => { if (typeof placa[k] !== 'number') sinDatosPlaca.add(k); });
       if (typeof placa.veta !== 'boolean') sinDatosPlaca.add('veta');
       grupos.forEach((g, gi) => {
+        ['mel', 'abs'].forEach(slot => {
+          if (g[slot] !== null) return;
+          const otro = cat.get(g[slot === 'mel' ? 'abs' : 'mel']) || null, r = cantoRelleno(cat, slot, otro);
+          if (r) g[slot] = r.id;
+          else avisos.push('“' + placa.description + '”: no encontré en el catálogo un canto ' + (slot === 'abs' ? 'ABS' : 'melamínico') + ' para completar el archivo; Dilegno puede no cargar la placa ni los cortes.');
+        });
         const tapa = (id) => { if (id === null) return null; const t = cat.get(id); if (!t) { avisos.push('El canto ' + id + ' no está en el catálogo cargado.'); return { id: id, espesor: 0, descripcion: '', codigo: '' }; } if (typeof t.espesor !== 'number') sinDatosCanto.add('espesor'); return { id: t.id, espesor: typeof t.espesor === 'number' ? t.espesor : 0, descripcion: t.description || '', codigo: t.code || '' }; };
         const obj = {
           placa: { id: placa.id, base: placa.base || 0, altura: placa.altura || 0, espesor: placa.espesor || 0, descripcion: placa.description || '', veta: placa.veta === true, codigo: placa.code || '' },
@@ -1709,7 +1742,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return out;
   }
 
-  root.Dilegno = { armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
+  root.Dilegno = { cantoRelleno, armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -2528,33 +2561,47 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     }).join('');
   }
 
-  /* ---- Proveedores ---- */
-  function vistaProveedores() {
-    if (!R || !R.ok) return sinResultado();
-    const P = R.proveedor;
-    let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
-      '<p class="hint">Son las piezas cargadas en “Tapacantos”: no están en la lista de corte del taller. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira” siempre es automático: gira si la placa no tiene veta.</p>';
-    h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
-      P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
-      : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
-    h += '</div>';
-
-    // Lista de cortes por material: agrupada por material + espesor
+  function cortesPorMaterialHTML(piezas) {
     const grupos = {}, orden = [];
-    R.corte.forEach(p => {
+    piezas.forEach(p => {
       const kg = (p.material || '(sin material)') + '||' + (p.espesor || '');
       if (!grupos[kg]) { grupos[kg] = { material: p.material || '(sin material)', espesor: p.espesor, filas: {}, orden: [] }; orden.push(kg); }
       const g = grupos[kg], kf = [p.largo, p.ancho, p.tapLargo, p.tapAncho].join('|');
       if (!g.filas[kf]) { g.filas[kf] = { largo: p.largo, ancho: p.ancho, tapLargo: p.tapLargo, tapAncho: p.tapAncho, cantidad: 0 }; g.orden.push(kf); }
       g.filas[kf].cantidad += num(p.cantidad);
     });
-    h += '<div class="card" id="card-cortes"><div class="barra"><h2>Lista de cortes por material</h2><button class="no-print" data-acc="print-sec" data-target="card-cortes">' + ICO.print + ' Imprimir</button></div>' +
-      '<p class="hint no-print">Agrupada por material y espesor; las piezas con la misma medida y el mismo tapacanto se suman en una sola fila, porque para cortar sirve el total, no de qué módulo salió cada pieza.</p>' + titlebar('LISTA DE CORTES POR MATERIAL');
-    h += orden.length ? orden.map(k => {
+    return orden.length ? orden.map(k => {
       const g = grupos[k];
       return '<div class="jony-grupo"><div class="jony-grupo-titulo">' + esc(g.material + (g.espesor ? ' · ' + g.espesor + ' mm' : '')) + '</div><div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>Largo</th><th>Ancho</th><th>Cant.</th><th>TC Largo</th><th>TC Ancho</th></tr></thead><tbody>' +
         g.orden.map(kf => { const f = g.filas[kf]; return '<tr><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + f.tapLargo + '</td><td class="n">' + f.tapAncho + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
     }).join('') : '<div class="vacio">Todavía no hay datos.</div>';
+  }
+  // PDF de la lista de cortes: 'todo' o 'sin' (sin lo enviado a Dilegno). Arma una hoja aparte sólo para imprimir.
+  function imprimirCortes(modo) {
+    if (!R || !R.ok) return;
+    const sin = modo === 'sin';
+    const el = document.createElement('div');
+    el.className = 'card solo-papel';
+    el.innerHTML = titlebar('LISTA DE CORTES POR MATERIAL' + (sin ? ' (sin piezas enviadas a Dilegno)' : '')) + cortesPorMaterialHTML(sin ? R.corte : R.corteCompleta);
+    document.getElementById('main').appendChild(el);
+    window.addEventListener('afterprint', () => el.remove(), { once: true });
+    imprimirSeccion(el);
+  }
+
+  /* ---- Proveedores ---- */
+  function vistaProveedores() {
+    if (!R || !R.ok) return sinResultado();
+    const P = R.proveedor;
+    let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
+      '<p class="hint">Son las piezas cargadas en “Tapacantos”. También figuran en la lista de cortes por material de más abajo. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira” siempre es automático: gira si la placa no tiene veta.</p>';
+    h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
+      P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
+      : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
+    h += '</div>';
+
+    // Lista de cortes por material: agrupada por material + espesor. Siempre completa; el PDF puede excluir lo enviado a Dilegno.
+    h += '<div class="card" id="card-cortes"><div class="barra"><h2>Lista de cortes por material</h2><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" data-acc="print-cortes" data-modo="todo" title="Todas las piezas, también las que van a Dilegno">' + ICO.print + ' PDF · todos los materiales</button><button class="sec mini" data-acc="print-cortes" data-modo="sin"' + (P.length ? '' : ' disabled') + ' title="Sin las piezas cargadas en Tapacantos (las que van a Dilegno)">' + ICO.print + ' PDF · sin lo enviado a Dilegno</button></div></div>' +
+      '<p class="hint no-print">Incluye todas las piezas, también las que mandás a Dilegno. Agrupada por material y espesor; las piezas con la misma medida y el mismo tapacanto se suman en una sola fila, porque para cortar sirve el total, no de qué módulo salió cada pieza.</p>' + titlebar('LISTA DE CORTES POR MATERIAL') + cortesPorMaterialHTML(R.corteCompleta);
     return h + '</div>';
   }
 
@@ -2937,6 +2984,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       D[T.arr] = []; tocado(true); render(); return;
     }
     if (a === 'print') { window.print(); return; }
+    if (a === 'print-cortes') { imprimirCortes(btn.dataset.modo); return; }
     if (a === 'print-sec') { imprimirSeccion(document.getElementById(btn.dataset.target)); return; }
     if (a === 'etiquetas-pdf') { await imprimirEtiquetas(); return; }
     if (a === 'limpiar-busq') { busq = { largo: '', ancho: '', espesor: '' }; render(); return; }
