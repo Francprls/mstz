@@ -1882,13 +1882,18 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
       const pid = idDe(f.materialPlaca);
       if (pid === null) { sinPlaca++; return; }
       const c = cantos(f, cat); sinCanto += c.faltan;
-      if (!porPlaca.has(pid)) porPlaca.set(pid, []);
-      porPlaca.get(pid).push({ f, c });
+      // Un archivo por material (placa) y por espesor de pieza: un fondo de 5 o 15 mm nunca comparte archivo con piezas de 18 mm.
+      const esp = num(f.espesor) || 0, clave = pid + '|' + esp;
+      if (!porPlaca.has(clave)) porPlaca.set(clave, { pid, esp, lista: [] });
+      porPlaca.get(clave).lista.push({ f, c });
     });
+    const espesoresDe = new Map();   // placa -> cuántos espesores de pieza distintos tiene (para nombrar los archivos)
+    porPlaca.forEach(v => espesoresDe.set(v.pid, (espesoresDe.get(v.pid) || 0) + 1));
     if (sinPlaca) avisos.push(sinPlaca + ' pieza(s) sin “Material placa” en Tapacantos: no se exportaron.');
     if (sinCanto) avisos.push(sinCanto + ' lado(s) con canto pero sin tapacanto elegido (principal / secundario): quedaron sin canto.');
     const archivos = [];
-    porPlaca.forEach((lista, pid) => {
+    const desparejas = new Map();   // aviso: pieza de un espesor con una placa de otro espesor
+    porPlaca.forEach(({ pid, esp, lista }) => {
       // se agrupan las piezas de una placa en archivos; una pieza entra donde sus cantos no choquen (cada archivo admite un canto mel y uno abs)
       const grupos = [];
       lista.forEach(it => {
@@ -1900,6 +1905,9 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
       const placa = cat.get(pid);
       if (!placa) { avisos.push('La placa ' + pid + ' no está en el catálogo cargado: no se exportó.'); return; }
       ['base', 'altura', 'espesor'].forEach(k => { if (typeof placa[k] !== 'number') sinDatosPlaca.add(k); });
+      if (esp > 0 && typeof placa.espesor === 'number' && Math.abs(placa.espesor - esp) >= 1) {
+        lista.forEach(it => { const k = it.f.pieza + '|' + esp + '|' + pid; if (!desparejas.has(k)) desparejas.set(k, '“' + it.f.pieza + '” (' + esp + ' mm) tiene la placa “' + (placa.description || pid) + '” de ' + placa.espesor + ' mm'); });
+      }
       if (typeof placa.veta !== 'boolean') sinDatosPlaca.add('veta');
       grupos.forEach((g, gi) => {
         ['mel', 'abs'].forEach(slot => {
@@ -1922,9 +1930,10 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
           despachar: false, modificado: false, planilla_vid: '', opcion_opt: 0,
         };
         const limpio = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-        archivos.push({ nombre: limpio(proyecto || 'Proyecto').replace(/ /g, '_') + '_' + limpio(placa.description).replace(/ /g, '_').slice(0, 60) + (grupos.length > 1 ? '_' + (gi + 1) : '') + '.json', json: obj });
+        archivos.push({ nombre: limpio(proyecto || 'Proyecto').replace(/ /g, '_') + '_' + limpio(placa.description).replace(/ /g, '_').slice(0, 60) + (espesoresDe.get(pid) > 1 ? '_' + esp + 'mm' : '') + (grupos.length > 1 ? '_' + (gi + 1) : '') + '.json', json: obj });
       });
     });
+    if (desparejas.size) avisos.push('Revisá el “Material placa” en Tapacantos: ' + Array.from(desparejas.values()).join('; ') + '. Van en un archivo aparte por espesor, pero la placa no coincide con el espesor de la pieza.');
     if (sinDatosPlaca.size) avisos.push('El catálogo cargado no trae ' + Array.from(sinDatosPlaca).join(', ') + ' de la placa: volvé a cargar el materiales.json completo de Dilegno (Control manual → Tapacantos).');
     if (sinDatosCanto.size) avisos.push('El catálogo cargado no trae el espesor de los cantos: volvé a cargar el materiales.json completo de Dilegno.');
     return { archivos, avisos };
