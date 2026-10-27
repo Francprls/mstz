@@ -2427,7 +2427,7 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
     const cuerpo = rows.map((row, i) => {
       const idFila = String(tk === 'modulos' ? row.id : row.idModulo || '').trim();
       return '<tr data-mod="' + esc(idFila) + '">' + (modo ? '<td class="selc">' + chkSel(ctx, tk + ':' + i, row) + '</td>' : '') + T.cols.map(c => celdaEt(tk, i, c, row)).join('') +
-        '<td class="acc">' + (tk === 'modulos' ? '<button class="sec ico" data-acc="tipo-guardar" data-i="' + i + '" title="Guardar como módulo tipo">☆</button> ' : '') + (tk === 'tapacantos' ? '<button class="sec ico" data-acc="tc-todas" data-i="' + i + '" title="Agregar todas las piezas del módulo con estos materiales">⊞</button> ' : '') + '<button class="sec ico" data-acc="dup" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="del" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>';
+        '<td class="acc">' + (tk === 'modulos' ? '<button class="sec ico" data-acc="tipo-guardar" data-i="' + i + '" title="Guardar como módulo tipo">☆</button> ' : '') + (tk === 'tapacantos' ? '<button class="sec ico" data-acc="tc-todas" data-i="' + i + '" title="Agregar todas las piezas del módulo con estos materiales">⊞</button> <button class="sec ico" data-acc="tc-aplicar" data-i="' + i + '" title="Aplicar los Tapacantos de este módulo a otros módulos">⇉</button> ' : '') + '<button class="sec ico" data-acc="dup" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="del" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>';
     }).join('');
     return '<div class="card"><div class="barra"><div><h2>' + esc(T.titulo) + ' <span class="chip">' + rows.length + '</span></h2></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (tk === 'tapacantos' ? barraCatalogo() : '') + (tk === 'modulos' ? '<button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button>' : '') +
@@ -2667,8 +2667,8 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
         (av ? '<div class="tc-aviso">⚠ ' + esc(av) + '</div>' : '') + '</div>';
     }).join('');
     return '<details class="fsec"' + (filas.length ? ' open' : '') + '><summary><span>Enviar piezas al proveedor (Tapacantos)' + (filas.length ? ' <span class="chip">' + filas.length + '</span>' : '') + '</span></summary>' +
-      '<p class="hint" style="margin:0 0 8px">Elegí la pieza y los lados con canto. <strong>Cant. a enviar</strong>: cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya. Para mandar todo el módulo: elegí los materiales en una fila y tocá <strong>Agregar todas las piezas del módulo</strong>.</p>' + (modo && filas.length ? barraSel(ctx) : '') + tarjetas +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="sec mini" data-acc="f-add" data-t="tapacantos">+ Tapacanto</button>' + (filas.length > 1 ? btnSel(ctx) : '') + '<button class="sec mini" data-acc="tc-todas-ficha" title="Agrega una fila por cada pieza del módulo, con los materiales de la última fila que cargaste">⊞ Agregar todas las piezas del módulo</button></div></details>';
+      '<p class="hint" style="margin:0 0 8px">Elegí la pieza y los lados con canto. <strong>Cant. a enviar</strong>: cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya. Para mandar todo el módulo: elegí los materiales en una fila y tocá <strong>Agregar todas las piezas del módulo</strong>. Si otros módulos van igual, tocá <strong>Aplicar a otros módulos…</strong>.</p>' + (modo && filas.length ? barraSel(ctx) : '') + tarjetas +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="sec mini" data-acc="f-add" data-t="tapacantos">+ Tapacanto</button>' + (filas.length > 1 ? btnSel(ctx) : '') + '<button class="sec mini" data-acc="tc-todas-ficha" title="Agrega una fila por cada pieza del módulo, con los materiales de la última fila que cargaste">⊞ Agregar todas las piezas del módulo</button>' + (filas.length ? '<button class="sec mini" data-acc="tc-aplicar-ficha" title="Copia estas filas de Tapacantos a otros módulos">⇉ Aplicar a otros módulos…</button>' : '') + '</div></details>';
   }
 
   // Piezas que se cortan en el taller: un renglón por pieza elegida (todas las unidades o una cantidad) + un desplegable vacío para seguir agregando.
@@ -3204,6 +3204,73 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
   }
 
 
+
+  /* Tapacantos: copia las filas de Tapacantos de un módulo a otros módulos ("los que van iguales").
+     Si el módulo elegido ya tiene filas, se avisa y se elige entre reemplazarlas o no tocarlo. */
+  function dialogoTapacantosAModulos(origen) {
+    const src = String(origen || '').trim();
+    const filasOrigen = D.tapacantos.filter(r => String(r.idModulo || '').trim() === src);
+    if (!src) { toast('Elegí primero el módulo.', 'err'); return; }
+    if (!filasOrigen.length) { toast('El módulo ' + src + ' todavía no tiene filas de Tapacantos para copiar.', 'err'); return; }
+    const otros = D.modulos.filter(m => String(m.id).trim() !== src);
+    if (!otros.length) { toast('No hay otros módulos.', 'err'); return; }
+    const cant = (id) => D.tapacantos.filter(r => String(r.idModulo || '').trim() === id).length;
+    const copias = new Set(copiasDe(src).map(m => String(m.id).trim()));
+    const dlg = dialogo('<h3>Aplicar Tapacantos de ' + esc(src) + ' a otros módulos</h3>' +
+      '<p class="hint" style="margin:0 0 8px">Se copian las ' + filasOrigen.length + ' fila(s) de Tapacantos de <strong>' + esc(src) + '</strong> (piezas, lados, material de placa, tapacantos y cantidad) a los módulos que elijas. Si un módulo no tiene alguna de las piezas, esa fila se saltea y te lo aviso.</p>' +
+      '<div class="barra-sel"><label class="sel-todas"><input type="checkbox" id="tmTodos"> Todos</label>' + (copias.size ? '<button class="sec mini" data-r="copias">Sólo sus copias (' + copias.size + ')</button>' : '') + '<span class="sel-n" id="tmN">0 elegidos</span></div>' +
+      '<div style="max-height:44vh;overflow:auto;margin-bottom:8px">' + otros.map(m => { const id = String(m.id).trim(), n = cant(id); return '<label class="chk-fila" style="display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--borde)"><input type="checkbox" class="chk-sel" data-tm="' + esc(id) + '"><span class="id-pill">' + esc(id) + '</span><span class="hint" style="margin:0;flex:1">' + esc([m.tipo, (m.h && m.l) ? m.h + '×' + m.l : ''].filter(Boolean).join(' ')) + '</span>' + (n ? '<span class="chip" style="color:var(--warn)">ya tiene ' + n + ' fila' + (n === 1 ? '' : 's') + '</span>' : '') + '</label>'; }).join('') + '</div>' +
+      '<div id="tmAviso" class="avisos" style="display:none;margin:0 0 8px"></div>' +
+      '<div class="pie-d"><button class="sec" data-r="x">Cancelar</button><button data-r="ok">Aplicar</button></div>');
+    const marcados = () => Array.from(dlg.querySelectorAll('[data-tm]:checked')).map(e => e.dataset.tm);
+    const refrescar = () => {
+      const m = marcados(), con = m.filter(id => cant(id) > 0);
+      dlg.querySelector('#tmN').textContent = m.length + ' elegido' + (m.length === 1 ? '' : 's');
+      const av = dlg.querySelector('#tmAviso');
+      if (con.length) {
+        av.style.display = '';
+        av.innerHTML = '<strong>' + con.length + ' de los elegidos ya tiene' + (con.length === 1 ? '' : 'n') + ' filas de Tapacantos</strong> (' + con.map(esc).join(', ') + '). ¿Qué hacemos con ' + (con.length === 1 ? 'ese módulo' : 'esos módulos') + '?' +
+          '<label style="display:flex;gap:8px;margin-top:6px"><input type="radio" name="tmModo" value="no" checked> No tocarlos (sólo se aplica a los que no tienen filas)</label>' +
+          '<label style="display:flex;gap:8px;margin-top:4px"><input type="radio" name="tmModo" value="reemplazar"> Reemplazar sus filas por las de ' + esc(src) + '</label>';
+      } else { av.style.display = 'none'; av.innerHTML = ''; }
+    };
+    dlg.addEventListener('change', (e) => {
+      if (e.target.id === 'tmTodos') dlg.querySelectorAll('[data-tm]').forEach(c => { c.checked = e.target.checked; });
+      if (e.target.dataset && e.target.dataset.tm !== undefined) dlg.querySelector('#tmTodos').checked = dlg.querySelectorAll('[data-tm]:not(:checked)').length === 0;
+      if (e.target.name !== 'tmModo') refrescar();
+    });
+    dlg.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-r]'); if (!b) return;
+      if (b.dataset.r === 'x') { dlg.close(); return; }
+      if (b.dataset.r === 'copias') { dlg.querySelectorAll('[data-tm]').forEach(c => { c.checked = copias.has(c.dataset.tm); }); dlg.querySelector('#tmTodos').checked = false; refrescar(); return; }
+      const ids = marcados(); if (!ids.length) { toast('Elegí al menos un módulo.', 'err'); return; }
+      const radio = dlg.querySelector('[name="tmModo"]:checked'), reemplazar = !!radio && radio.value === 'reemplazar';
+      dlg.close(); aplicarTapacantosAModulos(src, ids, reemplazar);
+    });
+  }
+  function aplicarTapacantosAModulos(src, ids, reemplazar) {
+    const filasOrigen = D.tapacantos.filter(r => String(r.idModulo || '').trim() === src);
+    let aplicados = 0, filas = 0; const salteadas = [], sinTocar = [];
+    ids.forEach(id => {
+      const hay = D.tapacantos.some(r => String(r.idModulo || '').trim() === id);
+      if (hay && !reemplazar) { sinTocar.push(id); return; }
+      const nombres = new Set(M.variantesParaTapacantos(D, id).map(v => v.nombre));
+      const nuevas = [];
+      filasOrigen.forEach(r => {
+        if (r.pieza && !nombres.has(r.pieza)) { salteadas.push(id + ': ' + r.pieza); return; }
+        const c = JSON.parse(JSON.stringify(r)); c.idModulo = id; nuevas.push(c);
+      });
+      if (hay) D.tapacantos = D.tapacantos.filter(r => String(r.idModulo || '').trim() !== id);
+      D.tapacantos.push(...nuevas); aplicados++; filas += nuevas.length;
+    });
+    tocado(true); render();
+    const partes = [];
+    if (aplicados) partes.push('Tapacantos de ' + src + ' aplicado a ' + aplicados + ' módulo' + (aplicados === 1 ? '' : 's') + ' (' + filas + ' filas).');
+    if (sinTocar.length) partes.push('Sin tocar (ya tenían filas): ' + sinTocar.join(', ') + '.');
+    if (salteadas.length) partes.push('Se salteó lo que ese módulo no tiene: ' + salteadas.join(', ') + '.');
+    toast(partes.join(' ') || 'No se aplicó nada.', aplicados ? 'ok' : 'err');
+  }
+
   /* ------------------------------------------------------------------ selección y borrado por lote */
   // Contextos: 'lista-mod' (lista de módulos de Fichas) · 'tbl:<tabla>' (Control manual) · 'sec:<tabla>:<id módulo>' (secciones de la ficha) · 'l:amb' · 'l:tipo' (listas compartidas)
   function itemsSel(ctx) {
@@ -3416,6 +3483,7 @@ table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-
       tocado(true); render(); return;
     }
     if (a === 'tipo-guardar') { await guardarComoTipo(i); return; }
+    if (a === 'tc-aplicar' || a === 'tc-aplicar-ficha') { dialogoTapacantosAModulos(a === 'tc-aplicar' ? String((D.tapacantos[i] || {}).idModulo || '') : fichaSel); return; }
     if (a === 'tc-todas' || a === 'tc-todas-ficha') { agregarTodasTapacantos(a === 'tc-todas' ? i : -1); return; }
     if (a === 'add' && T) { D[T.arr].push(T.nuevo()); tocado(true); render(); const f = document.querySelector('tbody tr:last-child input, tbody tr:last-child select'); if (f) f.focus(); return; }
     if (a === 'dup' && T) { const row = D[T.arr][i]; const c = T.duplicar ? T.duplicar(row) : JSON.parse(JSON.stringify(row)); D[T.arr].splice(i + 1, 0, c); tocado(true); render(); return; }
