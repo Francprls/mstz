@@ -414,6 +414,20 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   table.t-cards td::before { color: #333; }
 }
 
+/* ---- selección y borrado por lote ---- */
+.barra-sel { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--marron); border: 1px solid var(--madera); border-radius: var(--r); padding: 8px 12px; margin: 0 0 10px; }
+.barra-sel .sel-todas { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; color: var(--crema); }
+.barra-sel .sel-n { color: var(--mute); font-size: 13px; }
+.chk-sel, .barra-sel input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--madera); flex: none; margin: 0; }
+table.t-cards td.selc { grid-column: 1 / -1; order: -2; padding: 0; }
+table.t-cards td.selc::before { display: none; }
+td.selc { width: 32px; padding-right: 6px; }
+.selc-tc { margin: 0 0 8px; }
+.f-mod b .chk-sel { vertical-align: middle; margin-right: 8px; }
+.pieza-row .chk-sel { align-self: center; margin-right: 8px; }
+@media print { .barra-sel, .chk-sel, td.selc { display: none !important; } }
+table.t-cards td.selc input[type=checkbox], td.selc input[type=checkbox], .selc-tc input[type=checkbox] { width: 20px !important; min-width: 20px !important; height: 20px; padding: 0; }
+
 </style>
 </head>
 <body>
@@ -523,6 +537,10 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     if (modalidad === 'Simetrica') {
       if (!(anchoModulo > 0)) throw new Error('Modalidad "Simétrica" necesita el Largo (L) del módulo cargado.');
       ancho = calcularAnchoSimetrico_(anchoModulo, cantidad || 1);
+    } else if (modalidad === 'Completa') {
+      // Una sola hoja de ancho completo: L del módulo − 3 mm.
+      if (!(anchoModulo > 0)) throw new Error('Modalidad "Completa" necesita el Largo (L) del módulo cargado.');
+      ancho = anchoModulo - 3;
     } else {
       ancho = anchoPuerta;
     }
@@ -675,8 +693,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
         cortePuerta: corte,
         modalidad: modalidad,
         tipoApertura: r.tipo || '',
-        // Modalidad Simétrica = siempre un par de puertas: la cantidad cargada no cuenta.
-        cantidad: (modalidad === 'Simetrica' && esCorteConOffsetFijo_(corte)) ? 2 : (num(r.cant) || 1),
+        // Modalidad Simétrica = siempre un par de puertas; Completa = siempre una sola hoja: la cantidad cargada no cuenta.
+        cantidad: (modalidad === 'Simetrica' && esCorteConOffsetFijo_(corte)) ? 2 : (modalidad === 'Completa' && esCorteConOffsetFijo_(corte)) ? 1 : (num(r.cant) || 1),
         anchoPuerta: Number(r.ancho),
         largoManual: num(r.largo) || 0,
       };
@@ -1221,6 +1239,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     });
     // Puertas: la modalidad Simétrica siempre son 2 puertas (la cantidad ya no se carga).
     out.puertas = out.puertas.map(r => (r && /^sim[eé]trica$/i.test(String(r.modalidad || '').trim()) && Number(r.cant) !== 2) ? Object.assign({}, r, { cant: 2 }) : r);
+    // Modalidad Completa = una sola hoja de ancho completo (L − 3 mm).
+    out.puertas = out.puertas.map(r => (r && /^completa$/i.test(String(r.modalidad || '').trim()) && Number(r.cant) !== 1) ? Object.assign({}, r, { cant: 1 }) : r);
     if (!out.cortadas || typeof out.cortadas !== 'object' || Array.isArray(out.cortadas)) out.cortadas = {};
     if (!Array.isArray(out.listas.modulosTipo)) out.listas.modulosTipo = JSON.parse(JSON.stringify(LISTAS_BASE.modulosTipo));
     out.version = VERSION_DATOS;
@@ -2124,6 +2144,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   let ocultarCortadas = false;   // vista Taller (por módulo) / etiquetas: esconder piezas ya cortadas
   let avisosAbierto = false;
   let fichaSel = '';             // ID del módulo abierto en la pestaña Fichas
+  const modoSel = {};            // selección por lote: contexto -> true mientras el modo está activo
+  const sel = new Set();         // elegidas: referencias a filas, o claves de texto para los elementos de las listas compartidas
   // Deshacer / rehacer: fotos del proyecto (sin meta). Los cambios seguidos en pocos segundos se juntan en un paso.
   let pilaUndo = [], pilaRedo = [], snapActual = '', ultimoCambio = 0;
 
@@ -2258,7 +2280,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
         }
         if (k === 'id') { row.id = String(v).trim(); renombrarModulo(String(viejo).trim(), row.id); }
       },
-      duplicar(row) { const c = JSON.parse(JSON.stringify(row)); c.id = M.siguienteId(D.modulos, c.ambiente, codigoAmbiente(c.ambiente), null); return c; },
+      duplicar(row) { if (!row.grupoCopias) row.grupoCopias = nuevoGrupo(); const c = JSON.parse(JSON.stringify(row)); c.id = M.siguienteId(D.modulos, c.ambiente, codigoAmbiente(c.ambiente), null); return c; },
       alBorrar: async (row) => {
         const id = String(row.id).trim();
         const dep = ['puertas', 'cajones', 'overrides', 'sueltas', 'tapacantos'].reduce((s, k) => s + D[k].filter(r => String(r.idModulo).trim() === id).length, 0);
@@ -2269,21 +2291,21 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     },
     puertas: {
       titulo: 'Puertas', arr: 'puertas',
-      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir la Apertura (Perfil L, Push, Cierre suave, Con manija o Piso aplicado) el corte se completa solo. Modalidad “Simétrica”: el ancho se calcula solo, (L del módulo − 3 mm × cant.) ÷ cant. “Personalizada”: largo y ancho a mano.',
+      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir la Apertura (Perfil L, Push, Cierre suave, Con manija o Piso aplicado) el corte se completa solo. Modalidad “Simétrica”: siempre 2 puertas, el ancho se calcula solo, (L del módulo − 6 mm) ÷ 2. Modalidad “Completa”: 1 sola puerta de ancho completo, el ancho es L del módulo − 3 mm. “Personalizada”: largo y ancho a mano.',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '—', rr: true },
         { k: 'tipo', t: 'Apertura', tipo: 'sel', opts: () => opcionesTipoPuerta(), vacio: '—', rr: true },
-        { k: 'cant', t: 'Cant.', tipo: 'num', rr: true, ocultar: (r) => esSimetrica(r) },
+        { k: 'cant', t: 'Cant.', tipo: 'num', rr: true, ocultar: (r) => esSimetrica(r) || esCompleta(r) },
         { k: 'corte', t: 'Corte', tipo: 'sel', opts: () => CORTES, vacio: '—', rr: true },
-        { k: 'modalidad', t: 'Modalidad', tipo: 'sel', opts: () => [{ v: 'Manual', l: 'Manual' }, { v: 'Simetrica', l: 'Simétrica' }], dis: (r) => !(r.corte in M.PUERTA_OFFSETS), rr: true },
+        { k: 'modalidad', t: 'Modalidad', tipo: 'sel', opts: () => [{ v: 'Manual', l: 'Manual' }, { v: 'Simetrica', l: 'Simétrica (2 puertas)' }, { v: 'Completa', l: 'Completa (1 puerta)' }], dis: (r) => !(r.corte in M.PUERTA_OFFSETS), rr: true },
         { k: 'largo', t: 'Largo', tipo: 'num', dis: (r) => r.corte !== 'Personalizada' && r.corte !== 'Manual', ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.corte in M.PUERTA_OFFSETS) ? String(Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte])) : ''; } },
-        { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS) && num(m.l) > 0) ? String(Math.round(M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r)))) : ''; } },
+        { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => anchoAuto(r), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && anchoAuto(r) && num(m.l) > 0) ? String(anchoAutoValor(r, m)) : ''; } },
       ],
       nuevo() { const u = D.puertas[D.puertas.length - 1]; return { idModulo: u ? u.idModulo : '', cant: 1, corte: u ? u.corte : 'Puerta18', modalidad: u ? u.modalidad : 'Manual', largo: '', ancho: '', tipo: u ? u.tipo : '' }; },
       alCambiar(row, k) {
         if (k === 'tipo') { const c = St.corteDeApertura(row.tipo); if (c && row.corte !== 'Personalizada') { row.corte = c; if (!row.modalidad) row.modalidad = 'Manual'; } }
         if (k === 'corte') { if (!(row.corte in M.PUERTA_OFFSETS)) row.modalidad = ''; else if (!row.modalidad) row.modalidad = 'Manual'; }
-        if (k === 'modalidad' || k === 'corte') { if (esSimetrica(row)) row.cant = 2; }
+        if (k === 'modalidad' || k === 'corte') { if (esSimetrica(row)) row.cant = 2; else if (esCompleta(row)) row.cant = 1; }
       },
     },
     cajones: {
@@ -2368,7 +2390,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     const val = row[c.k];
     const dis = c.dis && c.dis(row) ? ' disabled' : '';
     const ph = c.ph ? c.ph(row) : '';
-    if (c.ocultar && c.ocultar(row)) return '<td class="num"><span class="chip" title="Simétrica: siempre son 2 puertas">×2</span></td>';
+    if (c.ocultar && c.ocultar(row)) return '<td class="num"><span class="chip" title="' + (esCompleta(row) ? 'Completa: una sola puerta' : 'Simétrica: siempre son 2 puertas') + '">×' + cantPuerta(row) + '</span></td>';
     const w = c.ancho ? ' style="min-width:' + c.ancho + 'px"' : '';
     switch (c.tipo) {
       case 'idro': return '<td class="idro"><span class="id-pill">' + esc(val || '(sin ID)') + '</span></td>';
@@ -2400,16 +2422,17 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   function tablaEditable(tk) {
     const T = TABLAS[tk];
     const rows = D[T.arr];
-    const cabecera = T.cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + '<th></th>';
+    const ctx = 'tbl:' + tk, modo = enSel(ctx);
+    const cabecera = (modo ? '<th></th>' : '') + T.cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + '<th></th>';
     const cuerpo = rows.map((row, i) => {
       const idFila = String(tk === 'modulos' ? row.id : row.idModulo || '').trim();
-      return '<tr data-mod="' + esc(idFila) + '">' + T.cols.map(c => celdaEt(tk, i, c, row)).join('') +
-        '<td class="acc">' + (tk === 'modulos' ? '<button class="sec ico" data-acc="tipo-guardar" data-i="' + i + '" title="Guardar como módulo tipo">☆</button> ' : '') + '<button class="sec ico" data-acc="dup" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="del" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>';
+      return '<tr data-mod="' + esc(idFila) + '">' + (modo ? '<td class="selc">' + chkSel(ctx, tk + ':' + i, row) + '</td>' : '') + T.cols.map(c => celdaEt(tk, i, c, row)).join('') +
+        '<td class="acc">' + (tk === 'modulos' ? '<button class="sec ico" data-acc="tipo-guardar" data-i="' + i + '" title="Guardar como módulo tipo">☆</button> ' : '') + (tk === 'tapacantos' ? '<button class="sec ico" data-acc="tc-todas" data-i="' + i + '" title="Agregar todas las piezas del módulo con estos materiales">⊞</button> ' : '') + '<button class="sec ico" data-acc="dup" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="del" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>';
     }).join('');
     return '<div class="card"><div class="barra"><div><h2>' + esc(T.titulo) + ' <span class="chip">' + rows.length + '</span></h2></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (tk === 'tapacantos' ? barraCatalogo() : '') + (tk === 'modulos' ? '<button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button>' : '') +
-      '<button data-acc="add">+ Agregar</button><button class="sec" data-acc="guardar">' + ICO.save + ' Guardar</button>' + (rows.length ? '<button class="peligro mini" data-acc="clear">Borrar todo</button>' : '') + '</div></div>' +
-      '<p class="hint">' + esc(T.ayuda) + '</p>' +
+      '<button data-acc="add">+ Agregar</button><button class="sec" data-acc="guardar">' + ICO.save + ' Guardar</button>' + (rows.length ? btnSel(ctx) + '<button class="peligro mini" data-acc="clear">Borrar todo</button>' : '') + '</div></div>' +
+      '<p class="hint">' + esc(T.ayuda) + '</p>' + (modo && rows.length ? barraSel(ctx) : '') +
       (rows.length ? '<div class="cards-wrap"><table class="t t-cards"><thead><tr>' + cabecera + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>'
                    : '<div class="vacio">Todavía no hay filas. Tocá “Agregar”.</div>') +
       (rows.length ? '<div class="pie-lista"><button data-acc="add">+ Agregar</button></div>' : '') + '</div>';
@@ -2593,13 +2616,17 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   }
   // Modalidad Simétrica = siempre 2 puertas (la cantidad no se carga).
   function esSimetrica(r) { return r.modalidad === 'Simetrica' && (r.corte in M.PUERTA_OFFSETS); }
-  function cantPuerta(r) { return esSimetrica(r) ? 2 : (num(r.cant) || 1); }
+  function esCompleta(r) { return r.modalidad === 'Completa' && (r.corte in M.PUERTA_OFFSETS); }
+  function cantPuerta(r) { return esSimetrica(r) ? 2 : esCompleta(r) ? 1 : (num(r.cant) || 1); }
+  // Ancho que la app calcula sola: Simétrica (2 puertas) o Completa (1 puerta, L − 3 mm).
+  function anchoAuto(r) { return esSimetrica(r) || esCompleta(r); }
+  function anchoAutoValor(r, m) { return Math.round(esCompleta(r) ? num(m.l) - 3 : M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r))); }
   function medidaPuerta(r) {
     const m = moduloPorId(String(r.idModulo).trim());
     let largo = r.largo, ancho = r.ancho;
     if (r.corte in M.PUERTA_OFFSETS) {
       if (m && num(m.h)) largo = Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte]);
-      if (r.modalidad === 'Simetrica' && m && num(m.l) > 0) ancho = Math.round(M.calcularAnchoSimetrico_(num(m.l), cantPuerta(r)));
+      if (anchoAuto(r) && m && num(m.l) > 0) ancho = anchoAutoValor(r, m);
     }
     return (largo && ancho) ? (Math.round(num(largo)) + ' × ' + Math.round(num(ancho))) : '';
   }
@@ -2613,12 +2640,13 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     const filas = [];
     D[T.arr].forEach((row, i) => { if (String(row.idModulo || '').trim() === id) filas.push({ row, i }); });
     const cols = T.cols.filter(c => c.k !== 'idModulo');
-    const head = cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + (opt.extraTh ? '<th>' + opt.extraTh + '</th>' : '') + '<th></th>';
-    const cuerpo = filas.map(({ row, i }) => '<tr>' + cols.map(c => celdaEt(tk, i, c, row)).join('') + (opt.extraTd ? '<td class="ro" data-l="' + esc(opt.extraTh || '') + '">' + opt.extraTd(row) + '</td>' : '') +
+    const ctx = 'sec:' + tk + ':' + id, modo = enSel(ctx);
+    const head = (modo ? '<th></th>' : '') + cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + (opt.extraTh ? '<th>' + opt.extraTh + '</th>' : '') + '<th></th>';
+    const cuerpo = filas.map(({ row, i }) => '<tr>' + (modo ? '<td class="selc">' + chkSel(ctx, tk + ':' + i, row) + '</td>' : '') + cols.map(c => celdaEt(tk, i, c, row)).join('') + (opt.extraTd ? '<td class="ro" data-l="' + esc(opt.extraTh || '') + '">' + opt.extraTd(row) + '</td>' : '') +
       '<td class="acc"><button class="sec ico" data-acc="f-dup" data-t="' + tk + '" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="f-del" data-t="' + tk + '" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>').join('');
     const cab = '<h4>' + esc(titulo) + (filas.length ? ' <span class="chip">' + filas.length + '</span>' : '') + '</h4>' + (opt.ayuda ? '<p class="hint" style="margin:0 0 8px">' + esc(opt.ayuda) + '</p>' : '');
-    const cierre = '<button class="sec mini" data-acc="f-add" data-t="' + tk + '" style="margin-top:8px">' + esc(textoAdd) + '</button>';
-    const cuerpoHtml = (filas.length ? '<div class="cards-wrap"><table class="t t-cards"><thead><tr>' + head + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>' : '') + cierre;
+    const cierre = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="sec mini" data-acc="f-add" data-t="' + tk + '">' + esc(textoAdd) + '</button>' + (filas.length > 1 ? btnSel(ctx) : '') + '</div>';
+    const cuerpoHtml = (modo && filas.length ? barraSel(ctx) : '') + (filas.length ? '<div class="cards-wrap"><table class="t t-cards"><thead><tr>' + head + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>' : '') + cierre;
     if (opt.plegable) return '<details class="fsec"' + (filas.length ? ' open' : '') + '><summary>' + cab.replace(/^<h4>/, '<span>').replace(/<\/h4>/, '</span>') + '</summary>' + cuerpoHtml + '</details>';
     return '<div class="fsec">' + cab + cuerpoHtml + '</div>';
   }
@@ -2628,18 +2656,19 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     const T = TABLAS.tapacantos, filas = [];
     D[T.arr].forEach((row, i) => { if (String(row.idModulo || '').trim() === id) filas.push({ row, i }); });
     const c = (k) => T.cols.find(x => x.k === k);
+    const ctx = 'sec:tapacantos:' + id, modo = enSel(ctx);
     const tarjetas = filas.map(({ row, i }) => {
       const av = avisoTapacanto(row);
       const f = (k, etiqueta) => '<div class="campo"><label class="l">' + esc(etiqueta || c(k).t) + '</label>' + interiorCelda('tapacantos', i, c(k), row) + '</div>';
-      return '<div class="tcard"><div class="tc-top"><div class="tc-pieza">' + f('pieza') + '</div><div class="tc-cant">' + f('cantidad') + '</div>' +
+      return '<div class="tcard">' + (modo ? '<div class="selc-tc">' + chkSel(ctx, 'tapacantos:' + i, row) + '</div>' : '') + '<div class="tc-top"><div class="tc-pieza">' + f('pieza') + '</div><div class="tc-cant">' + f('cantidad') + '</div>' +
         '<div class="tc-acc"><button class="sec ico" data-acc="f-dup" data-t="tapacantos" data-i="' + i + '" title="Duplicar">⧉</button> <button class="peligro ico" data-acc="f-del" data-t="tapacantos" data-i="' + i + '" title="Borrar">✕</button></div></div>' +
         '<div class="tc-lados"><label class="l" style="margin:0">Lados con canto</label>' + f('arr') + f('ab') + f('izq') + f('der') + '</div>' +
         '<div class="tc-mat">' + f('materialPlaca') + f('tapPrincipal') + f('tapSecundario') + '</div>' +
         (av ? '<div class="tc-aviso">⚠ ' + esc(av) + '</div>' : '') + '</div>';
     }).join('');
     return '<details class="fsec"' + (filas.length ? ' open' : '') + '><summary><span>Enviar piezas al proveedor (Tapacantos)' + (filas.length ? ' <span class="chip">' + filas.length + '</span>' : '') + '</span></summary>' +
-      '<p class="hint" style="margin:0 0 8px">Elegí la pieza y los lados con canto. <strong>Cant. a enviar</strong>: cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya.</p>' + tarjetas +
-      '<button class="sec mini" data-acc="f-add" data-t="tapacantos" style="margin-top:6px">+ Tapacanto</button></details>';
+      '<p class="hint" style="margin:0 0 8px">Elegí la pieza y los lados con canto. <strong>Cant. a enviar</strong>: cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya. Para mandar todo el módulo: elegí los materiales en una fila y tocá <strong>Agregar todas las piezas del módulo</strong>.</p>' + (modo && filas.length ? barraSel(ctx) : '') + tarjetas +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button class="sec mini" data-acc="f-add" data-t="tapacantos">+ Tapacanto</button>' + (filas.length > 1 ? btnSel(ctx) : '') + '<button class="sec mini" data-acc="tc-todas-ficha" title="Agrega una fila por cada pieza del módulo, con los materiales de la última fila que cargaste">⊞ Agregar todas las piezas del módulo</button></div></details>';
   }
 
   // Piezas que se cortan en el taller: un renglón por pieza elegida (todas las unidades o una cantidad) + un desplegable vacío para seguir agregando.
@@ -2679,7 +2708,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     const lista = orden.map(a => '<div class="f-amb">' + esc(a) + ' · ' + grupos[a].length + ' módulo' + (grupos[a].length > 1 ? 's' : '') + '</div>' + grupos[a].map(x => {
       const xid = String(x.id).trim(), av = avisosDeModulo(xid);
       const sub = av.length ? '<span class="f-warn">' + esc(resumenAviso(av[0])) + '</span>' : esc([x.tipo, [x.l, x.h].filter(Boolean).length === 2 ? (x.h + '×' + x.l) : ''].filter(Boolean).join(' '));
-      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b><span class="dot ' + (av.length ? 'w' : 'ok') + '"></span><span class="id-pill">' + esc(xid || '(sin ID)') + '</span></b><span>' + sub + '</span></div>';
+      const ii = D.modulos.indexOf(x);
+      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b>' + chkSel('lista-mod', 'modulos:' + ii, x) + '<span class="dot ' + (av.length ? 'w' : 'ok') + '"></span><span class="id-pill">' + esc(xid || '(sin ID)') + '</span></b><span>' + sub + '</span></div>';
     }).join('')).join('');
 
     const camposMod = TABLAS.modulos.cols;
@@ -2718,12 +2748,60 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     }
     const sVivo = '<div class="fsec"><h4>Así va saliendo <span class="hint" style="font-weight:400">(se actualiza al escribir)</span></h4>' + vivo + '</div>';
 
-    return '<div class="ficha"><div class="f-lista"><div class="f-botones"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button><button class="sec" data-acc="f-duplicar">Duplicar ' + esc(id) + ' ×…</button></div>' + lista + '</div>' +
+    return '<div class="ficha"><div class="f-lista"><div class="f-botones"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button><button class="sec" data-acc="f-duplicar">Duplicar ' + esc(id) + ' ×…</button>' + (D.modulos.length > 1 ? btnSel('lista-mod', 'sec') : '') + (copiasDe(id).length ? '<button class="sec" data-acc="f-aplicar-copias" title="Copia los datos de ' + esc(id) + ' a los módulos duplicados a partir de él">Aplicar ' + esc(id) + ' a sus ' + copiasDe(id).length + ' copias…</button>' : '') + '</div>' + (enSel('lista-mod') ? barraSel('lista-mod') : '') + lista + '</div>' +
       '<div class="f-detalle">' + cabecera + sPuertas + sCajones + sOver + sSueltas + sTap + sVivo + '<div class="f-guardar-pie"><button data-acc="f-guardar">' + ICO.save + ' Guardar módulo ' + esc(id) + '</button></div></div></div>';
+  }
+
+  function nuevoGrupo() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  // Copias de un módulo = los otros módulos de su mismo grupo (se arma al duplicar).
+  function copiasDe(id) {
+    const m = moduloPorId(id); if (!m || !m.grupoCopias) return [];
+    return D.modulos.filter(x => x !== m && x.grupoCopias === m.grupoCopias);
+  }
+  const REPLICAR = [
+    ['datos', 'Datos del módulo', 'Tipo, medidas H/L/P, material, estantes, parante extra, fondo, puertas hechas y observaciones.'],
+    ['puertas', 'Puertas', 'Las filas de puertas.'],
+    ['cajones', 'Cajones', 'Las filas de cajones.'],
+    ['sueltas', 'Piezas sueltas', 'Las piezas sueltas del módulo.'],
+    ['overrides', 'Overrides', 'Los materiales por pieza de la pestaña Override.'],
+    ['tapacantos', 'Tapacantos', 'Las piezas que se mandan al proveedor.'],
+    ['cortesTaller', 'Corte en taller', 'Las piezas marcadas para cortar en el taller.'],
+  ];
+  function dialogoAplicarCopias() {
+    const id = fichaSel, m = moduloPorId(id), copias = copiasDe(id);
+    if (!m || !copias.length) { toast('Este módulo no tiene copias.', 'err'); return; }
+    const dlg = dialogo('<h3>Aplicar ' + esc(id) + ' a sus copias</h3><p class="hint" style="margin:0 0 8px">Copias (' + copias.length + '): ' + copias.map(c => esc(String(c.id).trim())).join(', ') + '. Elegí qué se copia del módulo <strong>' + esc(id) + '</strong>: lo que marques <strong>reemplaza</strong> lo que tenga cada copia. El ID y el Ambiente de cada copia no cambian.</p>' +
+      REPLICAR.map(([k, t, d], j) => '<label class="chk-fila" style="display:flex;gap:10px;align-items:flex-start;margin:8px 0"><input type="checkbox" data-rep="' + k + '"' + (j === 0 ? ' checked' : '') + ' style="margin-top:3px"><span><strong>' + esc(t) + '</strong><br><span class="hint" style="margin:0">' + esc(d) + '</span></span></label>').join('') +
+      '<div class="pie-d"><button class="sec" data-r="x">Cancelar</button><button data-r="ok">Aplicar a las ' + copias.length + ' copias</button></div>');
+    dlg.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-r]'); if (!b) return;
+      if (b.dataset.r === 'x') { dlg.close(); return; }
+      const sel = Array.from(dlg.querySelectorAll('[data-rep]:checked')).map(x => x.dataset.rep);
+      if (!sel.length) { toast('Marcá al menos una opción.', 'err'); return; }
+      dlg.close();
+      aplicarACopias(id, sel);
+    });
+  }
+  function aplicarACopias(id, sel) {
+    const src = moduloPorId(id), copias = copiasDe(id); if (!src || !copias.length) return;
+    const clon = (o) => JSON.parse(JSON.stringify(o));
+    copias.forEach(c => {
+      const cid = String(c.id).trim();
+      if (sel.includes('datos')) Object.keys(src).forEach(k => { if (!['id', 'ambiente', 'grupoCopias', 'cortesTaller'].includes(k)) c[k] = clon(src[k]); });
+      if (sel.includes('cortesTaller')) { if (src.cortesTaller !== undefined) c.cortesTaller = clon(src.cortesTaller); else delete c.cortesTaller; }
+      ['puertas', 'cajones', 'overrides', 'sueltas', 'tapacantos'].forEach(tk => {
+        if (!sel.includes(tk)) return;
+        D[tk] = D[tk].filter(r => String(r.idModulo).trim() !== cid);
+        D[tk].filter(r => String(r.idModulo).trim() === id).slice().forEach(r => { const x = clon(r); x.idModulo = cid; D[tk].push(x); });
+      });
+    });
+    tocado(true); render();
+    toast('Se aplicó ' + id + ' a ' + copias.length + ' cop' + (copias.length === 1 ? 'ia' : 'ias') + ': ' + copias.map(c => String(c.id).trim()).join(', '), 'ok');
   }
 
   function duplicarModulo(id, n) {
     const src = moduloPorId(id); if (!src) return [];
+    if (!src.grupoCopias) src.grupoCopias = nuevoGrupo();   // el original y sus copias quedan en el mismo grupo
     const nuevos = [];
     for (let k = 0; k < n; k++) {
       const m = JSON.parse(JSON.stringify(src));
@@ -2860,9 +2938,10 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   }
   function tarjetaAmbientes() {
     const L = St.listaCompartida('ambientes');
-    const filas = L.map((a, i) => '<tr><td><input data-k="amb:' + i + ':nombre" value="' + esc(a.nombre) + '"></td><td><input data-k="amb:' + i + ':codigo" value="' + esc(a.codigo) + '" style="width:90px"></td><td class="acc"><button class="peligro ico" data-acc="amb-del" data-i="' + i + '">✕</button></td></tr>').join('');
-    return '<div class="card"><div class="barra"><h2>Ambientes y códigos <span class="chip">' + L.length + '</span></h2><div>' + chipListas() + '</div></div><p class="hint">Compartidos con todo el equipo (se guardan en GitHub solos). El código forma el ID del módulo (ej. 01Coc). Cambiar un código no renombra IDs ya creados.</p>' +
-      '<div class="tabla-wrap"><table class="t" style="max-width:520px"><thead><tr><th>Ambiente</th><th>Código</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>' +
+    const modoA = enSel('l:amb');
+    const filas = L.map((a, i) => '<tr>' + (modoA ? '<td class="selc">' + chkSel('l:amb', 'amb:' + String(a.nombre).toLowerCase(), 'amb:' + String(a.nombre).toLowerCase()) + '</td>' : '') + '<td><input data-k="amb:' + i + ':nombre" value="' + esc(a.nombre) + '"></td><td><input data-k="amb:' + i + ':codigo" value="' + esc(a.codigo) + '" style="width:90px"></td><td class="acc"><button class="peligro ico" data-acc="amb-del" data-i="' + i + '">✕</button></td></tr>').join('');
+    return '<div class="card"><div class="barra"><h2>Ambientes y códigos <span class="chip">' + L.length + '</span></h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + chipListas() + (L.length > 1 ? btnSel('l:amb') : '') + '</div></div><p class="hint">Compartidos con todo el equipo (se guardan en GitHub solos). El código forma el ID del módulo (ej. 01Coc). Cambiar un código no renombra IDs ya creados.</p>' +
+      (modoA ? barraSel('l:amb') : '') + '<div class="tabla-wrap"><table class="t" style="max-width:520px"><thead><tr>' + (modoA ? '<th></th>' : '') + '<th>Ambiente</th><th>Código</th><th></th></tr></thead><tbody>' + filas + '</tbody></table></div>' +
       '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><input id="ambNuevo" placeholder="Nuevo ambiente, ej. Quincho" style="flex:2;min-width:160px"><input id="ambCod" placeholder="Código, ej. Qui" style="flex:1;min-width:90px"><button data-acc="amb-add">+ Agregar</button></div></div>';
   }
   function tarjetaListaSimple(clave, titulo, ayuda, placeholder) {
@@ -2890,10 +2969,11 @@ table.tabla-corte tr.cortada td { color: #968F84; }
   }
   function tarjetaTipos() {
     const lista = St.tiposCompartidos(), gh = St.ghListo();
-    return '<div class="card"><div class="barra"><div><h2>Módulos tipo <span class="chip">' + lista.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + chipListas() +
+    return '<div class="card"><div class="barra"><div><h2>Módulos tipo <span class="chip">' + lista.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' + chipListas() + (lista.length > 1 ? btnSel('l:tipo') : '') +
       (gh ? '<button class="sec mini" data-acc="mat-subir">Guardar en GitHub</button><button class="sec mini" data-acc="mat-traer">Traer de GitHub</button>' : '') + '</div></div>' +
       '<p class="hint">Plantillas compartidas con todo el equipo (se guardan en GitHub junto con los materiales). Se crean con la ☆ de cualquier módulo y se usan con “+ Módulo tipo”.</p>' +
-      (lista.length ? lista.map((x, i) => '<div class="pieza-row"><span><strong>' + esc(x.nombre) + '</strong> · ' + esc(describirTipo(x)) + '</span><button class="peligro ico" data-acc="tipo-del" data-i="' + i + '" title="Borrar plantilla">✕</button></div>').join('') : '<div class="vacio">Todavía no hay plantillas.</div>') + '</div>';
+      (enSel('l:tipo') && lista.length ? barraSel('l:tipo') : '') +
+      (lista.length ? lista.map((x, i) => '<div class="pieza-row">' + (enSel('l:tipo') ? chkSel('l:tipo', 'tipo:' + String(x.nombre).toLowerCase(), 'tipo:' + String(x.nombre).toLowerCase()) : '') + '<span style="flex:1"><strong>' + esc(x.nombre) + '</strong> · ' + esc(describirTipo(x)) + '</span><button class="peligro ico" data-acc="tipo-del" data-i="' + i + '" title="Borrar plantilla">✕</button></div>').join('') : '<div class="vacio">Todavía no hay plantillas.</div>') + '</div>';
   }
   function tarjetaMateriales() {
     const lista = St.materialesCompartidos(), gh = St.ghListo();
@@ -3099,6 +3179,86 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     return el.value;
   }
 
+  /* Tapacantos: agrega una fila por cada pieza del módulo (incluye las que no llevan canto), con los materiales de la fila de referencia.
+     i >= 0: fila de la tabla; -1: ficha (se usa la última fila del módulo que tenga algún material cargado). */
+  function agregarTodasTapacantos(i) {
+    const TT = TABLAS.tapacantos, arr = D[TT.arr];
+    let base = i >= 0 ? arr[i] : null;
+    const id = i >= 0 ? String((base && base.idModulo) || '').trim() : fichaSel;
+    if (!id) { toast('Elegí primero el módulo en la fila.', 'err'); return; }
+    if (!base) { for (let j = arr.length - 1; j >= 0; j--) { const r = arr[j]; if (String(r.idModulo || '').trim() === id && (r.materialPlaca || r.tapPrincipal || r.tapSecundario)) { base = r; break; } } }
+    if (!base || !(base.materialPlaca || base.tapPrincipal || base.tapSecundario)) { toast('Elegí primero el material de la placa y de los tapacantos en una fila del módulo y volvé a tocar el botón.', 'err'); return; }
+    const variantes = M.variantesParaTapacantos(D, id);
+    const hechas = new Set(arr.filter(r => r !== base && String(r.idModulo || '').trim() === id && r.pieza).map(r => r.pieza));
+    const faltan = variantes.filter(v => !hechas.has(v.nombre) && v.nombre !== base.pieza);
+    const aplicar = (row, v) => { row.idModulo = id; row.pieza = v.nombre; row.arr = v.tapLargo >= 1 ? 1 : 0; row.ab = v.tapLargo >= 2 ? 1 : 0; row.izq = v.tapAncho >= 1 ? 1 : 0; row.der = v.tapAncho >= 2 ? 1 : 0; };
+    let n = 0, lista = faltan.slice();
+    if (!base.pieza && lista.length) { aplicar(base, lista.shift()); n++; }      // la fila vacía con los materiales se usa para la primera pieza
+    const nuevas = lista.map(v => { const r = TT.nuevo(); aplicar(r, v); r.materialPlaca = base.materialPlaca || ''; r.tapPrincipal = base.tapPrincipal || ''; r.tapSecundario = base.tapSecundario || ''; r.cantidad = ''; return r; });
+    if (!n && !nuevas.length) { toast('Ya están cargadas todas las piezas de ' + id + '.', 'ok'); return; }
+    let pos = arr.lastIndexOf(base);
+    for (let j = arr.length - 1; j > pos; j--) { if (String(arr[j].idModulo || '').trim() === id) { pos = j; break; } }
+    arr.splice(pos + 1, 0, ...nuevas);
+    tocado(true); render();
+    toast('Se agregaron ' + (n + nuevas.length) + ' pieza' + (n + nuevas.length === 1 ? '' : 's') + ' de ' + id + ' con los materiales elegidos.', 'ok');
+  }
+
+
+  /* ------------------------------------------------------------------ selección y borrado por lote */
+  // Contextos: 'lista-mod' (lista de módulos de Fichas) · 'tbl:<tabla>' (Control manual) · 'sec:<tabla>:<id módulo>' (secciones de la ficha) · 'l:amb' · 'l:tipo' (listas compartidas)
+  function itemsSel(ctx) {
+    let m;
+    if (ctx === 'lista-mod') return D.modulos.map((r, i) => ({ k: 'modulos:' + i, id: r }));
+    if ((m = ctx.match(/^tbl:(\w+)$/))) return D[TABLAS[m[1]].arr].map((r, i) => ({ k: m[1] + ':' + i, id: r }));
+    if ((m = ctx.match(/^sec:(\w+):(.*)$/))) { const out = []; D[TABLAS[m[1]].arr].forEach((r, i) => { if (String(r.idModulo || '').trim() === m[2]) out.push({ k: m[1] + ':' + i, id: r }); }); return out; }
+    if (ctx === 'l:amb') return St.listaCompartida('ambientes').map(a => { const k = 'amb:' + String(a.nombre).toLowerCase(); return { k, id: k }; });
+    if (ctx === 'l:tipo') return St.tiposCompartidos().map(x => { const k = 'tipo:' + String(x.nombre).toLowerCase(); return { k, id: k }; });
+    return [];
+  }
+  function idDeClave(k) {   // clave del checkbox -> lo que se guarda en `sel`
+    const m = k.match(/^(\w+):(\d+)$/);
+    if (m && TABLAS[m[1]]) return D[TABLAS[m[1]].arr][Number(m[2])];
+    return k;
+  }
+  const enSel = (ctx) => !!modoSel[ctx];
+  const nSel = (ctx) => itemsSel(ctx).filter(it => sel.has(it.id)).length;
+  function btnSel(ctx, cls) { return '<button class="' + (cls || 'sec mini') + ' no-print" data-acc="sel-modo" data-ctx="' + esc(ctx) + '" title="Elegir varios para borrarlos juntos">' + (enSel(ctx) ? 'Salir de selección' : '☑ Seleccionar') + '</button>'; }
+  function chkSel(ctx, k, id) { return enSel(ctx) ? '<input type="checkbox" class="chk-sel" data-selk="' + esc(k) + '" aria-label="Elegir"' + (sel.has(id) ? ' checked' : '') + '>' : ''; }
+  function barraSel(ctx) {
+    const total = itemsSel(ctx).length, n = nSel(ctx);
+    return '<div class="barra-sel no-print"><label class="sel-todas"><input type="checkbox" data-selall="' + esc(ctx) + '"' + (total && n === total ? ' checked' : '') + '> Todas</label>' +
+      '<span class="sel-n">' + n + ' seleccionada' + (n === 1 ? '' : 's') + '</span><span style="flex:1"></span>' +
+      '<button class="peligro mini" data-acc="sel-borrar" data-ctx="' + esc(ctx) + '"' + (n ? '' : ' disabled') + '>Borrar' + (n ? ' (' + n + ')' : '') + '</button></div>';
+  }
+  async function borrarSeleccion(ctx) {
+    const items = itemsSel(ctx).filter(it => sel.has(it.id)); if (!items.length) return;
+    const n = items.length;
+    if (ctx === 'l:amb' || ctx === 'l:tipo') {
+      const claves = new Set(items.map(it => it.k));
+      const que = ctx === 'l:amb' ? 'ambiente' : 'módulo tipo';
+      if (!(await confirmar('¿Quitar ' + n + ' ' + que + (n === 1 ? '' : 's') + ' de la lista compartida? ' + (ctx === 'l:amb' ? 'Los módulos que ya los usan no cambian.' : 'Los módulos ya creados con ellos no cambian.'), 'Quitar'))) return;
+      let ok;
+      if (ctx === 'l:amb') ok = await cambioLista('ambientes', St.listaCompartida('ambientes').filter(a => !claves.has('amb:' + String(a.nombre).toLowerCase())));
+      else ok = await cambioTipos(St.tiposCompartidos().filter(x => !claves.has('tipo:' + String(x.nombre).toLowerCase())));
+      if (ok !== false) { items.forEach(it => sel.delete(it.id)); toast(n + ' ' + que + (n === 1 ? ' quitado' : 's quitados'), 'ok'); render(); }
+      return;
+    }
+    const tk = ctx === 'lista-mod' ? 'modulos' : (ctx.match(/^(?:tbl|sec):(\w+)/) || [])[1];
+    const T = TABLAS[tk]; if (!T) return;
+    const filas = items.map(it => it.id);
+    let msg;
+    if (tk === 'modulos') {
+      const ids = filas.map(r => String(r.id).trim());
+      const dep = ['puertas', 'cajones', 'overrides', 'sueltas', 'tapacantos'].reduce((q, k) => q + D[k].filter(r => ids.indexOf(String(r.idModulo).trim()) >= 0).length, 0);
+      msg = '¿Borrar ' + n + ' módulo' + (n === 1 ? '' : 's') + ' (' + ids.join(', ') + ')?' + (dep ? ' Se borran también sus ' + dep + ' fila(s) de puertas, cajones, overrides, piezas sueltas y tapacantos.' : '');
+    } else msg = '¿Borrar ' + n + ' fila' + (n === 1 ? '' : 's') + ' de “' + T.titulo + '”?';
+    if (!(await confirmar(msg, 'Borrar'))) return;
+    const ambientes = new Set(), ids = tk === 'modulos' ? filas.map(r => String(r.id).trim()) : [];
+    filas.forEach(r => { const arr = D[T.arr], j = arr.indexOf(r); if (j >= 0) arr.splice(j, 1); if (tk === 'modulos') ambientes.add(r.ambiente); sel.delete(r); });
+    if (tk === 'modulos') { ids.forEach(borrarDependientes); ambientes.forEach(renumerarAmbiente); }
+    tocado(true); render(); toast(n + ' borrado' + (n === 1 ? '' : 's'), 'ok');
+  }
+
   /* ------------------------------------------------------------------ eventos */
   function eventos() {
     document.addEventListener('change', async (e) => {
@@ -3106,8 +3266,15 @@ table.tabla-corte tr.cortada td { color: #968F84; }
       if (el.dataset && el.dataset.material && el.value === OTRO_MATERIAL) {
         const txt = await pedirTexto('Nombre del material', '', 'Aceptar');
         if (!txt) { render(); return; }
-        el.add(new Option(txt, txt, true, true)); el.value = txt;
+        // El material nuevo también entra a la lista compartida (y se sube a GitHub), no sólo a este campo.
+        const nombre = txt.trim();
+        const ya = St.materialesCompartidos().find(x => String(x).toLowerCase() === nombre.toLowerCase());
+        const final = ya || nombre;
+        if (!ya) { St.materialesGuardarLocal(St.materialesCompartidos().concat([final])); programarSubidaListas(); }
+        el.add(new Option(final, final, true, true)); el.value = final;
       }
+      if (el.dataset.selk !== undefined) { const id = idDeClave(el.dataset.selk); if (id !== undefined) { if (el.checked) sel.add(id); else sel.delete(id); } render(); return; }
+      if (el.dataset.selall !== undefined) { const its = itemsSel(el.dataset.selall); its.forEach(it => { if (el.checked) sel.add(it.id); else sel.delete(it.id); }); render(); return; }
       if (el.dataset.cut !== undefined) { if (el.checked) D.cortadas[el.dataset.cut] = true; else delete D.cortadas[el.dataset.cut]; tocado(); render(); return; }
       if (el.dataset.oc !== undefined) { ocultarCortadas = el.checked; render(); return; }
       if (el.dataset.busq !== undefined) { busq[el.dataset.busq] = el.value; render(); return; }
@@ -3158,6 +3325,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
       if (!e.target.closest('.sugerencias') && !(e.target.classList && e.target.classList.contains('cat'))) cerrarSugerencias();
       const ir = e.target.closest('[data-ir-tab]'); if (ir) { e.preventDefault(); irA(ir.dataset.irTab, ir.dataset.irId); return; }
       const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab === 'manual' ? ultimoManual : t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+      if (e.target.closest('.chk-sel, .sel-todas')) return;
       const fm = e.target.closest('[data-ficha]'); if (fm) { fichaSel = fm.dataset.ficha; render(); return; }
       const b = e.target.closest('[data-acc]'); if (!b) return;
       e.preventDefault();
@@ -3221,6 +3389,9 @@ table.tabla-corte tr.cortada td { color: #968F84; }
       const m = TABLAS.modulos.nuevo(); if (amb) { m.ambiente = amb; m.id = M.siguienteId(D.modulos, amb, codigoAmbiente(amb), null); }
       D.modulos.push(m); fichaSel = String(m.id).trim(); tocado(true); render(); return;
     }
+    if (a === 'f-aplicar-copias') { dialogoAplicarCopias(); return; }
+    if (a === 'sel-modo') { const ctx = btn.dataset.ctx; if (modoSel[ctx]) { delete modoSel[ctx]; itemsSel(ctx).forEach(it => sel.delete(it.id)); } else modoSel[ctx] = true; render(); return; }
+    if (a === 'sel-borrar') { await borrarSeleccion(btn.dataset.ctx); return; }
     if (a === 'f-duplicar') {
       const n = await pedirTexto('¿Cuántas copias de ' + fichaSel + '? (con todas sus puertas, cajones y piezas)', '1', 'Duplicar');
       const c = Math.floor(num(n)); if (!n) return;
@@ -3245,6 +3416,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
       tocado(true); render(); return;
     }
     if (a === 'tipo-guardar') { await guardarComoTipo(i); return; }
+    if (a === 'tc-todas' || a === 'tc-todas-ficha') { agregarTodasTapacantos(a === 'tc-todas' ? i : -1); return; }
     if (a === 'add' && T) { D[T.arr].push(T.nuevo()); tocado(true); render(); const f = document.querySelector('tbody tr:last-child input, tbody tr:last-child select'); if (f) f.focus(); return; }
     if (a === 'dup' && T) { const row = D[T.arr][i]; const c = T.duplicar ? T.duplicar(row) : JSON.parse(JSON.stringify(row)); D[T.arr].splice(i + 1, 0, c); tocado(true); render(); return; }
     if (a === 'del' && T) {
@@ -3551,7 +3723,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
 
   /* ---- Módulos tipo ---- */
   function describirTipo(t) {
-    const pu = (t.puertas || []).map(x => (x.modalidad === 'Simetrica' ? 2 : x.cant) + ' ' + (x.corte || '?') + (x.modalidad === 'Simetrica' ? ' simétrica' : '')).join(' + ');
+    const pu = (t.puertas || []).map(x => (x.modalidad === 'Simetrica' ? 2 : x.modalidad === 'Completa' ? 1 : x.cant) + ' ' + (x.corte || '?') + (x.modalidad === 'Simetrica' ? ' simétrica' : x.modalidad === 'Completa' ? ' completa' : '')).join(' + ');
     return [t.modulo.tipo, pu || 'sin puertas', (t.cajones || []).length ? (t.cajones.length + ' cajón(es)') : ''].filter(Boolean).join(' · ');
   }
   function dialogoTipo() {
