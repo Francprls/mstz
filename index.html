@@ -1399,6 +1399,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     if (!ghListo()) throw new Error('Falta configurar GitHub (usuario, repositorio y token).');
     const r = await fetch('https://api.github.com/repos/' + encodeURIComponent(c.owner) + '/' + encodeURIComponent(c.repo) + ruta, {
       method: metodo,
+      cache: 'no-store',   // GitHub responde con max-age=60: sin esto el navegador puede devolver una versión vieja (y un sha viejo)
       headers: { 'Authorization': 'Bearer ' + c.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
                  'Content-Type': 'application/json' },
       body: cuerpo ? JSON.stringify(cuerpo) : undefined,
@@ -1565,6 +1566,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     Object.keys(LISTAS_COMP).forEach(k => { if (Array.isArray(o[k])) c[k] = LISTAS_COMP[k].limpiar(o[k]); });
     c.pendiente = true; c.origen = 'local'; compGuardar(c);
   }
+  // Ids de cada lista en la última sincronización con GitHub: sirve para distinguir "lo borré yo" de "lo agregó otra persona".
+  function idsDeListas(listas) { const o = {}; Object.keys(LISTAS_COMP).forEach(k => { if (Array.isArray(listas[k])) o[k] = listas[k].map(LISTAS_COMP[k].id); }); return o; }
   async function leerListasRemotas() {
     const c = ghConfig();
     try {
@@ -1587,6 +1590,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
     Object.keys(LISTAS_COMP).forEach(k => { if (k === 'materiales') return; if (r[k]) nuevo[k] = r[k]; else { nuevo[k] = c[k]; faltan = true; } });
     if (r.version < 2) { nuevo.tiposPuerta = unirTiposPuerta(nuevo.tiposPuerta); faltan = true; }
     nuevo.tp2 = true;
+    nuevo.base = idsDeListas(Object.assign({}, r, { materiales: r.materiales }));
     nuevo.pendiente = faltan;
     compGuardar(nuevo);
     return { ok: true, materiales: nuevo.materiales.length, tipos: nuevo.modulosTipo.length };
@@ -1602,7 +1606,8 @@ table.tabla-corte tr.cortada td { color: #968F84; }
         let l = c[k];
         if (remoto && remoto.sha !== c.sha && remoto[k]) {
           const ids = l.map(LISTAS_COMP[k].id);
-          const extra = remoto[k].filter(x => ids.indexOf(LISTAS_COMP[k].id(x)) < 0);
+          const baseIds = c.base && c.base[k] ? c.base[k] : null;   // lo que ya estaba en la última sincronización y falta acá, lo borré yo: no se vuelve a agregar
+          const extra = remoto[k].filter(x => { const i = LISTAS_COMP[k].id(x); return ids.indexOf(i) < 0 && !(baseIds && baseIds.indexOf(i) >= 0); });
           if (extra.length) { l = l.concat(extra); unido = true; }
         }
         listas[k] = l;
@@ -1611,7 +1616,7 @@ table.tabla-corte tr.cortada td { color: #968F84; }
       if (remoto) cuerpo.sha = remoto.sha;
       try {
         const j = await gh('PUT', '/contents/' + encRuta(RUTA_LISTAS), cuerpo);
-        compGuardar(Object.assign({}, listas, { sha: j.content.sha, pendiente: false, origen: 'github', tp2: true }));
+        compGuardar(Object.assign({}, listas, { sha: j.content.sha, pendiente: false, origen: 'github', tp2: true, base: idsDeListas(listas) }));
         return { ok: true, unido, nuevo: !remoto };
       } catch (e) {
         if ((e.status === 409 || e.status === 422) && intento === 0) { c = compLeer(); c.sha = ''; continue; }
