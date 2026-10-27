@@ -33,7 +33,7 @@
 :root {
   /* Grafito cálido: neutros de carbón + un solo acento de madera clara */
   --bg: #151413; --card: #1D1C1A; --card2: #161514; --borde: #2B2927; --borde2: #3A3835;
-  --txt: #EDEAE4; --txt2: #E4E1DA; --mute: #948F85; --mute2: #7C776E;
+  --txt: #EDEAE4; --txt2: #E4E1DA; --mute: #B8B3A9; --mute2: #A8A399;
   --verde: #D6B98C; --salvia: #D6B98C; --madera: #D6B98C; --crema: #F1EEE8; --marron: #242321; --soft2: #2E2C29;
   --ok: #A9B79B; --warn: #D6B98C; --err: #E08F7C; --errbg: #2E1F1C;
   --r: 8px; --rc: 12px;
@@ -179,7 +179,7 @@ table.tabla-corte tr.cortada td.chk { text-decoration: none; }
 .tcard select, .tcard input { min-width: 0 !important; width: 100%; }
 .tc-top { display: grid; grid-template-columns: 1fr 110px auto; gap: 10px; align-items: end; }
 .tc-acc { white-space: nowrap; padding-bottom: 4px; }
-.tc-lados { display: grid; grid-template-columns: auto repeat(4, minmax(96px, 1fr)); gap: 8px; align-items: end; margin-top: 8px; }
+.tc-lados { display: grid; grid-template-columns: auto repeat(4, minmax(0, 1fr)); gap: 8px; align-items: end; margin-top: 8px; }
 .tc-lados > .l { align-self: center; padding-top: 18px; max-width: 90px; line-height: 1.2; }
 .tc-mat { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
 .tc-aviso { margin-top: 8px; font-size: 12px; color: var(--warn); }
@@ -332,6 +332,86 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   input[type=checkbox]:checked::after { border-color: #fff; }
   table.tabla-corte td.mat, table.t td.ro { color: #000 !important; }
   table.tabla-corte td.mat.sin { color: #777 !important; }
+}
+
+/* ===== Filas de carga como tarjetas: los campos se apilan, nada se desliza de izquierda a derecha ===== */
+.cards-wrap { width: 100%; }
+table.t-cards, table.t-cards tbody { display: block; width: 100%; }
+table.t-cards thead { display: none; }
+table.t-cards tr { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; align-items: end; background: var(--card2); border: 1px solid var(--borde); border-radius: var(--rc); padding: 12px 14px; margin-bottom: 10px; }
+table.t-cards tr.fila-aviso { border-color: var(--warn); }
+table.t-cards td { display: block; padding: 0; border: 0; min-width: 0; }
+table.t-cards td::before { content: attr(data-l); display: block; font-size: 12.5px; font-weight: 500; color: var(--mute); margin-bottom: 4px; }
+table.t-cards td[data-l=""]::before, table.t-cards td.acc::before, table.t-cards td.idro::before { display: none; }
+table.t-cards td input:not([type=checkbox]), table.t-cards td select { width: 100% !important; min-width: 0 !important; max-width: 100%; padding: 8px 10px; border-radius: var(--r); }
+table.t-cards td.num input { text-align: left; }
+table.t-cards td.w2 { grid-column: span 2; }
+table.t-cards td.chk { display: flex; align-items: center; gap: 10px; text-align: left; }
+table.t-cards td.chk::before { margin: 0; order: 2; }
+table.t-cards td.ro { padding: 0; white-space: normal; }
+table.t-cards td.acc { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 6px; }
+table.t-cards td.idro { grid-column: 1 / -1; order: -1; }
+.pie-lista { display: flex; justify-content: flex-end; margin-top: 4px; }
+@media (max-width: 420px) { table.t-cards tr { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px 12px; } table.t-cards td.w2 { grid-column: 1 / -1; } }
+
+/* ===== Ficha de módulo: dos columnas ordenadas ===== */
+.f-fila2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-bottom: 8px; align-items: start; }
+.f-fila2 .campo { margin-bottom: 0; }
+.fcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.f-fila2 select, .f-fila2 input:not([type=checkbox]) { min-width: 0; }
+.f-mat { margin-bottom: 8px; }
+.f-checks { align-items: start; }
+.f-taller { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+.f-taller-fila { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; gap: 8px 10px; align-items: end; }
+.f-taller-fila:not(:has(.f-taller-cant)) { grid-template-columns: minmax(0, 1fr); }
+.f-taller-cant .l { margin-bottom: 4px; }
+.f-taller-de { margin: 0 0 10px; white-space: nowrap; }
+@media (max-width: 420px) { .f-taller-fila { grid-template-columns: minmax(0, 1fr) 88px; } .f-taller-de { grid-column: 1 / -1; margin: -4px 0 0; } }
+
+/* tabla "Así va saliendo" de la ficha: en pantallas angostas cada pieza es una tarjeta (sin deslizar) */
+@media (max-width: 720px) {
+  .fsec .tabla-wrap:has(> table.t-mini) { overflow: visible; }
+  table.t-mini, table.t-mini tbody { display: block; width: 100%; }
+  table.t-mini thead { display: none; }
+  table.t-mini tr { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px 8px; background: var(--card2); border: 1px solid var(--borde); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+  table.t-mini td { display: block; padding: 0; border: 0; text-align: left !important; white-space: normal; }
+  table.t-mini td::before { content: attr(data-l); display: block; font-size: 11.5px; color: var(--mute); font-weight: 500; }
+  table.t-mini td.p1 { grid-column: 1 / -1; font-weight: 600; color: var(--txt); } table.t-mini td.p1::before { display: none; }
+  table.t-mini td.p2 { grid-column: 1 / -1; } 
+}
+
+/* ===== IDs en píldora y datos de módulo con etiquetas ===== */
+.id-pill { display: inline-block; background: var(--madera); color: #1A1713; font-weight: 700; font-size: 12.5px; line-height: 1.45; padding: 2px 11px; border-radius: 999px; letter-spacing: .2px; white-space: nowrap; }
+.id-pill.id-grande { font-size: 14px; padding: 3px 14px; }
+.f-mod b { display: flex; align-items: center; }
+.f-mod .id-pill { color: #1A1713; font-size: 12.5px; }
+.f-mod.on b .id-pill { background: var(--crema); color: #1A1713; }
+.modulo-sub { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: var(--txt2); margin: 4px 0 10px; }
+.modulo-sub .tag { display: inline-block; background: var(--soft2); border: 1px solid var(--borde2); color: var(--txt2); border-radius: 999px; padding: 1px 10px; }
+.modulo-sub .tag:first-child { border-color: var(--madera); color: var(--madera); }
+.modulo-titulo { align-items: center; }
+table.tabla-corte tr.cortada td { color: #968F84; }
+.hint { font-size: 13px; }
+.f-mod span, .f-amb { color: var(--mute); }
+
+/* ===== Barras deslizables: pista visual (flecha + degradado) mientras hay más a la derecha ===== */
+.seg { max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+.seg a { flex: 0 0 auto; white-space: nowrap; }
+.seg::after { content: '\203A'; position: sticky; right: 0; flex: 0 0 30px; margin-left: -30px; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(36,35,33,0), var(--marron) 60%); color: var(--madera); font-size: 22px; font-weight: 700; pointer-events: none; }
+.seg.fin::after { display: none; }
+@media (max-width: 640px) {
+  nav.tabs::after { content: '\203A'; position: sticky; right: 0; flex: 0 0 30px; margin-left: -30px; align-self: stretch; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(21,20,19,0), var(--bg) 60%); color: var(--madera); font-size: 22px; font-weight: 700; pointer-events: none; }
+  nav.tabs.fin::after { display: none; }
+}
+
+@media print {
+  .id-pill { background: #000 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .modulo-sub { color: #222; font-family: Arial, sans-serif; padding: 2px 10px; }
+  .modulo-sub .tag { background: #fff; color: #000; border: 1px solid #888; }
+  .seg::after, nav.tabs::after { display: none !important; }
+  table.t-cards tr { break-inside: avoid; background: #fff; border: 1px solid #999; }
+  table.t-cards td::before { color: #333; }
 }
 
 </style>
@@ -563,6 +643,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       cantEstantesFijos: num(r.eFijo), cantEstantesMoviles: num(r.eMovil), cantParantesExtras: num(r.pteExtra),
       conFondo: r.fondo !== false,
       puertasHechas: r.puertasHechas === true,   // las puertas ya están hechas: no entran al despiece
+      // piezas que se cortan en el taller: [{pieza, cantidad}] (cantidad 0 = todas las unidades). No van a la Lista de Corte ni al proveedor.
+      cortesTaller: (Array.isArray(r.cortesTaller) ? r.cortesTaller : []).map(x => (x && typeof x === 'object') ? { pieza: str(x.pieza).trim(), cantidad: num(x.cantidad) > 0 ? num(x.cantidad) : 0 } : { pieza: str(x).trim(), cantidad: 0 }).filter(x => x.pieza),
       observaciones: r.observaciones || '',
     }));
   }
@@ -811,10 +893,32 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 
     const tapacantosPorClave = leerTapacantos_(d);
     const filasCorte = [], filasProveedor = [], filasCorteCompleta = [];
-    agruparParaCorte_(piezasCrudas).forEach(f => {
+    // Piezas que se cortan en el taller (por módulo, todas las unidades o una cantidad): salen de la Lista de Corte y del proveedor;
+    // van a su propia lista (“Cortes en Taller”) y siguen en Taller.
+    const tallerPorModulo = new Map();
+    modulos.forEach(m => {
+      if (!m.cortesTaller.length) return;
+      const mp = new Map();
+      m.cortesTaller.forEach(e => { const k = e.pieza.toLowerCase(); if (!mp.has(k)) mp.set(k, { pieza: e.pieza, pedidas: e.cantidad, resto: e.cantidad > 0 ? e.cantidad : Infinity, tomadas: 0 }); });
+      tallerPorModulo.set(m.idModulo, mp);
+    });
+    const filasTaller = []; let cantTaller = 0; const avisadoTaller = new Set();
+    agruparParaCorte_(piezasCrudas).forEach(f0 => {
+      let f = f0;
       const nombreParaMatch = nombreParaCorte_(f);
       const clave = f.idModulo + '|' + nombreParaMatch.toLowerCase();
       const contexto = (f.idModulo || '(sin módulo)') + ' / ' + nombreParaMatch;
+      const ent = (tallerPorModulo.get(f.idModulo) || new Map()).get(String(f.pieza).trim().toLowerCase());
+      if (ent && ent.resto > 0) {
+        const tomar = Math.min(ent.resto, f.cantidad);
+        ent.resto -= tomar; ent.tomadas += tomar; cantTaller += tomar;
+        filasTaller.push(filaCorte_(Object.assign({}, f, { cantidad: tomar })));
+        if (tomar >= f.cantidad) {
+          if (tapacantosPorClave.has(clave) && !avisadoTaller.has(clave)) { avisadoTaller.add(clave); alertas.push('"' + contexto + '" está marcada como “Corte en taller”: se ignora su fila de Tapacantos.'); }
+          return;
+        }
+        f = Object.assign({}, f, { cantidad: f.cantidad - tomar });
+      }
       filasCorteCompleta.push(filaCorte_(f)); // la lista completa no se ve afectada por Tapacantos
 
       if (tapacantosPorClave.has(clave)) {
@@ -849,6 +953,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       }
     });
 
+    tallerPorModulo.forEach((mp, idMod) => mp.forEach(e => {
+      if (e.pedidas > 0 && e.tomadas > 0 && e.tomadas < e.pedidas) alertas.push('Módulo ' + idMod + ': “Corte en taller” pide ' + e.pedidas + ' de “' + e.pieza + '”, pero el módulo solo tiene ' + e.tomadas + '.');
+    }));
+
     // Salidas ya estructuradas
     const taller = agruparParaTaller_(piezasCrudas).map(f => {
       const tap = parseTapacanto_(f.tapacanto);
@@ -877,10 +985,11 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     };
 
     let msg = 'Listo. Se generaron ' + filasCorte.length + ' líneas de corte para ' + modulos.length + ' módulo(s).';
+    if (cantTaller > 0) msg += ' ' + cantTaller + ' pieza(s) se cortan en el taller: van a “Cortes en Taller”, no a la Lista de Cortes ni a Dilegno.';
     if (filasProveedor.length > 0) {
-      msg += ' ' + filasProveedor.length + ' pieza(s) están cargadas en Tapacantos (van a Piezas Proveedor); la lista completa de cortes las incluye igual.';
+      msg += ' ' + filasProveedor.length + ' pieza(s) están cargadas en Tapacantos (van a la lista de Dilegno, en la pestaña Cortes); la Lista de Cortes las incluye igual.';
     }
-    return { ok: true, mensaje: msg, proyecto: proy, corte: filasCorte, corteCompleta: filasCorteCompleta, orden, taller, proveedor, avisos: alertas,
+    return { ok: true, mensaje: msg, proyecto: proy, corte: filasCorte, corteCompleta: filasCorteCompleta, cortesTaller: filasTaller, orden, taller, proveedor, avisos: alertas,
              modulos: modulos.length };
   }
 
@@ -914,7 +1023,9 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     try { proy = leerProyecto_(d); } catch (e) { proy = { materialProyecto: '', materialInteriores: '', materialFrentesBajos: '', materialFrentesAlacenas: '' }; }
 
     const vistos = new Map();
+    const deTaller = new Set((m.cortesTaller || []).filter(e => !(e.cantidad > 0)).map(e => e.pieza.toLowerCase()));   // solo las que se cortan enteras en el taller
     const agregar = f => {
+      if (deTaller.has(String(f.pieza).trim().toLowerCase())) return;   // se corta en el taller: no se puede mandar al proveedor
       const nombre = nombreParaCorte_(f);
       const clave = [nombre, f.largo, f.ancho, f.espesor].join('|');
       const cant = f.cantidad || 1;
@@ -1329,15 +1440,41 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     }
     return { datos: migrar(JSON.parse(texto)), sha: j.sha };
   }
+  /* Lee lo mínimo de un archivo del repo: su sha y el id del proyecto que contiene (para saber si es "el mismo" proyecto). */
+  async function ghExistente(ruta, branch) {
+    const ex = await gh('GET', '/contents/' + encRuta(ruta) + '?ref=' + encodeURIComponent(branch));
+    let id = '';
+    try {
+      let texto = ex.content ? deB64(ex.content) : (await (await fetch(ex.download_url || '')).text());
+      const o = JSON.parse(texto); id = (o && o.meta && o.meta.id) || '';
+    } catch (e) { id = ''; }
+    return { sha: ex.sha, id };
+  }
   async function ghGuardar(d, mensaje, forzar) {
     const c = ghConfig();
-    if (!d.meta.archivo) d.meta.archivo = slug(d.proyecto.nombre) + '.json';
-    const ruta = rutaArchivo(d.meta.archivo);
+    const inicial = d.meta.archivo || (slug(d.proyecto.nombre) + '.json');
     let sha = d.meta.sha || '';
-    if (!sha || forzar) {
-      try { const ex = await gh('GET', '/contents/' + encRuta(ruta) + '?ref=' + encodeURIComponent(c.branch)); sha = ex.sha; }
-      catch (e) { if (!e.noExiste) throw e; sha = ''; }
+    let renombrado = false;
+    if (forzar) {
+      // "Guardar la mía" a propósito sobre el archivo del conflicto: se pisa.
+      if (!d.meta.archivo) d.meta.archivo = inicial;
+      try { sha = (await ghExistente(rutaArchivo(d.meta.archivo), c.branch)).sha; } catch (e) { if (!e.noExiste) throw e; sha = ''; }
+    } else if (!sha) {
+      // Sin sha no sabemos si ese archivo es de este proyecto: nunca se pisa uno ajeno.
+      // Si ya existe y pertenece a otro proyecto, se busca un nombre libre (nombre-2.json, nombre-3.json…).
+      const base = inicial.replace(/\.json$/i, '')|| 'proyecto';
+      let nombre = inicial, n = 1, hallado = false;
+      while (!hallado && n <= 200) {
+        try {
+          const ex = await ghExistente(rutaArchivo(nombre), c.branch);
+          if (ex.id && ex.id === d.meta.id) { sha = ex.sha; hallado = true; }       // es este mismo proyecto
+          else { n++; nombre = base + '-' + n + '.json'; renombrado = true; }        // es de otro: probar otro nombre
+        } catch (e) { if (!e.noExiste) throw e; sha = ''; hallado = true; }          // libre
+      }
+      if (!hallado) throw new Error('No se pudo encontrar un nombre de archivo libre en GitHub para este proyecto.');
+      if (nombre !== inicial) { d.meta.archivo = nombre; } else d.meta.archivo = inicial;
     }
+    const ruta = rutaArchivo(d.meta.archivo);
     d.meta.modificado = new Date().toISOString();
     const cuerpo = { message: mensaje || ('Guardar ' + (d.proyecto.nombre || d.meta.archivo)), content: b64(serializar(d)), branch: c.branch };
     if (sha) cuerpo.sha = sha;
@@ -1345,6 +1482,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const j = await gh('PUT', '/contents/' + encRuta(ruta), cuerpo);
       d.meta.sha = j.content.sha;
       j._nuevo = !sha;
+      j._renombrado = renombrado ? d.meta.archivo : '';
       return j;
     } catch (e) {
       if (e.status === 409 || e.status === 422) { e.conflicto = true; e.message = 'El archivo cambió en GitHub desde la última vez que lo abriste (otra persona o otro dispositivo lo guardó).'; }
@@ -1580,6 +1718,19 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return deB64(j.content);
   }
   async function ghLeerBlobProyecto(sha) { return migrar(JSON.parse(await ghLeerBlob(sha))); }
+  // Nombre real de cada proyecto del repositorio (el del archivo no cambia aunque se renombre el proyecto).
+  // Se lee de adentro de cada archivo y se recuerda por sha: sólo se vuelve a leer el que cambió.
+  async function ghNombres(archivos) {
+    const K = 'despiece:nombresGh', cache = lsJson(K, {}), nuevo = {}, res = new Map();
+    await Promise.all((archivos || []).map(async (f) => {
+      let n = cache[f.sha];
+      if (n === undefined) { try { const d = JSON.parse(await ghLeerBlob(f.sha)); n = String((d && d.proyecto && d.proyecto.nombre) || '').trim(); } catch (e) { n = ''; } }
+      if (n) nuevo[f.sha] = n;
+      res.set(f.nombre, n);
+    }));
+    lsSet(K, JSON.stringify(nuevo));
+    return res;
+  }
   function respaldoDelDiaHecho() { return lsGet('despiece:respaldoDia') === etiquetaRespaldo(new Date()).slice(0, 10); }
   function marcarRespaldoDelDia() { lsSet('despiece:respaldoDia', etiquetaRespaldo(new Date()).slice(0, 10)); }
   // Autoguardado: minutos entre subidas a GitHub (0 = apagado)
@@ -1592,7 +1743,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, catalogoSugerir, etiquetaCatalogo,
     get catalogo() { return catalogo; },
     ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, TIPOS_APERTURA, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
-    ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
+    ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, ghNombres, ghExistente, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
   };
 })(window);
 
@@ -1664,9 +1815,43 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return cat.get(RELLENO[slot]) || cand.sort((a, b) => a.id - b.id)[0] || null;
   }
 
+  // Nombres de pieza abreviados (máx. 10 caracteres) SOLO para el JSON de Dilegno: en las etiquetas del proveedor no entran los largos.
+  // Dos piezas distintas nunca terminan con el mismo nombre abreviado.
+  const MAX_NOMBRE = 10;
+  const ABREV = {
+    'base': 'Base', 'techo': 'Techo', 'lateral': 'Lateral', 'parante': 'Parante', 'puerta': 'Puerta', 'trasera': 'Trasera',
+    'estante fijo': 'Est. Fijo', 'estante móvil': 'Est. Móvil', 'fondo módulo': 'Fondo Mód.',
+    'lateral de cajón': 'Lat. Cajón', 'fondo de cajón': 'Fdo. Cajón', 'frente cajón': 'Fte. Cajón',
+  };
+  function abreviarUno(nombre) {
+    const orig = String(nombre || '').trim().replace(/\s+/g, ' ');
+    const fijo = ABREV[orig.toLowerCase()];
+    if (fijo) return fijo;
+    if (orig.length <= MAX_NOMBRE) return orig;
+    // sin la partícula "·" de categoría y sin palabras de relleno
+    let pal = orig.replace(/\s*·\s*/g, ' ').split(' ').filter(w => !/^(de|del|la|el|los|las|con|sin|y|en|para)$/i.test(w));
+    let t = pal.join(' ');
+    // palabras largas se acortan a 3 letras + punto, de la última hacia la primera, hasta que entre
+    for (let i = pal.length - 1; i >= 0 && t.length > MAX_NOMBRE; i--) { if (pal[i].length > 4) { pal[i] = pal[i].slice(0, 3) + '.'; t = pal.join(' '); } }
+    return t.length > MAX_NOMBRE ? t.slice(0, MAX_NOMBRE).trim() : t;
+  }
+  // nombres: lista de nombres originales → Map(original → abreviado único)
+  function abreviarNombres(nombres) {
+    const res = new Map(), usados = new Map();   // usados: abreviado en minúsculas → original
+    Array.from(new Set(nombres.map(n => String(n || '').trim()))).forEach(orig => {
+      let a = abreviarUno(orig), k = a.toLowerCase(), n = 1;
+      while (usados.has(k) && usados.get(k) !== orig) {
+        n++; const suf = String(n); a = abreviarUno(orig).slice(0, MAX_NOMBRE - suf.length).trim() + suf; k = a.toLowerCase();
+      }
+      usados.set(k, orig); res.set(orig, a);
+    });
+    return res;
+  }
+
   // piezas = R.proveedor · catalogo = St.catalogo · proyecto = nombre
   function armar(piezas, catalogo, proyecto) {
     const cat = mapa(catalogo), avisos = [], porPlaca = new Map();
+    const abrev = abreviarNombres((piezas || []).map(f => f.pieza));
     let sinPlaca = 0, sinCanto = 0, sinDatosPlaca = new Set(), sinDatosCanto = new Set();
     (piezas || []).forEach(f => {
       const pid = idDe(f.materialPlaca);
@@ -1705,7 +1890,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
           proyecto: proyecto || '', vendedor: '', direccion: '', notes: '', email_aux: '',
           cortes: g.items.map((it, i) => ({
             id: i, cantidad: num(it.f.cantidad) || 1, base: num(it.f.largo), altura: num(it.f.ancho),
-            descripcion: (String(it.f.pieza || '') + (it.f.idModulo ? ' ' + it.f.idModulo : '')).trim(),
+            descripcion: ((abrev.get(String(it.f.pieza || '').trim()) || '') + (it.f.idModulo ? ' ' + it.f.idModulo : '')).trim(),   // nombre abreviado (máx. 10) + ID del módulo
             rota: girar(placa), tapacantos: it.c.mask, mecanizados: [],
           })),
           mecxcorte: [], stock: [], sucursal_id: CONST.sucursal_id, sucursal_aux_id: CONST.sucursal_aux_id, multi_ped_id: -1, multi_ped_len: 1,
@@ -1742,7 +1927,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return out;
   }
 
-  root.Dilegno = { cantoRelleno, armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
+  root.Dilegno = { abreviarNombres, abreviarUno, cantoRelleno, armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -2041,10 +2226,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   const TABLAS = {
     modulos: {
       titulo: 'Módulos', arr: 'modulos',
-      ayuda: 'Una fila por módulo. El ID se arma solo (contador del ambiente + código); si lo cambiás a mano, se actualiza en Puertas, Cajones, Override, Piezas Sueltas y Tapacantos. “Fondo” destildado = el módulo no lleva panel trasero.',
+      ayuda: 'Una tarjeta por módulo. El ID se arma solo al elegir el Ambiente (contador del ambiente + código) y no se puede escribir a mano. “Fondo” destildado = el módulo no lleva panel trasero.',
       cols: [
         { k: 'ambiente', t: 'Ambiente', tipo: 'sel', opts: () => nombresAmbiente(), vacio: '—', rr: true },
-        { k: 'id', t: 'ID', tipo: 'text', ancho: 84, rr: true },
+        { k: 'id', t: '', tipo: 'idro' },
         { k: 'tipo', t: 'Módulo', tipo: 'sel', opts: () => Object.keys(M.CATALOGO), vacio: '—', rr: true },
         { k: 'h', t: 'H', tipo: 'num' }, { k: 'l', t: 'L', tipo: 'num' }, { k: 'p', t: 'P', tipo: 'num' },
         { k: 'material', t: 'Material', tipo: 'dl' },
@@ -2132,7 +2317,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     },
     tapacantos: {
       titulo: 'Tapacantos', arr: 'tapacantos',
-      ayuda: 'Piezas que se mandan al proveedor externo (Dilegno): salen de la Lista de Corte y van a “Proveedores”. Elegí módulo y pieza (se completan los lados solos). “Cant. a enviar” = cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya (si el módulo tiene 2 laterales, se mandan los 2). Ponelo sólo si mandás una parte y el resto se corta en el taller.',
+      ayuda: 'Piezas que se mandan al proveedor externo (Dilegno): salen de la Lista de Corte y van a “Cortes” (lista de Dilegno). Elegí módulo y pieza (se completan los lados solos). “Cant. a enviar” = cuántas piezas de ese tipo van al proveedor; vacío = todas las que haya (si el módulo tiene 2 laterales, se mandan los 2). Ponelo sólo si mandás una parte y el resto se corta en el taller.',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '(sin módulo)', rr: true },
         { k: 'pieza', t: 'Pieza', tipo: 'sel', opts: (r) => M.variantesParaTapacantos(D, String(r.idModulo).trim()).map(v => ({ v: v.nombre, l: v.nombre + ' · ' + v.largo + '×' + v.ancho + (v.cantidad > 1 ? ' (x' + v.cantidad + ')' : '') })), vacio: '—', rr: true, ancho: 260 },
@@ -2181,6 +2366,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     if (c.ocultar && c.ocultar(row)) return '<td class="num"><span class="chip" title="Simétrica: siempre son 2 puertas">×2</span></td>';
     const w = c.ancho ? ' style="min-width:' + c.ancho + 'px"' : '';
     switch (c.tipo) {
+      case 'idro': return '<td class="idro"><span class="id-pill">' + esc(val || '(sin ID)') + '</span></td>';
       case 'text': return '<td><input data-k="' + key + '" value="' + esc(val) + '"' + dis + (c.ancho ? ' style="width:' + c.ancho + 'px"' : '') + '></td>';
       case 'num': return '<td class="num"><input type="number" inputmode="decimal" step="any" data-k="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + dis + '></td>';
       case 'chk': return '<td class="chk"><input type="checkbox" data-k="' + key + '"' + ((c.def === false ? val === true : val !== false) ? ' checked' : '') + '></td>';
@@ -2200,21 +2386,28 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     return '<td></td>';
   }
 
+  // Celda con su etiqueta (data-l): las filas de carga se ven como tarjetas con los campos apilados, sin recorrer horizontalmente.
+  function celdaEt(tk, i, c, row, ancha) {
+    const h = celdaHtml(tk, i, c, row);
+    const wide = ancha !== undefined ? ancha : ((c.ancho || 0) >= 170 || c.k === 'observaciones' || c.k === 'material');
+    return h.replace(/^<td( class="([^"]*)")?/, (m, a, k) => '<td data-l="' + esc(c.t) + '" class="' + ((k ? k + ' ' : '') + (wide ? 'w2' : '')).trim() + '"');
+  }
   function tablaEditable(tk) {
     const T = TABLAS[tk];
     const rows = D[T.arr];
     const cabecera = T.cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + '<th></th>';
     const cuerpo = rows.map((row, i) => {
       const idFila = String(tk === 'modulos' ? row.id : row.idModulo || '').trim();
-      return '<tr data-mod="' + esc(idFila) + '">' + T.cols.map(c => celdaHtml(tk, i, c, row)).join('') +
+      return '<tr data-mod="' + esc(idFila) + '">' + T.cols.map(c => celdaEt(tk, i, c, row)).join('') +
         '<td class="acc">' + (tk === 'modulos' ? '<button class="sec ico" data-acc="tipo-guardar" data-i="' + i + '" title="Guardar como módulo tipo">☆</button> ' : '') + '<button class="sec ico" data-acc="dup" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="del" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>';
     }).join('');
     return '<div class="card"><div class="barra"><div><h2>' + esc(T.titulo) + ' <span class="chip">' + rows.length + '</span></h2></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (tk === 'tapacantos' ? barraCatalogo() : '') + (tk === 'modulos' ? '<button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button>' : '') +
       '<button data-acc="add">+ Agregar</button><button class="sec" data-acc="guardar">' + ICO.save + ' Guardar</button>' + (rows.length ? '<button class="peligro mini" data-acc="clear">Borrar todo</button>' : '') + '</div></div>' +
       '<p class="hint">' + esc(T.ayuda) + '</p>' +
-      (rows.length ? '<div class="tabla-wrap"><table class="t"><thead><tr>' + cabecera + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>'
-                   : '<div class="vacio">Todavía no hay filas. Tocá “Agregar”.</div>') + '</div>';
+      (rows.length ? '<div class="cards-wrap"><table class="t t-cards"><thead><tr>' + cabecera + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>'
+                   : '<div class="vacio">Todavía no hay filas. Tocá “Agregar”.</div>') +
+      (rows.length ? '<div class="pie-lista"><button data-acc="add">+ Agregar</button></div>' : '') + '</div>';
   }
 
   function subnavManual() {
@@ -2245,7 +2438,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   function resumen() {
     const c = (n, t) => '<span class="chip">' + n + ' ' + t + '</span> ';
     return '<div class="card"><h2>Resumen</h2><p style="margin:8px 0">' + c(D.modulos.length, 'módulos') + c(D.puertas.length, 'puertas') + c(D.cajones.length, 'cajones') + c(D.overrides.length, 'overrides') + c(D.sueltas.length, 'piezas sueltas') + c(D.tapacantos.length, 'tapacantos') +
-      (R && R.ok ? c(R.corte.reduce((s, f) => s + f.cantidad, 0), 'piezas a cortar en taller') + c(R.proveedor.reduce((s, f) => s + f.cantidad, 0), 'piezas a proveedor') : '') + '</p></div>';
+      (R && R.ok ? c(R.corteCompleta.reduce((s, f) => s + f.cantidad, 0), 'piezas en la Lista de Cortes') + c(R.proveedor.reduce((s, f) => s + f.cantidad, 0), 'piezas a Dilegno') + (R.cortesTaller.length ? c(R.cortesTaller.reduce((s, f) => s + f.cantidad, 0), 'cortes en taller') : '') : '') + '</p></div>';
   }
 
   function tapsHtml(p) { return '<td class="n">' + esc(p.tapLargo) + '</td><td class="n">' + esc(p.tapAncho) + '</td>'; }
@@ -2368,10 +2561,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const ps = visibles(piezas, id);
       if (!ps.length) return '';
       const hechasMod = piezas.filter(p => estaCortada(id, p)).length;
-      return '<div class="modulo-card"><div class="modulo-titulo"' + (estiloTitulo ? ' style="' + estiloTitulo + '"' : '') + '><span>' + esc(titulo) + '</span><button class="sec mini no-print" data-acc="cut-mod" data-id="' + esc(id) + '" title="Marcar o desmarcar todas las piezas de este módulo">' + (hechasMod === piezas.length ? 'Desmarcar todas' : 'Marcar todas') + '</button></div>' +
-        (sub ? '<div class="modulo-sub">' + esc(sub) + '</div>' : '') + '<div class="tabla-wrap"><table class="tabla-corte">' + THEAD_TALLER + '<tbody>' + ps.map(p => filaPiezaTaller(p, id)).join('') + '</tbody></table></div></div>';
+      return '<div class="modulo-card"><div class="modulo-titulo"' + (estiloTitulo ? ' style="' + estiloTitulo + '"' : '') + '><span>' + (String(id).charAt(0) === '§' ? esc(titulo) : '<span class="id-pill id-grande">' + esc(titulo) + '</span>') + '</span><button class="sec mini no-print" data-acc="cut-mod" data-id="' + esc(id) + '" title="Marcar o desmarcar todas las piezas de este módulo">' + (hechasMod === piezas.length ? 'Desmarcar todas' : 'Marcar todas') + '</button></div>' +
+        (sub && sub.length ? '<div class="modulo-sub">' + (Array.isArray(sub) ? sub.map((t, n) => '<span class="tag' + (n === sub.length - 1 && sub.obs ? ' obs' : '') + '">' + esc(t) + '</span>').join('') : esc(sub)) + '</div>' : '') + '<div class="tabla-wrap"><table class="tabla-corte">' + THEAD_TALLER + '<tbody>' + ps.map(p => filaPiezaTaller(p, id)).join('') + '</tbody></table></div></div>';
     };
-    h += mods.map(m => bloqueMod(m.idModulo, m.idModulo, [m.tipo, m.material, m.h + ' x ' + m.l + ' x ' + m.p, m.observaciones].filter(Boolean).join(' · '), m.piezas)).join('');
+    h += mods.map(m => bloqueMod(m.idModulo, m.idModulo, [m.tipo, m.material, m.h + ' x ' + m.l + ' x ' + m.p, m.observaciones].filter(Boolean), m.piezas)).join('');
     h += secs.map(s => bloqueMod('§' + s.categoria, 'Sección: ' + s.categoria, '', s.piezas, 'color:var(--madera)')).join('');
     if (ocultarCortadas && h.indexOf('modulo-card') < 0) h += '<div class="card vacio">Todas las piezas están marcadas como cortadas. </div>';
     return h;
@@ -2416,11 +2609,11 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     D[T.arr].forEach((row, i) => { if (String(row.idModulo || '').trim() === id) filas.push({ row, i }); });
     const cols = T.cols.filter(c => c.k !== 'idModulo');
     const head = cols.map(c => '<th>' + esc(c.t) + '</th>').join('') + (opt.extraTh ? '<th>' + opt.extraTh + '</th>' : '') + '<th></th>';
-    const cuerpo = filas.map(({ row, i }) => '<tr>' + cols.map(c => celdaHtml(tk, i, c, row)).join('') + (opt.extraTd ? '<td class="ro">' + opt.extraTd(row) + '</td>' : '') +
+    const cuerpo = filas.map(({ row, i }) => '<tr>' + cols.map(c => celdaEt(tk, i, c, row)).join('') + (opt.extraTd ? '<td class="ro" data-l="' + esc(opt.extraTh || '') + '">' + opt.extraTd(row) + '</td>' : '') +
       '<td class="acc"><button class="sec ico" data-acc="f-dup" data-t="' + tk + '" data-i="' + i + '" title="Duplicar fila">⧉</button> <button class="peligro ico" data-acc="f-del" data-t="' + tk + '" data-i="' + i + '" title="Borrar fila">✕</button></td></tr>').join('');
     const cab = '<h4>' + esc(titulo) + (filas.length ? ' <span class="chip">' + filas.length + '</span>' : '') + '</h4>' + (opt.ayuda ? '<p class="hint" style="margin:0 0 8px">' + esc(opt.ayuda) + '</p>' : '');
     const cierre = '<button class="sec mini" data-acc="f-add" data-t="' + tk + '" style="margin-top:8px">' + esc(textoAdd) + '</button>';
-    const cuerpoHtml = (filas.length ? '<div class="tabla-wrap"><table class="t"><thead><tr>' + head + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>' : '') + cierre;
+    const cuerpoHtml = (filas.length ? '<div class="cards-wrap"><table class="t t-cards"><thead><tr>' + head + '</tr></thead><tbody>' + cuerpo + '</tbody></table></div>' : '') + cierre;
     if (opt.plegable) return '<details class="fsec"' + (filas.length ? ' open' : '') + '><summary>' + cab.replace(/^<h4>/, '<span>').replace(/<\/h4>/, '</span>') + '</summary>' + cuerpoHtml + '</details>';
     return '<div class="fsec">' + cab + cuerpoHtml + '</div>';
   }
@@ -2444,6 +2637,31 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       '<button class="sec mini" data-acc="f-add" data-t="tapacantos" style="margin-top:6px">+ Tapacanto</button></details>';
   }
 
+  // Piezas que se cortan en el taller: un renglón por pieza elegida (todas las unidades o una cantidad) + un desplegable vacío para seguir agregando.
+  function cortesTallerDe(m) {
+    return (Array.isArray(m.cortesTaller) ? m.cortesTaller : []).map(x => (x && typeof x === 'object') ? { pieza: String(x.pieza || ''), cantidad: x.cantidad === '' || x.cantidad === undefined ? '' : x.cantidad } : { pieza: String(x), cantidad: '' }).filter(x => x.pieza);
+  }
+  function seccionCorteTaller(id, m) {
+    const elegidas = cortesTallerDe(m);
+    const nombres = M.nombresPiezasDeModulo(D, id);
+    const hay = (n) => (R && R.ok ? R.taller.filter(f => f.modulos === id && f.pieza === n).reduce((q, f) => q + num(f.cantidad), 0) : 0);
+    const renglon = (v, j) => {
+      const otras = new Set(elegidas.filter((x, jj) => jj !== j).map(x => x.pieza));
+      const nuevo = !v;
+      const ops = nombres.filter(n => !otras.has(n));
+      const huerfana = v && nombres.indexOf(v.pieza) < 0;
+      const total = v ? hay(v.pieza) : 0;
+      return '<div class="f-taller-fila"><select data-taller="' + j + '" aria-label="Pieza que se corta en el taller"><option value="">' + (nuevo ? 'Elegir pieza…' : '— Quitar —') + '</option>' +
+        (huerfana ? '<option value="' + esc(v.pieza) + '" selected>' + esc(v.pieza) + ' (el módulo ya no la tiene)</option>' : '') +
+        ops.map(n => '<option value="' + esc(n) + '"' + (v && n === v.pieza ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
+        (nuevo ? '' : '<div class="f-taller-cant"><label class="l">Unidades</label><input type="number" inputmode="numeric" min="1" step="1" data-taller-cant="' + j + '" value="' + esc(v.cantidad) + '" placeholder="todas"></div>' +
+          '<span class="hint f-taller-de">' + (total ? 'de ' + total : '') + '</span>') + '</div>';
+    };
+    return '<div class="fsec"><h4>Corte en taller' + (elegidas.length ? ' <span class="chip">' + elegidas.length + '</span>' : '') + '</h4>' +
+      '<p class="hint" style="margin:0 0 8px">Las piezas que elijas acá las cortan ustedes: <strong>no salen en la Lista de Cortes ni en Dilegno</strong>; van a la lista “Cortes en Taller” (y siguen en Taller). <strong>Unidades</strong>: cuántas se cortan en el taller; vacío = todas las de ese tipo. Al elegir una pieza aparece otro desplegable para agregar más.</p>' +
+      '<div class="f-taller">' + elegidas.map(renglon).join('') + renglon(null, elegidas.length) + '</div></div>';
+  }
+
   function vistaFicha() {
     if (!D.modulos.length) {
       return '<div class="card"><h2>Fichas de módulos</h2><p class="hint">Cada módulo con todo lo suyo en una sola pantalla: medidas, puertas, cajones, excepciones de material y piezas sueltas, con las piezas calculándose a medida que escribís.</p><div class="vacio">Todavía no hay módulos.</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button></div></div>';
@@ -2456,7 +2674,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const lista = orden.map(a => '<div class="f-amb">' + esc(a) + ' · ' + grupos[a].length + ' módulo' + (grupos[a].length > 1 ? 's' : '') + '</div>' + grupos[a].map(x => {
       const xid = String(x.id).trim(), av = avisosDeModulo(xid);
       const sub = av.length ? '<span class="f-warn">' + esc(resumenAviso(av[0])) + '</span>' : esc([x.tipo, [x.l, x.h].filter(Boolean).length === 2 ? (x.h + '×' + x.l) : ''].filter(Boolean).join(' '));
-      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b><span class="dot ' + (av.length ? 'w' : 'ok') + '"></span>' + esc(xid || '(sin ID)') + '</b><span>' + sub + '</span></div>';
+      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b><span class="dot ' + (av.length ? 'w' : 'ok') + '"></span><span class="id-pill">' + esc(xid || '(sin ID)') + '</span></b><span>' + sub + '</span></div>';
     }).join('')).join('');
 
     const camposMod = TABLAS.modulos.cols;
@@ -2465,10 +2683,12 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const av = avisosDeModulo(id);
     const avHtml = av.length ? '<div class="avisos" style="margin:0 0 10px"><ul style="margin:0">' + av.map(a => '<li>' + esc(a) + '</li>').join('') + '</ul></div>' : '';
 
-    const cabecera = '<div class="fsec"><div class="row-f" style="margin-bottom:10px"><strong style="font-size:16px;color:var(--crema)">' + esc(id) + '</strong><span class="chip">' + esc(m.ambiente || '—') + '</span><span class="chip">' + esc(m.tipo || '—') + '</span>' +
+    const cabecera = '<div class="fsec"><div class="row-f" style="margin-bottom:10px"><span class="id-pill id-grande">' + esc(id) + '</span><span class="chip">' + esc(m.ambiente || '—') + '</span><span class="chip">' + esc(m.tipo || '—') + '</span>' +
       '<span style="flex:1"></span><button class="mini" data-acc="f-guardar" title="Guardar el proyecto con este módulo">' + ICO.save + ' Guardar módulo</button><button class="sec mini" data-acc="f-tipo-guardar" title="Guardar este módulo como plantilla">☆ Guardar como tipo</button><button class="peligro mini" data-acc="f-borrar-mod">Borrar módulo</button></div>' + avHtml +
-      '<div class="fgrid">' + campo('ambiente') + campo('id') + campo('tipo') + campo('h') + campo('l') + campo('p') + campo('eMovil') + campo('eFijo') + campo('pteExtra') + campo('material') +
-      '<div class="campo"><label class="l">Fondo</label>' + interiorCelda('modulos', idx, col('fondo'), m) + '</div>' +
+      '<div class="f-fila2">' + campo('ambiente') + campo('tipo') + '</div>' +
+      '<div class="f-fila2 f-medidas"><div class="fcol">' + campo('h') + campo('l') + campo('p') + '</div><div class="fcol">' + campo('eMovil') + campo('eFijo') + campo('pteExtra') + '</div></div>' +
+      '<div class="f-mat">' + campoFicha('modulos', idx, col('material'), m) + '</div>' +
+      '<div class="f-fila2 f-checks"><div class="campo"><label class="l">Fondo</label>' + interiorCelda('modulos', idx, col('fondo'), m) + '</div>' +
       '<div class="campo"><label class="l" title="Marcalo si las puertas de este módulo ya están hechas y no tienen que entrar al despiece">Puertas ya hechas</label>' + interiorCelda('modulos', idx, col('puertasHechas'), m) + '</div></div>' +
       '<div class="campo" style="margin-top:8px"><label class="l">Observaciones</label>' + interiorCelda('modulos', idx, col('observaciones'), m) + '</div></div>';
 
@@ -2478,7 +2698,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     const sCajones = (cat.cajonera || hayCajones) ? seccionFicha('Cajones', 'cajones', id, '+ Cajón') : '';
     const sOver = seccionFicha('Material distinto en alguna pieza', 'overrides', id, '+ Excepción');
     const sSueltas = seccionFicha('Piezas sueltas de este módulo', 'sueltas', id, '+ Pieza');
-    const sTap = seccionTapacantos(id);
+    const sTap = seccionCorteTaller(id, m) + seccionTapacantos(id);
 
     // piezas calculadas en vivo
     let vivo = '';
@@ -2486,8 +2706,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     else {
       const bm = R.orden.modulos.find(x => x.idModulo === id);
       const prov = R.proveedor.filter(f => f.idModulo === id).reduce((s, f) => s + num(f.cantidad), 0);
-      vivo = bm && bm.piezas.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead><tbody>' +
-        bm.piezas.map(p => '<tr><td>' + esc(p.nombreBase) + '</td>' + ((p.material || bm.material) ? '<td class="mat">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin">–</td>') + '<td class="n">' + p.cantidad + '</td><td class="n">' + p.largo + '</td><td class="n">' + p.ancho + '</td><td class="n">' + p.espesor + '</td>' + tapsHtml(p) + '</tr>').join('') + '</tbody></table></div>'
+      vivo = bm && bm.piezas.length ? '<div class="tabla-wrap"><table class="tabla-corte t-mini"><thead><tr><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead><tbody>' +
+        bm.piezas.map(p => '<tr><td class="p1">' + esc(p.nombreBase) + '</td>' + ((p.material || bm.material) ? '<td class="mat p2" data-l="Material">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin p2" data-l="Material">–</td>') + '<td class="n" data-l="Cant.">' + p.cantidad + '</td><td class="n" data-l="L">' + p.largo + '</td><td class="n" data-l="A">' + p.ancho + '</td><td class="n" data-l="E">' + p.espesor + '</td>' + '<td class="n" data-l="T.L.">' + esc(p.tapLargo) + '</td><td class="n" data-l="T.A.">' + esc(p.tapAncho) + '</td>' + '</tr>').join('') + '</tbody></table></div>'
         : '<div class="vacio">Este módulo todavía no genera piezas. Completá tipo, H, L y P.</div>';
       if (prov) vivo += '<p class="hint" style="margin:8px 0 0">Además, ' + prov + ' pieza(s) de este módulo van al proveedor (no figuran arriba).</p>';
     }
@@ -2576,6 +2796,23 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
         g.orden.map(kf => { const f = g.filas[kf]; return '<tr><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + f.tapLargo + '</td><td class="n">' + f.tapAncho + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
     }).join('') : '<div class="vacio">Todavía no hay datos.</div>';
   }
+  // Cortes en taller: por material y espesor, con el nombre de la pieza y el módulo (las que tienen la misma medida se suman).
+  function cortesTallerHTML(piezas) {
+    if (!piezas.length) return '<div class="vacio">Ninguna pieza se corta en el taller. Se marcan en la ficha del módulo, sección “Corte en taller”.</div>';
+    const grupos = {}, orden = [];
+    piezas.forEach(p => {
+      const kg = (p.material || '(sin material)') + '||' + (p.espesor || '');
+      if (!grupos[kg]) { grupos[kg] = { material: p.material || '(sin material)', espesor: p.espesor, filas: {}, orden: [] }; orden.push(kg); }
+      const g = grupos[kg], kf = [p.pieza, p.largo, p.ancho, p.tapLargo, p.tapAncho].join('|');
+      if (!g.filas[kf]) { g.filas[kf] = { pieza: p.pieza, largo: p.largo, ancho: p.ancho, tapLargo: p.tapLargo, tapAncho: p.tapAncho, cantidad: 0, mods: [] }; g.orden.push(kf); }
+      const f = g.filas[kf]; f.cantidad += num(p.cantidad); if (p.idModulo && f.mods.indexOf(p.idModulo) < 0) f.mods.push(p.idModulo);
+    });
+    return orden.map(k => {
+      const g = grupos[k];
+      return '<div class="jony-grupo"><div class="jony-grupo-titulo">' + esc(g.material + (g.espesor ? ' · ' + g.espesor + ' mm' : '')) + '</div><div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>Pieza</th><th>Largo</th><th>Ancho</th><th>Cant.</th><th>TC Largo</th><th>TC Ancho</th><th>Módulo</th></tr></thead><tbody>' +
+        g.orden.map(kf => { const f = g.filas[kf]; return '<tr><td>' + esc(f.pieza) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + f.tapLargo + '</td><td class="n">' + f.tapAncho + '</td><td>' + f.mods.map(m => '<span class="id-pill">' + esc(m) + '</span>').join(' ') + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+    }).join('');
+  }
   // PDF de la lista de cortes: 'todo' o 'sin' (sin lo enviado a Dilegno). Arma una hoja aparte sólo para imprimir.
   function imprimirCortes(modo) {
     if (!R || !R.ok) return;
@@ -2588,21 +2825,26 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     imprimirSeccion(el);
   }
 
-  /* ---- Proveedores ---- */
-  function vistaProveedores() {
+  /* ---- Cortes (Dilegno · Lista de Cortes · Cortes en Taller) ---- */
+  function vistaCortes() {
     if (!R || !R.ok) return sinResultado();
     const P = R.proveedor;
-    let h = '<div class="card"><div class="barra"><div><h2>Piezas para el proveedor (Dilegno) <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
+    let h = '<div class="card"><div class="barra"><div><h2>Dilegno · piezas para el proveedor <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
       '<p class="hint">Son las piezas cargadas en “Tapacantos”. También figuran en la lista de cortes por material de más abajo. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira” siempre es automático: gira si la placa no tiene veta.</p>';
     h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
-      P.map(f => '<tr><td>' + esc(f.idModulo) + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
+      P.map(f => '<tr><td>' + (f.idModulo ? '<span class="id-pill">' + esc(f.idModulo) + '</span>' : '') + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
       : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
     h += '</div>';
 
     // Lista de cortes por material: agrupada por material + espesor. Siempre completa; el PDF puede excluir lo enviado a Dilegno.
-    h += '<div class="card" id="card-cortes"><div class="barra"><h2>Lista de cortes por material</h2><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" data-acc="print-cortes" data-modo="todo" title="Todas las piezas, también las que van a Dilegno">' + ICO.print + ' PDF · todos los materiales</button><button class="sec mini" data-acc="print-cortes" data-modo="sin"' + (P.length ? '' : ' disabled') + ' title="Sin las piezas cargadas en Tapacantos (las que van a Dilegno)">' + ICO.print + ' PDF · sin lo enviado a Dilegno</button></div></div>' +
-      '<p class="hint no-print">Incluye todas las piezas, también las que mandás a Dilegno. Agrupada por material y espesor; las piezas con la misma medida y el mismo tapacanto se suman en una sola fila, porque para cortar sirve el total, no de qué módulo salió cada pieza.</p>' + titlebar('LISTA DE CORTES POR MATERIAL') + cortesPorMaterialHTML(R.corteCompleta);
-    return h + '</div>';
+    h += '<div class="card" id="card-cortes"><div class="barra"><h2>Lista de Cortes</h2><div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap"><button class="mini" data-acc="print-cortes" data-modo="todo" title="Todas las piezas, también las que van a Dilegno">' + ICO.print + ' PDF · todos los materiales</button><button class="sec mini" data-acc="print-cortes" data-modo="sin"' + (P.length ? '' : ' disabled') + ' title="Sin las piezas cargadas en Tapacantos (las que van a Dilegno)">' + ICO.print + ' PDF · sin lo enviado a Dilegno</button></div></div>' +
+      '<p class="hint no-print">Incluye todas las piezas, también las que mandás a Dilegno; las marcadas como “Corte en taller” están en su propia lista, abajo. Agrupada por material y espesor; las piezas con la misma medida y el mismo tapacanto se suman en una sola fila, porque para cortar sirve el total, no de qué módulo salió cada pieza.</p>' + titlebar('LISTA DE CORTES POR MATERIAL') + cortesPorMaterialHTML(R.corteCompleta) + '</div>';
+
+    // Cortes en Taller: las piezas que cortan ustedes (ficha del módulo → Corte en taller)
+    const T = R.cortesTaller || [], totT = T.reduce((q, f) => q + num(f.cantidad), 0);
+    h += '<div class="card" id="card-taller"><div class="barra"><h2>Cortes en Taller <span class="chip">' + totT + '</span></h2><div class="no-print"><button class="mini" data-acc="print-sec" data-target="card-taller">' + ICO.print + ' Imprimir</button></div></div>' +
+      '<p class="hint no-print">Las piezas que se cortan en el taller. No están en la Lista de Cortes ni en el envío a Dilegno. Se marcan en la ficha de cada módulo, en “Corte en taller”. Agrupada por material y espesor.</p>' + titlebar('CORTES EN TALLER') + cortesTallerHTML(T) + '</div>';
+    return h;
   }
 
   /* ---- Listas ---- */
@@ -2698,7 +2940,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
   }
   /* ------------------------------------------------------------------ armado general */
   // Pestañas a la vista; las tablas de carga manual viven dentro de “Control manual”.
-  const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['taller', 'Taller'], ['overrides', 'Override'], ['proveedores', 'Proveedores'], ['listas', 'Listas'], ['manual', 'Control manual']];
+  const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['taller', 'Taller'], ['overrides', 'Override'], ['proveedores', 'Cortes'], ['listas', 'Listas'], ['manual', 'Control manual']];
   const MANUAL = [['modulos', 'Módulos'], ['puertas', 'Puertas'], ['cajones', 'Cajones'], ['sueltas', 'Piezas Sueltas'], ['tapacantos', 'Tapacantos']];
   const esManual = (k) => MANUAL.some(m => m[0] === k);
   function contador(k) { if (k === 'ficha') return D.modulos.length; if (k === 'manual') return null; return TABLAS[k] ? D[TABLAS[k].arr].length : null; }
@@ -2754,14 +2996,30 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     else if (tab === 'ficha') html = vistaFicha();
     else if (TABLAS[tab]) html = (esManual(tab) ? subnavManual() : '') + tablaEditable(tab);
     else if (tab === 'taller') html = vistaTallerTab();
-    else if (tab === 'proveedores') html = vistaProveedores();
+    else if (tab === 'proveedores') html = vistaCortes();
     else if (tab === 'listas') html = vistaListas();
     $('#main').innerHTML = html;
     const dl = $('#dl-mat'); dl.innerHTML = materialesConocidos().map(m => '<option value="' + esc(m) + '">').join('');
     $('#nombreProyecto').textContent = D.proyecto.nombre || '(proyecto sin nombre)';
     if (act) { const el = document.querySelector('[data-k="' + act.replace(/"/g, '') + '"]'); if (el && el.tagName !== 'SELECT') { sinSel = true; el.focus(); sinSel = false; if (actFresco && el.type === 'number') { el.dataset.sel = '1'; try { el.select(); } catch (er) { /* no aplica */ } } try { if (el.setSelectionRange && el.type !== 'number') el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* no aplica */ } } }
-    actualizarBotones(); actualizarPie();
+    actualizarBotones(); actualizarPie(); pistaDeslizar();
   }
+  // Barras deslizables (pestañas de arriba y sub-barra de carga manual): marcan con una flecha y un degradado si hay más a la derecha,
+  // y dejan a la vista la pestaña activa.
+  let ultimaActiva = '';
+  function pistaDeslizar() {
+    document.querySelectorAll('nav.tabs, .seg').forEach((el) => {
+      const fin = () => el.classList.toggle('fin', el.scrollLeft + el.clientWidth >= el.scrollWidth - 6);
+      if (!el.dataset.pista) { el.dataset.pista = '1'; el.addEventListener('scroll', fin, { passive: true }); }
+      fin();
+    });
+    const clave = tab + '|' + innerWidth;
+    if (clave !== ultimaActiva) {
+      ultimaActiva = clave;
+      document.querySelectorAll('.seg a.on, nav.tabs a.activa').forEach((a) => { const c = a.parentElement; if (c && c.scrollWidth > c.clientWidth) c.scrollLeft = a.offsetLeft - (c.clientWidth - a.offsetWidth) / 2; });
+    }
+  }
+  window.addEventListener('resize', () => pistaDeslizar());
   // Pie de página de la impresión (margen inferior de la hoja): proyecto, cuándo se imprimió, cuándo se modificó por última vez y nº de página.
   function textoPie() {
     const ed = D.meta.editado || D.meta.modificado;
@@ -2852,6 +3110,18 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (el.dataset.subpieza !== undefined) { subPieza = el.value; render(); return; }
       if (el.dataset.matlista !== undefined) { cambioMateriales(el.value.split('\n')); return; }
       if (el.dataset.compl) { cambioLista(el.dataset.compl, el.value.split('\n')); return; }
+      if (el.dataset.taller !== undefined || el.dataset.tallerCant !== undefined) {
+        const m = moduloPorId(fichaSel); if (!m) return;
+        const arr = cortesTallerDe(m);
+        if (el.dataset.tallerCant !== undefined) {
+          const j = Number(el.dataset.tallerCant); if (!arr[j]) return;
+          const n = Math.floor(Number(el.value)); arr[j].cantidad = (el.value === '' || !(n > 0)) ? '' : n;
+        } else {
+          const j = Number(el.dataset.taller);
+          if (j < arr.length) { if (el.value === '') arr.splice(j, 1); else arr[j].pieza = el.value; } else if (el.value !== '') arr.push({ pieza: el.value, cantidad: '' });
+        }
+        m.cortesTaller = arr.filter((x, i) => arr.findIndex(y => y.pieza === x.pieza) === i); tocado(true); render(); return;
+      }
       const k = el.dataset.k; if (!k) return;
       const p = k.split(':');
       if (p[0] === 'amb') {
@@ -3037,7 +3307,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
     // Orden para importar: cantidad, largo, ancho, nombre de pieza, gira (1 = gira, 0 = no gira), arr, ab, izq, der
     const cols = ['Cantidad', 'Largo', 'Ancho', 'Pieza', 'Gira', 'Arr.', 'Ab.', 'Izq.', 'Der.'];
     const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
-    const filas = R.proveedor.map(f => [f.cantidad, f.largo, f.ancho, f.pieza, giraDe(f) ? 1 : 0, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
+    const ab = window.Dilegno.abreviarNombres(R.proveedor.map(f => f.pieza));   // nombres de pieza abreviados (máx. 10), igual que en el JSON
+    const filas = R.proveedor.map(f => [f.cantidad, f.largo, f.ancho, ab.get(String(f.pieza || '').trim()) || f.pieza, giraDe(f) ? 1 : 0, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
     St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.csv', '\uFEFF' + [cols.map(q).join(';')].concat(filas).join('\r\n'), 'text/csv;charset=utf-8');
   }
   function elegirArchivo(accept, cb) {
@@ -3059,7 +3330,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const [tk, i] = inp.dataset.k.split(':'); const row = D[TABLAS[tk].arr][Number(i)];
       if (row && row.pieza && R && R.ok) {
         const clave = (String(row.idModulo).trim() + '|' + row.pieza).toLowerCase();
-        const f = R.corte.concat(R.proveedor).find(x => (String(x.idModulo).trim() + '|' + String(x.pieza).trim()).toLowerCase() === clave);
+        const f = R.corte.concat(R.proveedor, R.cortesTaller || []).find(x => (String(x.idModulo).trim() + '|' + String(x.pieza).trim()).toLowerCase() === clave);
         if (f && f.material) q = f.material;
       }
       // sin pieza elegida (o sin resultado): el material del módulo o, si no, el del proyecto
@@ -3122,6 +3393,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const j = await St.ghGuardar(D, esAuto ? 'Autoguardado: ' + D.proyecto.nombre : undefined);
       St.guardarLocal(D); sucioRemoto = false; modulosSubidos = D.modulos.length;
       setEstado((esAuto ? 'Autoguardado en GitHub ' : 'Guardado en GitHub ') + hora(), 'ok'); if (!esAuto) toast(msg ? msg + ' y subido a GitHub' : 'Guardado en GitHub', 'ok'); actualizarBotones();
+      if (j._renombrado) toast('Ya había otro proyecto con ese nombre de archivo en GitHub. Para no pisarlo, este se guardó como ' + j._renombrado + '.', 'ok');
       postSubida(j._nuevo, 'proyecto nuevo: ' + D.proyecto.nombre);
     } catch (e) {
       if (e.conflicto) {
@@ -3155,7 +3427,8 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       if (St.ghListo()) {
         try {
           const arch = await St.ghListar();
-          $('#pGh', dlg).innerHTML = arch.length ? arch.map(f => '<div class="fila"><div><strong>' + esc(f.nombre.replace(/\.json$/i, '')) + '</strong><small>' + esc(f.path) + '</small></div><div style="display:flex;gap:6px"><button class="mini" data-gh="' + esc(f.nombre) + '">Abrir</button><button class="peligro mini" data-ghdel="' + esc(f.nombre) + '">✕</button></div></div>').join('') : '<div class="vacio">Todavía no hay proyectos en el repositorio.</div>';
+          const nombres = arch.length ? await St.ghNombres(arch) : new Map();   // nombre real del proyecto (el archivo conserva su nombre original)
+          $('#pGh', dlg).innerHTML = arch.length ? arch.map(f => '<div class="fila"><div><strong>' + esc(nombres.get(f.nombre) || f.nombre.replace(/\.json$/i, '')) + '</strong>' + (D.meta.archivo === f.nombre ? ' <span class="chip">abierto</span>' : '') + '<small>Archivo: ' + esc(f.path) + '</small></div><div style="display:flex;gap:6px"><button class="mini" data-gh="' + esc(f.nombre) + '">Abrir</button><button class="peligro mini" data-ghdel="' + esc(f.nombre) + '">✕</button></div></div>').join('') : '<div class="vacio">Todavía no hay proyectos en el repositorio.</div>';
         } catch (e) { const g = $('#pGh', dlg); if (g) g.innerHTML = '<div class="vacio" style="color:var(--err)">No pude leer GitHub: ' + esc(e.message) + '</div>'; }
       }
     }
@@ -3398,7 +3671,7 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
       const a = M.generar(viejo), b = M.generar(nuevo);
       if (a.ok && b.ok) {
         const sum = (l) => l.reduce((s, f) => s + num(f.cantidad), 0);
-        const lin = [['Piezas a cortar en taller', sum(a.corte), sum(b.corte)], ['Piezas a proveedor', sum(a.proveedor), sum(b.proveedor)]].filter(x => x[1] !== x[2]);
+        const lin = [['Piezas en la Lista de Cortes', sum(a.corteCompleta), sum(b.corteCompleta)], ['Piezas a Dilegno', sum(a.proveedor), sum(b.proveedor)], ['Cortes en taller', sum(a.cortesTaller), sum(b.cortesTaller)]].filter(x => x[1] !== x[2]);
         if (lin.length) resumen = '<div class="hint" style="margin:0 0 10px">' + lin.map(x => esc(x[0]) + ': <strong>' + x[1] + ' → ' + x[2] + '</strong>').join(' &nbsp;·&nbsp; ') + '</div>';
       }
     } catch (e) { /* el resumen es opcional */ }
