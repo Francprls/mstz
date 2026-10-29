@@ -564,7 +564,7 @@ nav.tabs a.activa { background: var(--info-bg); color: var(--info); box-shadow: 
 #navInf a span { max-height: 14px; opacity: 1; overflow: hidden; white-space: nowrap; transition: max-height .22s ease, opacity .18s ease; }
 #navInf a.on { color: var(--info); }
 #navInf a.on svg { background: var(--info-bg); padding: 3px 12px; }
-#navInf.mini { width: 236px; padding: 3px 4px; border-radius: 999px; }
+#navInf.mini { width: 262px; padding: 3px 4px; border-radius: 999px; }
 #navInf.mini a { padding: 4px 0; gap: 0; }
 #navInf.mini a svg { width: 17px; height: 17px; }
 #navInf.mini a.on svg { padding: 2px 8px; }
@@ -636,6 +636,35 @@ table.tabla-corte tr.cortada td { color: var(--mute2); }
 body.solo-lectura main input:disabled, body.solo-lectura main select:disabled, body.solo-lectura main textarea:disabled { opacity: .7; cursor: not-allowed; }
 </style>
 <style id="css-v3">
+.filtros-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; }
+.filtros-g select { width: 100%; min-width: 0; }
+td.con-obs { cursor: help; }
+td.con-obs .obs-ico { font-size: 11px; color: var(--accion); margin-left: 2px; }
+td.con-obs:not(.abierta) .obs-p { display: none; }
+.tip-obs { position: fixed; z-index: 400; max-width: 300px; padding: 7px 10px; border-radius: 9px; background: var(--card); color: var(--txt); border: 1px solid var(--borde2); box-shadow: var(--sombra); font-size: 12.5px; line-height: 1.35; pointer-events: none; white-space: normal; }
+@media print { td.con-obs .obs-p { display: block !important; } td.con-obs .obs-ico, .tip-obs { display: none !important; } }
+.obs-p { font-size: 11.5px; font-weight: 400; font-style: italic; color: var(--mute); margin-top: 2px; line-height: 1.3; white-space: normal; }
+.ficha { grid-template-columns: minmax(0, 244px) minmax(0, 1fr); }
+.f-lista { max-height: calc(100vh - var(--hh) - 22px); max-height: calc(100dvh - var(--hh) - 22px); }
+.f-items { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; padding-right: 2px; scrollbar-width: thin; }
+.f-botones, .f-ley { flex: 0 0 auto; }
+.f-botones { gap: 4px; margin-bottom: 2px; }
+.f-botones button { padding: 6px 10px; font-size: 13px; min-height: 0; }
+.f-mod .f-sub { display: block; }
+.f-mod .f-av { display: block; margin-top: 1px; font-size: 11.5px; }
+.f-chips { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.f-mod .cp, .f-ley .cp { display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 700; line-height: 1; padding: 3px 5px; border-radius: 6px; letter-spacing: .01em; color: color-mix(in srgb, var(--c) 45%, #fff); background: color-mix(in srgb, var(--c) 22%, transparent); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); }
+:root[data-tema="claro"] .f-mod .cp, :root[data-tema="claro"] .f-ley .cp { color: color-mix(in srgb, var(--c) 62%, #000); background: color-mix(in srgb, var(--c) 16%, #fff); }
+.f-mod .cp i, .f-ley .cp i { font-style: normal; font-weight: 600; opacity: .9; }
+.f-ley { font-size: 12px; color: var(--mute); }
+.f-ley summary { cursor: pointer; padding: 2px 0; }
+.f-ley-l { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 6px 2px 2px; }
+.f-ley-l > div { display: flex; align-items: center; gap: 6px; }
+.f-ley-l > div > span { color: var(--txt2); }
+@media (max-width: 720px) { .ficha { grid-template-columns: minmax(0, 1fr); } .f-lista { max-height: none; } .f-items { overflow: visible; } }
+
+.tag-cs { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 6px; border-radius:99px; background:color-mix(in srgb, #3b82f6 18%, transparent); color:#93c5fd; border:1px solid color-mix(in srgb, #3b82f6 40%, transparent); vertical-align:middle; white-space:nowrap }
+:root[data-tema="claro"] .tag-cs { color:#1d4ed8 }
 .chips-sel { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-sel { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--borde); border-radius: 999px; font-size: 13px; cursor: pointer; color: var(--txt2); }
 .chip-sel input { width: auto; margin: 0; }
@@ -691,14 +720,14 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   <datalist id="dl-mat"></datalist>
 </div>
 <div id="sheetMas" class="no-print" role="menu" aria-label="Más secciones" hidden>
-  <a data-tab="manual" role="menuitem"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Control manual</span></a>
-  <a data-tab="overrides" role="menuitem"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span>Override</span></a>
+  <a role="menuitem" data-tab="proyecto"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Proyecto</span></a>
   <a data-tab="listas" role="menuitem"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Listas</span></a>
   <a data-acc="etiquetas-pdf" role="menuitem" class="sep"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg><span>Imprimir etiquetas</span></a>
 </div>
 <nav id="navInf" class="no-print" aria-label="Secciones">
-  <a data-tab="proyecto" data-nav="proyecto" aria-label="Proyecto"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Proyecto</span></a>
   <a data-tab="ficha" data-nav="ficha" aria-label="Fichas"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span>Fichas</span></a>
+  <a aria-label="Control manual" data-nav="manual" data-tab="manual"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Manual</span></a>
+  <a aria-label="Override" data-nav="overrides" data-tab="overrides"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg><span>Override</span></a>
   <a data-tab="taller" data-nav="taller" aria-label="Taller"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg><span>Taller</span></a>
   <a data-tab="proveedores" data-nav="proveedores" aria-label="Cortes"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg><span>Cortes</span></a>
   <a id="navMas" data-nav="mas" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Más"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>Más</span></a>
@@ -796,6 +825,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function explotarPuerta_(p, h, anchoModulo) {
     const calc = calcPuertaManual_(h, p.cortePuerta, p.anchoPuerta, p.largoManual, p.modalidad, anchoModulo, p.cantidad);
     calc.tipoApertura = p.tipoApertura || '';
+    calc.cierreSuave = p.cierreSuave === true;
     calc.cantidad = p.cantidad || 1;
     return calc;
   }
@@ -836,6 +866,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       pieza: calc.pieza,
       cortePuerta: calc.cortePuerta || '',
       tipoApertura: calc.tipoApertura || '',
+      cierreSuave: calc.cierreSuave === true,
       categoria: '',
       cantidad: calc.cantidad || calc._cant || 1,
       largo: calc.largo,
@@ -938,7 +969,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       const p = {
         cortePuerta: corte,
         modalidad: modalidad,
-        tipoApertura: r.tipo || '',
+        tipoApertura: /^cierr[ae]\s*suave$/i.test(str(r.tipo).trim()) ? '' : (r.tipo || ''),
+        cierreSuave: r.cierreSuave === true || /^cierr[ae]\s*suave$/i.test(str(r.tipo).trim()),   // dato de taller (bisagras): no cambia el corte
         // Modalidad Simétrica = siempre un par de puertas; Completa = siempre una sola hoja: la cantidad cargada no cuenta.
         cantidad: (modalidad === 'Simetrica' && esCorteConOffsetFijo_(corte)) ? 2 : (modalidad === 'Completa' && esCorteConOffsetFijo_(corte)) ? 1 : (num(r.cant) || 1),
         anchoPuerta: Number(r.ancho),
@@ -958,15 +990,20 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   // Perfil L: la pieza suelta de ese tipo mide siempre 110 mm de ancho (se ignora lo que traiga la fila).
   const PERFIL_L_ANCHO = 110, PERFIL_L_TC_LARGO = 2;   // y lleva 2 tapacantos en el largo (ninguno en el ancho)
   function esPerfilL_(categoria) { return str(categoria).trim().toLowerCase() === 'perfil l'; }
+  // Piso aplicado: pieza suelta de tipo “Pisos” (o “Piso aplicado”) vinculada a un módulo; puede cubrir varios módulos con un solo piso.
+  function esPisoAplicado_(categoria) { return /^pisos?(\s+aplicados?)?$/i.test(str(categoria).trim()); }
+  function esAperturaPiso_(tipo) { return /piso/i.test(str(tipo)); }
   function leerPiezasSueltas_(d) {
     const porModulo = new Map();
     const sueltas = [];
     const cubiertos = new Map();   // módulo cubierto por el perfil L de otro módulo -> módulo dueño del perfil
+    const cubiertosPiso = new Map();   // ídem para el piso aplicado
     (d.sueltas || []).filter(r => str(r.descripcion) !== '' || str(r.categoria) !== '').forEach(r => {
       let tapLargo = num(r.tcl) || 0, tapAncho = num(r.tca) || 0;
       const perfil = esPerfilL_(r.categoria);
       if (perfil) { tapLargo = PERFIL_L_TC_LARGO; tapAncho = 0; }
-      const cubre = (perfil && Array.isArray(r.cubre)) ? r.cubre.map(x => str(x).trim()).filter(Boolean) : [];
+      const piso = esPisoAplicado_(r.categoria);
+      const cubre = ((perfil || piso) && Array.isArray(r.cubre)) ? r.cubre.map(x => str(x).trim()).filter(Boolean) : [];
       const p = {
         pieza: (str(r.descripcion).trim() || str(r.categoria).trim()),
         categoria: str(r.categoria || 'Sin categoría').trim(),
@@ -978,13 +1015,13 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         tapacanto: tapacantoTexto_(tapLargo, tapAncho),
         observaciones: [str(r.observaciones).trim(), cubre.length ? 'Cubre también: ' + cubre.join(', ') : ''].filter(Boolean).join(' · '),
       };
-      if (p.idModulo) cubre.forEach(x => { if (x !== p.idModulo) cubiertos.set(x, p.idModulo); });
+      if (p.idModulo) cubre.forEach(x => { if (x !== p.idModulo) (piso ? cubiertosPiso : cubiertos).set(x, p.idModulo); });
       if (p.idModulo) {
         if (!porModulo.has(p.idModulo)) porModulo.set(p.idModulo, []);
         porModulo.get(p.idModulo).push(p);
       } else sueltas.push(p);
     });
-    return { porModulo, sueltas, cubiertos };
+    return { porModulo, sueltas, cubiertos, cubiertosPiso };
   }
   function filaDePiezaSuelta_(p, proy) {
     return {
@@ -1033,7 +1070,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   }
   function agruparParaCorte_(piezas) { return agruparGenerico_(piezas, claveParaCorte_); }
   function claveParaTaller_(f) {
-    return [f.idModulo, f.pieza, f.cortePuerta || '', f.tipoApertura || '', f.categoria || '',
+    return [f.idModulo, f.pieza, f.cortePuerta || '', f.tipoApertura || '', f.cierreSuave ? 'CS' : '', f.categoria || '',
             f.material, f.largo, f.ancho, f.espesor, f.tapacanto].join('||');
   }
   function agruparParaTaller_(piezas) { return agruparGenerico_(piezas, claveParaTaller_); }
@@ -1131,6 +1168,14 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         const propios = (piezasSueltas.porModulo.get(m.idModulo) || []).filter(p => esPerfilL_(p.categoria));
         if (!propios.length && !piezasSueltas.cubiertos.has(m.idModulo)) {
           av('Módulo ' + m.idModulo + ': tiene puerta con Perfil L pero no tiene cargado el largo del perfil L (se completa en la ficha, debajo de Puertas).', { codigo: 'perfil-l-sin-largo', idModulo: m.idModulo, tabla: 'puertas' });
+        }
+      }
+
+      // Puerta con apertura Piso aplicado: tiene que haber un piso aplicado cargado para este módulo (propio o cubierto por el de otro módulo).
+      if (listaPuertas.some(p => esAperturaPiso_(p.tipoApertura))) {
+        const propios = (piezasSueltas.porModulo.get(m.idModulo) || []).filter(p => esPisoAplicado_(p.categoria));
+        if (!propios.length && !piezasSueltas.cubiertosPiso.has(m.idModulo)) {
+          av('Módulo ' + m.idModulo + ': tiene puerta con Piso aplicado pero no tiene cargado el piso aplicado (se completa en la ficha, debajo de Puertas; si un solo piso cubre varios módulos, marcalos ahí).', { codigo: 'piso-aplicado-sin-pieza', idModulo: m.idModulo, tabla: 'puertas' });
         }
       }
 
@@ -1272,7 +1317,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     // Salidas ya estructuradas
     const taller = agruparParaTaller_(piezasCrudas).map(f => {
       const tap = parseTapacanto_(f.tapacanto);
-      return { pieza: f.pieza, cortePuerta: f.cortePuerta || '', tipoPuerta: f.tipoApertura || '', material: f.material,
+      return { pieza: f.pieza, cortePuerta: f.cortePuerta || '', tipoPuerta: f.tipoApertura || '', cierreSuave: f.cierreSuave === true, material: f.material,
                cantidad: f.cantidad, largo: f.largo, ancho: f.ancho, espesor: f.espesor,
                tapLargo: tap.largo || 0, tapAncho: tap.ancho || 0, modulos: f.idModulo, categoria: f.categoria || '' };
     });
@@ -1315,6 +1360,9 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       return {
         nombre: nombreBase + (f.cantidad > 1 ? ' x' + f.cantidad : ''),
         nombreBase: nombreBase,
+        cierreSuave: f.cierreSuave === true,   // solo informativo: no entra en el nombre ni en la clave de corte
+        piezaRaw: f.pieza, categoria: f.categoria || '', cortePuerta: f.cortePuerta || '', tipoApertura: f.tipoApertura || '',   // para los filtros de Taller
+        observaciones: f.observaciones || '',   // nota de la pieza (Piezas Sueltas, “Cubre también…”): se muestra en Taller, ficha y etiquetas
         tapLargo: tap.largo || '-', tapAncho: tap.ancho || '-',
         pieza: nombreParaCorte_(f), cantidad: f.cantidad,
         largo: f.largo, ancho: f.ancho, espesor: f.espesor,
@@ -1420,7 +1468,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   const api = {
     CATALOGO, PUERTA_OFFSETS, ESPESORES_FONDO_CAJON, H_MIN_CAJON, E,
     generar, variantesPiezaDeModulo, variantesParaTapacantos, nombresPiezasDeModulo, siguienteId, validarTapacanto,
-    calcularAnchoSimetrico_, parseTapacanto_, PERFIL_L_ANCHO, PERFIL_L_TC_LARGO, esPerfilL_,
+    calcularAnchoSimetrico_, parseTapacanto_, PERFIL_L_ANCHO, PERFIL_L_TC_LARGO, esPerfilL_, esPisoAplicado_, esAperturaPiso_,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Motor = api;
@@ -1470,7 +1518,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       { nombre: 'Home Office/Estudio', codigo: 'HO' }, { nombre: 'Baño Principal', codigo: 'BñoP' },
     ],
     materiales: [],
-    tiposPuerta: ['Push', 'Perfil L', 'Cierre suave', 'Con manija', 'Piso aplicado', 'Abatible', 'c·Buña'],
+    tiposPuerta: ['Push', 'Perfil L', 'Con manija', 'Piso aplicado', 'Abatible', 'c·Buña'],
     categoriasSueltas: ['Perfil L', 'Aplicados', 'Ajustes', 'Otros', 'Pisos'],
     // Módulos tipo: plantillas de carga. Los de acá son ejemplos editables; los propios se agregan con “Guardar como tipo”.
     // cajones: dl / dlPlaca = diferencia respecto del L del módulo, para que escalen cuando cambia el ancho.
@@ -1533,6 +1581,10 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     });
     // Perfil L: el ancho es siempre 110 mm y lleva 2 tapacantos en el largo.
     out.sueltas = out.sueltas.map(r => (r && /^perfil l$/i.test(String(r.categoria || '').trim()) && (Number(r.a) !== 110 || Number(r.tcl) !== 2 || Number(r.tca) !== 0)) ? Object.assign({}, r, { a: 110, tcl: 2, tca: 0 }) : r);
+    // Cierre suave: antes era una “Apertura”; ahora es una marca aparte (la apertura queda vacía, el corte no cambia).
+    out.puertas = out.puertas.map(r => (r && esCierreSuave(r.tipo)) ? Object.assign({}, r, { tipo: '', cierreSuave: true }) : r);
+    // Aplicados: llevan 2 tapacantos en largo y 2 en ancho (solo si la fila no tenía ninguno cargado).
+    out.sueltas = out.sueltas.map(r => (r && /^aplicados?$/i.test(String(r.categoria || '').trim()) && !Number(r.tcl) && !Number(r.tca)) ? Object.assign({}, r, { tcl: 2, tca: 2 }) : r);
     // Puertas: la modalidad Simétrica siempre son 2 puertas (la cantidad ya no se carga).
     out.puertas = out.puertas.map(r => (r && /^sim[eé]trica$/i.test(String(r.modalidad || '').trim()) && Number(r.cant) !== 2) ? Object.assign({}, r, { cant: 2 }) : r);
     // Modalidad Completa = una sola hoja de ancho completo (L − 3 mm).
@@ -1890,8 +1942,9 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     return v;
   }
   // Tipos de apertura que definen el corte de la puerta: siempre disponibles, estén o no en la lista compartida
-  const TIPOS_APERTURA = ['Perfil L', 'Push', 'Cierre suave', 'Con manija', 'Piso aplicado'];
-  function unirTiposPuerta(lista) { return limpiarLista((lista || []).concat(LISTAS_BASE.tiposPuerta)); }
+  const TIPOS_APERTURA = ['Perfil L', 'Push', 'Con manija', 'Piso aplicado'];
+  const esCierreSuave = (t) => /^cierr[ae]\s*suave$/i.test(String(t || '').trim());   // ya no es una apertura: es un dato aparte de la puerta
+  function unirTiposPuerta(lista) { return limpiarLista((lista || []).concat(LISTAS_BASE.tiposPuerta)).filter(t => !esCierreSuave(t)); }
   // Tipo de apertura → corte de puerta: perfil L = Puerta32 · push / cierre suave / con manija = Puerta2 · alacena con piso aplicado = Puerta18
   function corteDeApertura(tipo) {
     const t = String(tipo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1903,7 +1956,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function compGuardar(c) { lsSet(K_COMP, JSON.stringify(c)); }
   function materialesCompartidos() { return compLeer().materiales; }
   function tiposCompartidos() { return compLeer().modulosTipo; }
-  function listaCompartida(clave) { return compLeer()[clave]; }
+  function listaCompartida(clave) { const l = compLeer()[clave]; return clave === 'tiposPuerta' ? l.filter(t => !esCierreSuave(t)) : l; }
   function compEstado() { const c = compLeer(); return { pendiente: !!c.pendiente, origen: c.origen || '', materiales: c.materiales.length, tipos: c.modulosTipo.length }; }
   function materialesEstado() { return compEstado(); }
   function listaGuardarLocal(clave, lista) { const c = compLeer(); c[clave] = LISTAS_COMP[clave].limpiar(lista); c.pendiente = true; c.origen = 'local'; compGuardar(c); return c; }
@@ -2212,7 +2265,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     guardarListasPorDefecto, slug, serializar, descargar,
     catalogoGuardar, catalogoCargarLocal, normalizarCatalogo, catalogoBuscar, catalogoSugerir, etiquetaCatalogo,
     get catalogo() { return catalogo; },
-    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghVersiones, ghGuardarVersion, ghLeerVersion, ghBorrarVersion, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, TIPOS_APERTURA, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
+    ghConfig, ghGuardarConfig, ghListo, ghEmbebida, configAEnlace, configDeHash, catalogoAutomatico, ghListar, ghLeer, ghGuardar, ghHistorial, ghVersiones, ghGuardarVersion, ghLeerVersion, ghBorrarVersion, ghBorrar, ghTraerCatalogo, ghProbar, materialesCompartidos, materialesEstado, materialesGuardarLocal, tiposCompartidos, tiposGuardarLocal, listaCompartida, corteDeApertura, TIPOS_APERTURA, esCierreSuave, listaGuardarLocal, limpiarAmbientes, compEstado, compRestaurar, ghTraerListas, ghGuardarListas, limpiarLista,
     ghRespaldo, ghRespaldos, ghLeerBlob, ghLeerBlobProyecto, ghNombres, ghExistente, respaldoDelDiaHecho, marcarRespaldoDelDia, autoMinutos, setAutoMinutos,
     nombreUsuario, setNombreUsuario, ghCondicional, parseCortes, ghLeerCortes, ghCambiarCortes, parseBloqueo, bloqueoVigente, ghLeerBloqueo, ghTomarEdicion, ghLatido, ghSoltarEdicion, rutaProyecto: rutaArchivo,
   };
@@ -2286,43 +2339,45 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     return cat.get(RELLENO[slot]) || cand.sort((a, b) => a.id - b.id)[0] || null;
   }
 
-  // Nombres de pieza abreviados (máx. 10 caracteres) SOLO para el JSON de Dilegno: en las etiquetas del proveedor no entran los largos.
-  // Dos piezas distintas nunca terminan con el mismo nombre abreviado.
+  // Nombre de cada pieza para Dilegno (máx. 10 caracteres, sin espacios): 1ª y 2ª letra de cada palabra + ID del módulo.
+  //   Fondo Cajón 01Coc → FoCa01Coc · Estante Móvil 02Liv → EsMo02Liv · Base 01Coc → Ba01Coc
+  // Si no entra (IDs largos o nombres de muchas palabras) se achica: 2 letras la 1ª palabra y 1 letra las demás, y por último se corta.
+  // Dentro de un mismo módulo dos piezas distintas nunca quedan con el mismo nombre (se les agrega un número).
   const MAX_NOMBRE = 10;
-  const ABREV = {
-    'base': 'Base', 'techo': 'Techo', 'lateral': 'Lateral', 'parante': 'Parante', 'puerta': 'Puerta', 'trasera': 'Trasera',
-    'estante fijo': 'Est. Fijo', 'estante móvil': 'Est. Móvil', 'fondo módulo': 'Fondo Mód.',
-    'lateral de cajón': 'Lat. Cajón', 'fondo de cajón': 'Fdo. Cajón', 'frente cajón': 'Fte. Cajón',
-  };
-  function abreviarUno(nombre) {
-    const orig = String(nombre || '').trim().replace(/\s+/g, ' ');
-    const fijo = ABREV[orig.toLowerCase()];
-    if (fijo) return fijo;
-    if (orig.length <= MAX_NOMBRE) return orig;
-    // sin la partícula "·" de categoría y sin palabras de relleno
-    let pal = orig.replace(/\s*·\s*/g, ' ').split(' ').filter(w => !/^(de|del|la|el|los|las|con|sin|y|en|para)$/i.test(w));
-    let t = pal.join(' ');
-    // palabras largas se acortan a 3 letras + punto, de la última hacia la primera, hasta que entre
-    for (let i = pal.length - 1; i >= 0 && t.length > MAX_NOMBRE; i--) { if (pal[i].length > 4) { pal[i] = pal[i].slice(0, 3) + '.'; t = pal.join(' '); } }
-    return t.length > MAX_NOMBRE ? t.slice(0, MAX_NOMBRE).trim() : t;
+  const PAL_RELLENO = /^(de|del|la|el|los|las|con|sin|y|en|para)$/i;
+  function sinAcentos(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function siglas(nombre, max) {
+    const todas = sinAcentos(nombre).replace(/[^A-Za-z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+    let pal = todas.filter(w => !PAL_RELLENO.test(w)); if (!pal.length) pal = todas;
+    const cap = (w, n) => w.slice(0, 1).toUpperCase() + w.slice(1, n).toLowerCase();
+    let t = pal.map(w => cap(w, 2)).join('');
+    if (t.length > max) t = pal.map((w, i) => cap(w, i === 0 ? 2 : 1)).join('');
+    return t.length > max ? t.slice(0, Math.max(max, 1)) : t;
   }
-  // nombres: lista de nombres originales → Map(original → abreviado único)
-  function abreviarNombres(nombres) {
-    const res = new Map(), usados = new Map();   // usados: abreviado en minúsculas → original
-    Array.from(new Set(nombres.map(n => String(n || '').trim()))).forEach(orig => {
-      let a = abreviarUno(orig), k = a.toLowerCase(), n = 1;
-      while (usados.has(k) && usados.get(k) !== orig) {
-        n++; const suf = String(n); a = abreviarUno(orig).slice(0, MAX_NOMBRE - suf.length).trim() + suf; k = a.toLowerCase();
-      }
-      usados.set(k, orig); res.set(orig, a);
+  function sinEspacios(s) { return String(s || '').replace(/\s+/g, ''); }
+  // piezas: [{pieza, idModulo}] → [nombre para Dilegno] (misma posición que la entrada)
+  function descripciones(piezas) {
+    const porMod = new Map();
+    (piezas || []).forEach(f => {
+      const id = sinEspacios(f.idModulo), orig = String(f.pieza || '').trim();
+      if (!porMod.has(id)) porMod.set(id, new Map());
+      const m = porMod.get(id);
+      if (m.has(orig)) return;
+      const max = Math.max(MAX_NOMBRE - id.length, 1), usados = new Set(Array.from(m.values()).map(x => x.toLowerCase()));
+      let a = siglas(orig, max), n = 1;
+      while (usados.has(a.toLowerCase())) { n++; const suf = String(n); a = siglas(orig, Math.max(max - suf.length, 1)) + suf; if (n > 99) break; }
+      m.set(orig, a);
     });
-    return res;
+    return (piezas || []).map(f => {
+      const id = sinEspacios(f.idModulo);
+      return (porMod.get(id).get(String(f.pieza || '').trim()) + id).slice(0, MAX_NOMBRE);
+    });
   }
 
   // piezas = R.proveedor · catalogo = St.catalogo · proyecto = nombre
   function armar(piezas, catalogo, proyecto) {
     const cat = mapa(catalogo), avisos = [], porPlaca = new Map();
-    const abrev = abreviarNombres((piezas || []).map(f => f.pieza));
+    const nombresDg = descripciones(piezas || []), pos = new Map((piezas || []).map((f, i) => [f, i]));
     let sinPlaca = 0, sinCanto = 0, sinDatosPlaca = new Set(), sinDatosCanto = new Set();
     (piezas || []).forEach(f => {
       const pid = idDe(f.materialPlaca);
@@ -2369,7 +2424,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
           proyecto: proyecto || '', vendedor: '', direccion: '', notes: '', email_aux: '',
           cortes: g.items.map((it, i) => ({
             id: i, cantidad: num(it.f.cantidad) || 1, base: num(it.f.largo), altura: num(it.f.ancho),
-            descripcion: ((abrev.get(String(it.f.pieza || '').trim()) || '') + (it.f.idModulo ? ' ' + it.f.idModulo : '')).trim(),   // nombre abreviado (máx. 10) + ID del módulo
+            descripcion: nombresDg[pos.get(it.f)],   // 1ª y 2ª letra de la pieza + ID del módulo, sin espacios (máx. 10)
             rota: girar(placa), tapacantos: it.c.mask, mecanizados: [],
           })),
           mecxcorte: [], stock: [], sucursal_id: CONST.sucursal_id, sucursal_aux_id: CONST.sucursal_aux_id, multi_ped_id: -1, multi_ped_len: 1,
@@ -2407,7 +2462,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     return out;
   }
 
-  root.Dilegno = { abreviarNombres, abreviarUno, cantoRelleno, armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
+  root.Dilegno = { descripciones, siglas, cantoRelleno, armar, zip, girar, idDe, cantos, mapa, LADOS, GRUPO };
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -2509,7 +2564,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   const esc = (s) => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
   const n2 = (n) => (Math.round(n * 100) / 100).toString();
 
-  // opciones: { titulo, pie, etiquetas: [{id, pieza, medidas, material, canto, proyecto, n, total}] }
+  // opciones: { titulo, pie, etiquetas: [{id, pieza, obs, medidas, material, canto, proyecto, n, total}] }
   function generar(op) {
     const MM = 72 / 25.4, PW = 595.28, PH = 841.89;
     const mI = 10 * MM, mS = 10 * MM, mB = 14 * MM, gap = 3 * MM;
@@ -2532,6 +2587,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         yy -= 17; txt(ajustar(e.medidas, true, 13, iw), x + pad, yy, 13, true);
         yy -= 13; if (e.material) txt(ajustar(e.material, false, 8.5, iw), x + pad, yy, 8.5, false, true);
         yy -= 11; if (e.canto) txt(ajustar(e.canto, false, 8.5, iw), x + pad, yy, 8.5, false, true);
+        yy -= 10.5; if (e.obs) txt(ajustar('Obs.: ' + e.obs, false, 8, iw), x + pad, yy, 8, false, true);
         const nn = limpiar(e.n + '/' + e.total);
         txt(ajustar(e.proyecto, false, 7, iw - ancho(nn, false, 7) - 6), x + pad, y + pad - 1, 7, false, true);
         txt(nn, x + w - pad - ancho(nn, false, 7), y + pad - 1, 7, false, true);
@@ -2598,6 +2654,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   let timerAuto = null, autoPausado = false, modulosSubidos = 0;
   let ultimoManual = 'modulos';  // última tabla abierta dentro de “Control manual”
   let busq = { largo: '', ancho: '', espesor: '' };
+  let filt = { pieza: '', material: '', tipoPuerta: '', cortePuerta: '', ambiente: '', modulo: '' };   // filtros de Taller: se combinan (y)
+  const obsAbiertas = new Set();   // piezas de Taller con la observación desplegada
   let sucioRemoto = false;
   let estado = { txt: '', cls: '' };
   let timerGuardado = null;
@@ -2674,7 +2732,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   // Ambientes, tipos de puerta y tipos de pieza: listas compartidas (GitHub). Además de la lista, se ofrece lo que ya usa el proyecto abierto.
   function unicos(arr) { const v = new Set(), out = []; arr.forEach(x => { const s = String(x === undefined || x === null ? '' : x).trim(), k = s.toLowerCase(); if (s && !v.has(k)) { v.add(k); out.push(s); } }); return out; }
   function nombresAmbiente() { return unicos(St.listaCompartida('ambientes').map(a => a.nombre).concat(D.modulos.map(m => m.ambiente))); }
-  function opcionesTipoPuerta() { return unicos(St.TIPOS_APERTURA.concat(St.listaCompartida('tiposPuerta'), D.puertas.map(r => r.tipo))); }
+  function opcionesTipoPuerta() { return unicos(St.TIPOS_APERTURA.concat(St.listaCompartida('tiposPuerta'), D.puertas.map(r => r.tipo))).filter(t => !St.esCierreSuave(t)); }
   function opcionesTipoPieza() { return unicos(St.listaCompartida('categoriasSueltas').concat(D.sueltas.map(r => r.categoria))); }
   function codigoAmbiente(nombre) { const a = St.listaCompartida('ambientes').find(x => x.nombre === nombre) || (D.listas.ambientes || []).find(x => x.nombre === nombre); return a ? a.codigo : ''; }
 
@@ -2759,17 +2817,18 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     },
     puertas: {
       titulo: 'Puertas', arr: 'puertas',
-      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir la Apertura (Perfil L, Push, Cierre suave, Con manija o Piso aplicado) el corte se completa solo. Modalidad “Simétrica”: siempre 2 puertas, el ancho se calcula solo, (L del módulo − 6 mm) ÷ 2. Modalidad “Completa”: 1 sola puerta de ancho completo, el ancho es L del módulo − 3 mm. “Personalizada”: largo y ancho a mano.',
+      ayuda: 'Una fila por tipo de puerta (con “Cant.”). Cortes fijos: Puerta2 (H−2), Puerta18 (H+18), Puerta32 (H−32). Al elegir la Apertura (Perfil L, Push, Con manija o Piso aplicado) el corte se completa solo. “C. suave” (cierre suave) no cambia el corte: es un dato para el taller (elegir las bisagras) y puede ir con cualquier apertura. Modalidad “Simétrica”: siempre 2 puertas, el ancho se calcula solo, (L del módulo − 6 mm) ÷ 2. Modalidad “Completa”: 1 sola puerta de ancho completo, el ancho es L del módulo − 3 mm. “Personalizada”: largo y ancho a mano.',
       cols: [
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '—', rr: true },
         { k: 'tipo', t: 'Apertura', tipo: 'sel', opts: () => opcionesTipoPuerta(), vacio: '—', rr: true },
+        { k: 'cierreSuave', t: 'C. suave', tipo: 'chk', def: false },
         { k: 'cant', t: 'Cant.', tipo: 'num', rr: true, ocultar: (r) => esSimetrica(r) || esCompleta(r) },
         { k: 'corte', t: 'Corte', tipo: 'sel', opts: () => CORTES, vacio: '—', rr: true },
         { k: 'modalidad', t: 'Modalidad', tipo: 'sel', opts: () => [{ v: 'Manual', l: 'Manual' }, { v: 'Simetrica', l: 'Simétrica (2 puertas)' }, { v: 'Completa', l: 'Completa (1 puerta)' }], dis: (r) => !(r.corte in M.PUERTA_OFFSETS), rr: true },
         { k: 'largo', t: 'Largo', tipo: 'num', dis: (r) => r.corte !== 'Personalizada' && r.corte !== 'Manual', ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && r.corte in M.PUERTA_OFFSETS) ? String(Math.round(num(m.h) + M.PUERTA_OFFSETS[r.corte])) : ''; } },
         { k: 'ancho', t: 'Ancho', tipo: 'num', dis: (r) => anchoAuto(r), ph: (r) => { const m = moduloPorId(String(r.idModulo).trim()); return (m && anchoAuto(r) && num(m.l) > 0) ? String(anchoAutoValor(r, m)) : ''; } },
       ],
-      nuevo() { const u = D.puertas[D.puertas.length - 1]; return { idModulo: u ? u.idModulo : '', cant: 1, corte: u ? u.corte : 'Puerta18', modalidad: u ? u.modalidad : 'Manual', largo: '', ancho: '', tipo: u ? u.tipo : '' }; },
+      nuevo() { const u = D.puertas[D.puertas.length - 1]; return { idModulo: u ? u.idModulo : '', cant: 1, corte: u ? u.corte : 'Puerta18', modalidad: u ? u.modalidad : 'Manual', largo: '', ancho: '', tipo: u ? u.tipo : '', cierreSuave: u ? u.cierreSuave === true : false }; },
       alCambiar(row, k) {
         if (k === 'tipo') { const c = St.corteDeApertura(row.tipo); if (c && row.corte !== 'Personalizada') { row.corte = c; if (!row.modalidad) row.modalidad = 'Manual'; } }
         if (k === 'corte') { if (!(row.corte in M.PUERTA_OFFSETS)) row.modalidad = ''; else if (!row.modalidad) row.modalidad = 'Manual'; }
@@ -2799,7 +2858,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     },
     sueltas: {
       titulo: 'Piezas Sueltas', arr: 'sueltas',
-      ayuda: 'Aplicados, ajustes, pisos, perfiles L… El motor no las calcula: las transporta. Perfil L: ancho siempre 110 mm y 2 tapacantos en el largo (se completan solos); desde la Ficha del módulo se carga más fácil. Apenas elegís el Tipo de Pieza ya figura en el despiece. Con ID Módulo sale dentro de ese módulo; sin módulo, en una sección propia por tipo de pieza. TC L / TC A = cantos en largo / en ancho (0, 1 o 2).',
+      ayuda: 'Aplicados, ajustes, pisos, perfiles L… El motor no las calcula: las transporta. Perfil L: ancho siempre 110 mm y 2 tapacantos en el largo (se completan solos). Aplicados: 2 tapacantos en largo y 2 en ancho (se completan solos al elegir el tipo, y se pueden cambiar); desde la Ficha del módulo se carga más fácil. Apenas elegís el Tipo de Pieza ya figura en el despiece. Con ID Módulo sale dentro de ese módulo; sin módulo, en una sección propia por tipo de pieza. TC L / TC A = cantos en largo / en ancho (0, 1 o 2).',
       cols: [
         { k: 'categoria', t: 'Tipo de Pieza', tipo: 'sel', opts: () => opcionesTipoPieza(), vacio: '—' },
         { k: 'idModulo', t: 'ID Módulo', tipo: 'sel', opts: optsModulos, vacio: '(sin módulo)' },
@@ -2808,8 +2867,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         { k: 'tcl', t: 'TC L', tipo: 'sel', opts: () => TC, dis: (r) => M.esPerfilL_(r.categoria) }, { k: 'tca', t: 'TC A', tipo: 'sel', opts: () => TC, dis: (r) => M.esPerfilL_(r.categoria) },
         { k: 'observaciones', t: 'Observaciones', tipo: 'text' },
       ],
-      nuevo() { const u = D.sueltas[D.sueltas.length - 1]; return { categoria: u ? u.categoria : '', idModulo: '', cant: 1, l: '', a: (u && M.esPerfilL_(u.categoria)) ? M.PERFIL_L_ANCHO : '', e: 18, material: '', tcl: (u && M.esPerfilL_(u.categoria)) ? M.PERFIL_L_TC_LARGO : 0, tca: 0, observaciones: '' }; },
-      alCambiar(row, k) { if (k === 'categoria' && M.esPerfilL_(row.categoria)) { row.a = M.PERFIL_L_ANCHO; row.tcl = M.PERFIL_L_TC_LARGO; row.tca = 0; } },
+      nuevo() { const u = D.sueltas[D.sueltas.length - 1]; return { categoria: u ? u.categoria : '', idModulo: '', cant: 1, l: '', a: (u && M.esPerfilL_(u.categoria)) ? M.PERFIL_L_ANCHO : '', e: 18, material: '', tcl: (u && M.esPerfilL_(u.categoria)) ? M.PERFIL_L_TC_LARGO : (u && /^aplicados?$/i.test(String(u.categoria || '').trim())) ? 2 : 0, tca: (u && /^aplicados?$/i.test(String(u.categoria || '').trim())) ? 2 : 0, observaciones: '' }; },
+      alCambiar(row, k) { if (k === 'categoria' && M.esPerfilL_(row.categoria)) { row.a = M.PERFIL_L_ANCHO; row.tcl = M.PERFIL_L_TC_LARGO; row.tca = 0; } if (k === 'categoria' && /^aplicados?$/i.test(String(row.categoria || '').trim()) && !Number(row.tcl) && !Number(row.tca)) { row.tcl = 2; row.tca = 2; } },
     },
     tapacantos: {
       titulo: 'Tapacantos', arr: 'tapacantos',
@@ -2940,7 +2999,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
 
   function tapsHtml(p) { return '<td class="n">' + esc(p.tapLargo) + '</td><td class="n">' + esc(p.tapAncho) + '</td>'; }
   // Clave de una pieza para marcarla como cortada: si cambia su medida, la marca se pierde (es otra pieza).
-  function claveCorte(idMod, p) { return [idMod, p.nombreBase, p.largo, p.ancho, p.espesor].join('|'); }
+  function claveCorte(idMod, p) { return [idMod, p.nombreBase + (p.cierreSuave ? '·CS' : ''), p.largo, p.ancho, p.espesor].join('|'); }
   // La marca guarda cuántas unidades de la fila se cortaron (número); las marcas viejas (true) cuentan como "todas".
   function unidadesCortadas(v, N) { if (v === true) return N; const n = Math.floor(Number(v)); return n > 0 ? Math.min(n, N) : 0; }
   function nCortadas(idMod, p) { return unidadesCortadas(D.cortadas && D.cortadas[claveCorte(idMod, p)], Math.max(1, num(p.cantidad))); }
@@ -2954,7 +3013,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         '<button class="sec mini cn" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="todo" title="Marcar todas / ninguna">' + n + '/' + N + '</button>' +
         '<button class="sec mini" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="1" title="Marcar una unidad más como cortada"' + (hecha ? ' disabled' : '') + '>+</button></span>';
     const clases = [hecha ? 'cortada' : '', parcial ? 'parcial' : '', ctl.length ? 'ctl-fila' : ''].filter(Boolean).join(' ');
-    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td>' + esc(p.nombreBase) + (ctl.length ? ' <span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? ' <span class="faltan">faltan ' + (N - n) + '</span>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
+    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td' + (p.observaciones ? ' class="con-obs' + (obsAbiertas.has(k) ? ' abierta' : '') + '" data-obsk="' + esc(k) + '" data-obs="' + esc(p.observaciones) + '"' : '') + '>' + esc(p.nombreBase) + (p.observaciones ? ' <span class="obs-ico" title="Tiene observaciones: pasá el mouse o hacé clic">✎</span>' : '') + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (ctl.length ? ' <span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? ' <span class="faltan">faltan ' + (N - n) + '</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
       '<td class="n">' + p.cantidad + '</td><td class="n">' + p.largo + '</td><td class="n">' + p.ancho + '</td><td class="n">' + p.espesor + '</td>' + tapsHtml(p) + '</tr>';
   }
   const THEAD_TALLER = '<thead><tr><th class="n">✓</th><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead>';
@@ -2966,8 +3025,48 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   }
 
   function hayBusqueda() { return busq.largo !== '' || busq.ancho !== '' || busq.espesor !== ''; }
+  const nBusq = (v) => { if (v === '' || v === undefined || v === null) return null; const n = Number(String(v).replace(',', '.')); return isFinite(n) ? n : null; };
+  const limpiaMedida = (v) => String(v).replace(/[^0-9.,]/g, '');
+  /* ---- Filtros de Taller: se pueden usar varios a la vez (tipo de pieza + material + …) y además la medida ---- */
+  const FILTROS = [['pieza', 'Tipo de pieza'], ['material', 'Material'], ['tipoPuerta', 'Tipo de puerta'], ['cortePuerta', 'Corte de puerta'], ['ambiente', 'Ambiente'], ['modulo', 'Módulo']];
+  function hayFiltro() { return FILTROS.some(([k]) => filt[k] !== ''); }
+  function hayFiltrado() { return hayFiltro() || hayBusqueda(); }
+  const ambDeModulo = (id) => { const m = D.modulos.find(x => String(x.id).trim() === String(id).trim()); return m ? (m.ambiente || '') : ''; };
+  const regTaller = (p) => ({ pieza: categoriaPieza(p), material: p.material || '', tipoPuerta: p.tipoPuerta || '', cortePuerta: p.cortePuerta || '', ambiente: ambDeModulo(p.modulos), modulo: (!p.modulos || p.modulos === '-') ? '' : String(p.modulos).trim() });
+  const regOrden = (p, m) => ({ pieza: p.categoria || p.piezaRaw || '', material: p.material || (m ? m.material : '') || '', tipoPuerta: p.tipoApertura || '', cortePuerta: p.cortePuerta || '', ambiente: m ? (m.ambiente || '') : '', modulo: m ? m.idModulo : '' });
+  function pasaFiltro(r) { return FILTROS.every(([k]) => filt[k] === '' || String(r[k] || '') === filt[k]); }
+  function opcionesFiltro() {
+    const T = R.taller, un = (a) => Array.from(new Set(a.filter(Boolean))).sort((x, y) => String(x).localeCompare(String(y), 'es'));
+    return { pieza: un(T.map(categoriaPieza)), material: un(T.map(p => p.material)), tipoPuerta: un(T.map(p => p.tipoPuerta)), cortePuerta: un(T.map(p => p.cortePuerta)), ambiente: un(D.modulos.map(m => m.ambiente)), modulo: D.modulos.map(m => String(m.id).trim()).filter(Boolean) };
+  }
+  // piezas que pasan los filtros en la vista activa (por módulo o agrupada), con el formato de la búsqueda por medida
+  function planasTaller() {
+    const med = (p) => [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × '), out = [];
+    if (agruparPor === 'modulo') {
+      R.orden.modulos.forEach(m => m.piezas.forEach(p => { if (pasaFiltro(regOrden(p, m))) out.push({ titulo: m.idModulo + ' · ' + p.nombreBase + (p.cierreSuave ? ' · C. suave' : ''), detalle: [p.material || m.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); }));
+      R.orden.secciones.forEach(s => s.piezas.forEach(p => { if (pasaFiltro(regOrden(p, null))) out.push({ titulo: s.categoria + ' · ' + p.nombreBase, detalle: [p.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); }));
+    } else {
+      R.taller.forEach(p => { if (pasaFiltro(regTaller(p))) out.push({ titulo: [p.pieza, p.cortePuerta, p.tipoPuerta, p.cierreSuave ? 'C. suave' : ''].filter(Boolean).join(' · '), detalle: [p.material, med(p), p.modulos].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); });
+    }
+    return out;
+  }
+  function resumenFiltrado() {
+    const pl = planasTaller(), suma = (l) => l.reduce((s, p) => s + num(p.cantidad), 0);
+    let lineas = pl.length, piezas = suma(pl), extra = '';
+    if (hayBusqueda()) { const r = clasificar(pl); lineas = r.ex.length + r.ap.length; piezas = suma(r.ex) + suma(r.ap); extra = ' · exactas: ' + r.ex.length + ' · aproximadas (±1 mm): ' + r.ap.length; }
+    return '<span class="chip ctl-chip" style="font-weight:700">Encontró ' + piezas + ' pieza' + (piezas === 1 ? '' : 's') + ' en ' + lineas + ' línea' + (lineas === 1 ? '' : 's') + extra + '</span>';
+  }
+  function cajaFiltros(opts) {
+    const sel = ([k, t]) => opts[k].length ? '<div class="campo"><label class="l">' + t + '</label><select data-filtro="' + k + '"><option value="">Todos</option>' + opts[k].map(o => '<option value="' + esc(o) + '"' + (filt[k] === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></div>' : '';
+    const inp = (k, ph) => '<input type="text" inputmode="decimal" autocomplete="off" data-busq="' + k + '" placeholder="' + ph + '" value="' + esc(busq[k]) + '">';
+    return '<div class="card no-print"><div class="barra" style="margin-bottom:6px"><label class="l" style="margin:0">Filtrar (los filtros se combinan entre sí)</label><a href="#" data-acc="limpiar-busq" style="font-size:12px;color:#A9B08F;font-weight:600;text-decoration:none">Limpiar todo</a></div>' +
+      '<div class="filtros-g">' + FILTROS.map(sel).join('') + '</div>' +
+      '<label class="l" style="margin-top:10px">Medida (mm)</label><div class="row3">' + inp('largo', 'Largo') + inp('ancho', 'Ancho') + inp('espesor', 'Espesor') + '</div>' +
+      '<p class="hint">Dejá en blanco lo que no quieras filtrar. Con una medida, además de la coincidencia exacta se arma una sección aparte con lo que está a ±1 mm.</p>' +
+      (hayFiltrado() ? '<div style="margin-top:6px">' + resumenFiltrado() + '</div>' : '') + '</div>';
+  }
   function clasificar(piezas) {
-    const b = { largo: busq.largo === '' ? null : Number(busq.largo), ancho: busq.ancho === '' ? null : Number(busq.ancho), espesor: busq.espesor === '' ? null : Number(busq.espesor) };
+    const b = { largo: nBusq(busq.largo), ancho: nBusq(busq.ancho), espesor: nBusq(busq.espesor) };
     const ex = [], ap = [];
     piezas.forEach(p => {
       const campos = [];
@@ -3006,7 +3105,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       const p = x.p, n = Math.max(1, num(p.cantidad)), ya = soloPendientes ? Math.min(n, nCortadas(x.id, x.p)) : 0;   // "solo pendientes": las unidades que faltan
       const med = [p.largo, p.ancho, p.espesor].filter(v => v !== '' && v !== undefined && v !== null).join(' × ');
       const tl = String(p.tapLargo), ta = String(p.tapAncho), conCanto = (tl !== '-' && tl !== '') || (ta !== '-' && ta !== '');
-      for (let i = ya + 1; i <= n; i++) out.push({ id: x.grupo, pieza: p.nombreBase, medidas: med, material: x.mat || '', canto: conCanto ? 'Canto · L: ' + tl + ' · A: ' + ta : '', proyecto: proy, n: i, total: n });
+      for (let i = ya + 1; i <= n; i++) out.push({ id: x.grupo, pieza: p.nombreBase + (p.cierreSuave ? ' · C. suave' : ''), obs: p.observaciones || '', medidas: med, material: x.mat || '', canto: conCanto ? 'Canto · L: ' + tl + ' · A: ' + ta : '', proyecto: proy, n: i, total: n });
     });
     return out;
   }
@@ -3042,27 +3141,22 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (!R || !R.ok) return sinResultado();
     const todas = piezasTaller();
     const total = todas.reduce((s, x) => s + num(x.p.cantidad), 0), hechas = todas.reduce((s, x) => s + nCortadas(x.id, x.p), 0);
-    if (agruparPor === 'pieza') { const ex = new Set(R.taller.map(categoriaPieza)); if (subPieza && !ex.has(subPieza)) subPieza = ''; }
-    const cats = Array.from(new Set(R.taller.map(categoriaPieza))).sort((a, b) => a.localeCompare(b, 'es'));
+    const opts = opcionesFiltro(); FILTROS.forEach(([k]) => { if (filt[k] && opts[k].indexOf(filt[k]) < 0) filt[k] = ''; });
     let h = '<div class="card no-print barra"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
       '<label class="l" style="margin:0">Ver por</label><select data-agrupar style="width:auto;min-width:200px"' + (hayBusqueda() && agruparPor !== 'modulo' ? ' disabled' : '') + '>' + VISTAS_TALLER.map(o => '<option value="' + o[0] + '"' + (agruparPor === o[0] ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' +
-      (agruparPor === 'pieza' ? '<label class="l" style="margin:0">Pieza</label><select data-subpieza style="width:auto;min-width:170px"><option value="">Todas</option>' + cats.map(c => '<option value="' + esc(c) + '"' + (subPieza === c ? ' selected' : '') + '>' + esc(c) + '</option>').join('') + '</select>' : '') + '</div>' +
+      '</div>' +
       '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
       (agruparPor === 'modulo' ? '<span class="chip" title="Piezas marcadas como cortadas">Cortadas: ' + hechas + ' de ' + total + '</span><label style="font-size:12px;color:var(--mute);display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-oc' + (ocultarCortadas ? ' checked' : '') + '> Ocultar cortadas</label>' + (hechas ? '<button class="sec mini" data-acc="cut-clear">Limpiar marcas</button>' : '')
         : '<span class="chip">' + R.taller.length + ' combinaciones · ' + R.taller.reduce((s, p) => s + p.cantidad, 0) + ' piezas</span>') +
       '<button data-acc="print">' + ICO.print + ' Imprimir</button></div></div>';
-    h += cajaBusqueda();
+    h += cajaFiltros(opts);
     if (agruparPor !== 'modulo') return h + vistaAgrupada();
     h += titlebar('LISTA DE TALLER');
     const mods = R.orden.modulos, secs = R.orden.secciones;
     if (!mods.length && !secs.length) return h + '<div class="card vacio">Todavía no hay módulos. Cargalos en la pestaña “Módulos”.</div>';
-    if (hayBusqueda()) {
-      const planas = [];
-      mods.forEach(m => m.piezas.forEach(p => planas.push({ titulo: m.idModulo + ' · ' + p.nombreBase, detalle: [p.material || m.material, [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × ')].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor })));
-      secs.forEach(s => s.piezas.forEach(p => planas.push({ titulo: s.categoria + ' · ' + p.nombreBase, detalle: [p.material, [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × ')].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor })));
-      return h + bloqueBusqueda(planas);
-    }
-    const visibles = (lista, id) => ocultarCortadas ? lista.filter(p => !estaCortada(id, p)) : lista;
+    if (hayBusqueda()) return h + bloqueBusqueda(planasTaller());
+    const ctxM = new Map(mods.map(m => [m.idModulo, m]));
+    const visibles = (lista, id) => lista.filter(p => (!ocultarCortadas || !estaCortada(id, p)) && pasaFiltro(regOrden(p, ctxM.get(id) || null)));
     const bloqueMod = (id, titulo, sub, piezas, estiloTitulo) => {
       const ps = visibles(piezas, id);
       if (!ps.length) return '';
@@ -3072,7 +3166,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     };
     h += mods.map(m => bloqueMod(m.idModulo, m.idModulo, [m.tipo, m.material, m.h + ' x ' + m.l + ' x ' + m.p, m.observaciones].filter(Boolean), m.piezas)).join('');
     h += secs.map(s => bloqueMod('§' + s.categoria, 'Sección: ' + s.categoria, '', s.piezas, 'color:var(--madera)')).join('');
-    if (ocultarCortadas && h.indexOf('modulo-card') < 0) h += '<div class="card vacio">Todas las piezas están marcadas como cortadas. </div>';
+    if (h.indexOf('modulo-card') < 0) h += hayFiltro() ? '<div class="card vacio">Ninguna pieza coincide con los filtros.</div>' : (ocultarCortadas ? '<div class="card vacio">Todas las piezas están marcadas como cortadas. </div>' : '');
     return h;
   }
 
@@ -3091,7 +3185,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (!R || !R.ok) return [];
     return detallesAvisos().filter(d => d.idModulo === id);
   }
-  const RESUMEN_AVISO = { 'medida-invalida': 'medida en cero', 'puerta-repetida': 'puerta repetida', 'suelta-repetida': 'pieza repetida', 'perfil-l-sin-largo': 'falta perfil L', 'sin-puertas': 'falta puerta', 'cajonera-sin-cajones': 'faltan cajones', 'id-repetido': 'ID repetido', 'cajon-bajo': 'cajón muy bajo',
+  const RESUMEN_AVISO = { 'medida-invalida': 'medida en cero', 'puerta-repetida': 'puerta repetida', 'suelta-repetida': 'pieza repetida', 'perfil-l-sin-largo': 'falta perfil L', 'piso-aplicado-sin-pieza': 'falta piso aplicado', 'sin-puertas': 'falta puerta', 'cajonera-sin-cajones': 'faltan cajones', 'id-repetido': 'ID repetido', 'cajon-bajo': 'cajón muy bajo',
     'suelta-duplicada': 'pieza duplicada', 'tapacanto-cantidad': 'revisar tapacantos', 'tapacanto-filas-abiertas': 'revisar tapacantos',
     'taller-cantidad': 'revisar corte en taller', 'puertas-hechas-con-filas': 'puertas sin usar', 'error-puerta': 'revisar puerta', 'error-cajon': 'revisar cajón' };
   function resumenAviso(d) { return RESUMEN_AVISO[d && d.codigo] || 'revisar aviso'; }
@@ -3202,6 +3296,48 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       (cubre.length ? '<div style="margin-top:6px"><button class="sec mini" data-acc="perfil-suma" data-id="' + esc(id) + '">Largo = suma de la L de ' + [id].concat(cubre).map(esc).join(' + ') + ' (' + sumaPerfilL(id, row) + ' mm)</button></div>' : '') +
       (row ? '<div style="margin-top:8px"><button class="peligro mini" data-acc="perfil-quitar" data-id="' + esc(id) + '">Quitar este perfil L</button></div>' : '') + '</div>';
   }
+  /* ---- Piso aplicado: misma idea que el Perfil L (una pieza suelta “Pisos” vinculada al módulo; puede cubrir varios módulos) ---- */
+  function indicePiso(id) { return D.sueltas.findIndex(r => String(r.idModulo || '').trim() === id && M.esPisoAplicado_(r.categoria)); }
+  function duenoPiso(id) {
+    const r = D.sueltas.find(x => M.esPisoAplicado_(x.categoria) && String(x.idModulo || '').trim() !== id && Array.isArray(x.cubre) && x.cubre.some(c => String(c).trim() === id));
+    return r ? String(r.idModulo).trim() : '';
+  }
+  function sumaPiso(id, row) { return [id].concat(Array.isArray(row && row.cubre) ? row.cubre : []).reduce((s, x) => s + num((moduloPorId(String(x).trim()) || {}).l), 0); }
+  function tienePuertaPiso(id) { return D.puertas.some(r => String(r.idModulo || '').trim() === id && M.esAperturaPiso_(r.tipo)); }
+  function seccionPiso(id) {
+    const conPuerta = tienePuertaPiso(id), i = indicePiso(id), row = i >= 0 ? D.sueltas[i] : null, dueno = duenoPiso(id);
+    if (!conPuerta && !row && !dueno) return '';
+    if (dueno) return '<div class="fsec" id="f-piso"><h4>Piso aplicado</h4><p class="hint" style="margin:0 0 8px">El piso aplicado de este módulo es el de <strong>' + esc(dueno) + '</strong>: un solo piso cubre los dos módulos.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="piso-ir" data-id="' + esc(dueno) + '">Ir a ' + esc(dueno) + '</button><button class="sec mini" data-acc="piso-quitar-cubre" data-id="' + esc(id) + '" data-dueno="' + esc(dueno) + '">Que este módulo tenga su propio piso</button></div></div>';
+    const cubre = Array.isArray(row && row.cubre) ? row.cubre.map(x => String(x).trim()) : [];
+    const cand = D.modulos.map(m => String(m.id).trim()).filter(x => x && x !== id && (cubre.indexOf(x) >= 0 || (tienePuertaPiso(x) && indicePiso(x) < 0 && !duenoPiso(x))));
+    const chips = cand.length ? cand.map(x => '<label class="chip-sel"><input type="checkbox" data-piso-cubre="' + esc(x) + '"' + (cubre.indexOf(x) >= 0 ? ' checked' : '') + '> ' + esc(x) + '</label>').join('') : '<span class="hint">No hay otros módulos con puerta Piso aplicado para sumar.</span>';
+    const falta = !row || !(num(row.l) > 0);
+    const m0 = moduloPorId(id) || {};
+    return '<div class="fsec" id="f-piso"><h4>Piso aplicado' + (falta ? ' <span class="chip ctl-chip">falta cargar el piso</span>' : '') + '</h4>' +
+      '<p class="hint" style="margin:0 0 8px">Se guarda como pieza suelta “Pisos” vinculada a <strong>' + esc(id) + '</strong>. Si un solo piso cubre varios módulos juntos, marcalos en “Cubre también”: así no avisa uno por uno.</p>' +
+      '<div class="f-fila2"><div class="campo"><label class="l">Largo (mm)</label><input type="number" inputmode="decimal" data-piso="largo" value="' + esc(row ? row.l : '') + '" placeholder="mm"></div>' +
+      '<div class="campo"><label class="l">Ancho (mm)</label><input type="number" inputmode="decimal" data-piso="ancho" value="' + esc(row ? row.a : '') + '" placeholder="' + esc(num(m0.p) > 0 ? String(num(m0.p)) : 'mm') + '"></div>' +
+      '<div class="campo"><label class="l">Cantidad</label><input type="number" inputmode="numeric" min="1" step="1" data-piso="cant" value="' + esc(row ? (row.cant || 1) : 1) + '"></div></div>' +
+      '<div class="campo" style="margin-top:8px"><label class="l">Cubre también a</label><div class="chips-sel">' + chips + '</div></div>' +
+      (cubre.length ? '<div style="margin-top:6px"><button class="sec mini" data-acc="piso-suma" data-id="' + esc(id) + '">Largo = suma de la L de ' + [id].concat(cubre).map(esc).join(' + ') + ' (' + sumaPiso(id, row) + ' mm)</button></div>' : '') +
+      (row ? '<div style="margin-top:8px"><button class="peligro mini" data-acc="piso-quitar" data-id="' + esc(id) + '">Quitar este piso</button></div>' : '') + '</div>';
+  }
+  function pisoCambio(el) {
+    if (soloLectura) { avisoSoloLectura(); render(); return; }
+    const id = fichaSel; if (!moduloPorId(id)) return;
+    let i = indicePiso(id), row = i >= 0 ? D.sueltas[i] : null;
+    const crear = () => { row = { categoria: 'Pisos', idModulo: id, cant: 1, l: '', a: '', e: 18, material: '', tcl: 0, tca: 0, observaciones: '', cubre: [] }; D.sueltas.push(row); };
+    if (el.dataset.piso === 'largo') { if (!row) { if (el.value === '') return; crear(); } row.l = el.value === '' ? '' : Number(el.value); }
+    else if (el.dataset.piso === 'ancho') { if (!row) { if (el.value === '') return; crear(); } row.a = el.value === '' ? '' : Number(el.value); }
+    else if (el.dataset.piso === 'cant') { if (!row) crear(); const n = Math.floor(Number(el.value)); row.cant = n > 0 ? n : 1; }
+    else if (el.dataset.pisoCubre !== undefined) {
+      if (!row) crear();
+      const s = new Set(Array.isArray(row.cubre) ? row.cubre.map(x => String(x).trim()) : []);
+      if (el.checked) s.add(el.dataset.pisoCubre); else s.delete(el.dataset.pisoCubre);
+      row.cubre = Array.from(s);
+    }
+    tocado(true); render();
+  }
   function perfilCambio(el) {
     if (soloLectura) { avisoSoloLectura(); render(); return; }
     const id = fichaSel; if (!moduloPorId(id)) return;
@@ -3219,6 +3355,53 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     tocado(true); render();
   }
 
+  /* ---- Resumen visual de cada módulo en la lista de fichas: un chip de color por especificación (1–2 letras + cantidad) ---- */
+  const CHIPS = {
+    em: ['EM', 'Estantes móviles', '#3FA66B'], ef: ['EF', 'Estantes fijos', '#2E9AA6'], pt: ['Pt', 'Parante extra', '#8C6FD6'], cj: ['Cj', 'Cajones', '#E08A2E'],
+    pl: ['PL', 'Perfil L', '#D1587B'], pa: ['PA', 'Piso aplicado', '#B89B2E'],
+    pu: ['Pu', 'Push', '#4C8DE0'], mj: ['Mj', 'Con manija', '#4C8DE0'], bu: ['Bñ', 'Buña', '#4C8DE0'], ab: ['Ab', 'Abatible', '#4C8DE0'],
+    cs: ['CS', 'Cierre suave', '#1FB2C9'],
+    ap: ['Ap', 'Aplicados', '#6F88B8'], aj: ['Aj', 'Ajustes', '#C9774F'], ot: ['Ot', 'Otros', '#8A8F96'],
+    dg: ['Dg', 'Piezas a Tapacantos / Dilegno', '#7FA33B'], tl: ['Tl', 'Corte en taller', '#E0583D'], ph: ['PH', 'Puertas ya hechas', '#A07CC4'],
+  };
+  function chipsDeModulo(x) {
+    const id = String(x.id).trim(), out = new Map();
+    const poner = (k, n, extra, nombre, letras, color) => {
+      const base = CHIPS[k] || [letras || '??', nombre || k, color || '#8A8F96'];
+      const tit = (nombre || base[1]) + (n ? ': ' + n : '') + (extra ? ' · ' + extra : '');
+      if (!out.has(k)) out.set(k, { k, letras: base[0], color: base[2], n: n || 0, tit });
+      else if (n) { const c = out.get(k); c.n += n; c.tit = (nombre || base[1]) + ': ' + c.n; }
+    };
+    if (num(x.eMovil) > 0) poner('em', num(x.eMovil));
+    if (num(x.eFijo) > 0) poner('ef', num(x.eFijo));
+    if (num(x.pteExtra) > 0) poner('pt', num(x.pteExtra));
+    const cj = D.cajones.filter(r => String(r.idModulo).trim() === id).length; if (cj) poner('cj', cj);
+    D.puertas.filter(r => String(r.idModulo).trim() === id).forEach(r => {
+      const t = String(r.tipo || '').trim(), tn = t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (t) {
+        if (/perfil\s*l\b/.test(tn)) poner('pl'); else if (/piso/.test(tn)) poner('pa'); else if (/push/.test(tn)) poner('pu'); else if (/manija/.test(tn)) poner('mj');
+        else if (/buna/.test(tn)) poner('bu'); else if (/abatible/.test(tn)) poner('ab');
+        else poner('ap_' + tn, 0, '', t, t.slice(0, 2), '#4C8DE0');
+      }
+      if (r.cierreSuave === true) poner('cs');
+    });
+    D.sueltas.filter(r => String(r.idModulo || '').trim() === id).forEach(r => {
+      const c = String(r.categoria || '').trim(), cn = c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      if (!c) return;
+      if (M.esPerfilL_(c)) poner('pl'); else if (M.esPisoAplicado_(c)) poner('pa'); else if (/^aplicad/.test(cn)) poner('ap'); else if (/^ajust/.test(cn)) poner('aj'); else if (/^otro/.test(cn)) poner('ot');
+      else poner('x_' + cn, 0, '', c, c.slice(0, 2), '#8A8F96');
+    });
+    const dp = duenoPerfilL(id); if (dp) poner('pl', 0, 'cubierto por ' + dp);
+    const dq = duenoPiso(id); if (dq) poner('pa', 0, 'cubierto por ' + dq);
+    const dg = D.tapacantos.filter(r => String(r.idModulo).trim() === id).length; if (dg) poner('dg', dg);
+    const tl = cortesTallerDe(x).length; if (tl) poner('tl', tl);
+    if (x.puertasHechas === true) poner('ph');
+    return Array.from(out.values());
+  }
+  const chipHtml = (c) => '<span class="cp" style="--c:' + c.color + '" title="' + esc(c.tit) + '">' + esc(c.letras) + (c.n > 0 ? '<i>' + c.n + '</i>' : '') + '</span>';
+  function leyendaChips() {
+    return '<details class="f-ley"><summary>Qué significa cada color</summary><div class="f-ley-l">' + Object.keys(CHIPS).map(k => '<div>' + chipHtml({ letras: CHIPS[k][0], color: CHIPS[k][2], n: 0, tit: CHIPS[k][1] }) + ' <span>' + esc(CHIPS[k][1]) + '</span></div>').join('') + '<p class="hint" style="margin:6px 0 0">El número es la cantidad. Pasá el cursor (o mantené apretado) sobre un chip para ver el detalle.</p></div></details>';
+  }
   function vistaFicha() {
     if (!D.modulos.length) {
       return '<div class="card"><h2>Fichas de módulos</h2><p class="hint">Cada módulo con todo lo suyo en una sola pantalla: medidas, puertas, cajones, excepciones de material y piezas sueltas, con las piezas calculándose a medida que escribís.</p><div class="vacio">Todavía no hay módulos.</div><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button></div></div>';
@@ -3230,9 +3413,11 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     D.modulos.forEach(x => { const a = x.ambiente || '(sin ambiente)'; if (!grupos[a]) { grupos[a] = []; orden.push(a); } grupos[a].push(x); });
     const lista = orden.map(a => '<div class="f-amb">' + esc(a) + ' · ' + grupos[a].length + ' módulo' + (grupos[a].length > 1 ? 's' : '') + '</div>' + grupos[a].map(x => {
       const xid = String(x.id).trim(), av = avisosDeModulo(xid);
-      const sub = av.length ? '<span class="f-warn">' + esc(resumenAviso(av[0])) + '</span>' : esc([x.tipo, [x.l, x.h].filter(Boolean).length === 2 ? (x.h + '×' + x.l) : ''].filter(Boolean).join(' '));
+      const dims = [x.h, x.l, x.p].filter(v => v !== '' && v !== undefined && v !== null).join('×');   // H×L×P
+      const sub = esc([x.tipo, dims].filter(Boolean).join(' ')) + (av.length ? '<span class="f-warn f-av">⚠ ' + esc(resumenAviso(av[0])) + (av.length > 1 ? ' +' + (av.length - 1) : '') + '</span>' : '');
+      const chips = chipsDeModulo(x).map(chipHtml).join('');
       const ii = D.modulos.indexOf(x);
-      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b>' + chkSel('lista-mod', 'modulos:' + ii, x) + '<span class="dot ' + (av.length ? 'w' : 'ok') + '"></span><span class="id-pill">' + esc(xid || '(sin ID)') + '</span></b><span>' + sub + '</span></div>';
+      return '<div class="f-mod' + (xid === id ? ' on' : '') + '" data-ficha="' + esc(xid) + '"><b>' + chkSel('lista-mod', 'modulos:' + ii, x) + '<span class="dot ' + (av.length ? 'w' : 'ok') + '"></span><span class="id-pill">' + esc(xid || '(sin ID)') + '</span></b><span class="f-sub">' + sub + '</span>' + (chips ? '<div class="f-chips">' + chips + '</div>' : '') + '</div>';
     }).join('')).join('');
 
     const camposMod = TABLAS.modulos.cols;
@@ -3265,14 +3450,14 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       const bm = R.orden.modulos.find(x => x.idModulo === id);
       const prov = R.proveedor.filter(f => f.idModulo === id).reduce((s, f) => s + num(f.cantidad), 0);
       vivo = bm && bm.piezas.length ? '<div class="tabla-wrap"><table class="tabla-corte t-mini"><thead><tr><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead><tbody>' +
-        bm.piezas.map(p => '<tr><td class="p1">' + esc(p.nombreBase) + '</td>' + ((p.material || bm.material) ? '<td class="mat p2" data-l="Material">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin p2" data-l="Material">–</td>') + '<td class="n" data-l="Cant.">' + p.cantidad + '</td><td class="n" data-l="L">' + p.largo + '</td><td class="n" data-l="A">' + p.ancho + '</td><td class="n" data-l="E">' + p.espesor + '</td>' + '<td class="n" data-l="T.L.">' + esc(p.tapLargo) + '</td><td class="n" data-l="T.A.">' + esc(p.tapAncho) + '</td>' + '</tr>').join('') + '</tbody></table></div>'
+        bm.piezas.map(p => '<tr><td class="p1">' + esc(p.nombreBase) + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + ((p.material || bm.material) ? '<td class="mat p2" data-l="Material">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin p2" data-l="Material">–</td>') + '<td class="n" data-l="Cant.">' + p.cantidad + '</td><td class="n" data-l="L">' + p.largo + '</td><td class="n" data-l="A">' + p.ancho + '</td><td class="n" data-l="E">' + p.espesor + '</td>' + '<td class="n" data-l="T.L.">' + esc(p.tapLargo) + '</td><td class="n" data-l="T.A.">' + esc(p.tapAncho) + '</td>' + '</tr>').join('') + '</tbody></table></div>'
         : '<div class="vacio">Este módulo todavía no genera piezas. Completá tipo, H, L y P.</div>';
       if (prov) vivo += '<p class="hint" style="margin:8px 0 0">Además, ' + prov + ' pieza(s) de este módulo van al proveedor (no figuran arriba).</p>';
     }
     const sVivo = '<div class="fsec"><h4>Así va saliendo <span class="hint" style="font-weight:400">(se actualiza al escribir)</span></h4>' + vivo + '</div>';
 
-    return '<div class="ficha"><div class="f-lista"><div class="f-botones"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button><button class="sec" data-acc="f-duplicar">Duplicar ' + esc(id) + ' ×…</button>' + (D.modulos.length > 1 ? btnSel('lista-mod', 'sec') : '') + (copiasDe(id).length ? '<button class="sec" data-acc="f-aplicar-copias" title="Copia los datos de ' + esc(id) + ' a los módulos duplicados a partir de él">Aplicar ' + esc(id) + ' a sus ' + copiasDe(id).length + ' copias…</button>' : '') + '</div>' + (enSel('lista-mod') ? barraSel('lista-mod') : '') + lista + '</div>' +
-      '<div class="f-detalle">' + cabecera + sPuertas + seccionPerfilL(id) + sCajones + sOver + sSueltas + sTap + sVivo + '<div class="f-guardar-pie"><button data-acc="f-guardar">' + ICO.save + ' Guardar módulo ' + esc(id) + '</button></div></div></div>';
+    return '<div class="ficha"><div class="f-lista"><div class="f-botones"><button data-acc="f-nuevo">+ Módulo</button><button class="sec" data-acc="tipo-nuevo">+ Módulo tipo</button><button class="sec" data-acc="f-duplicar">Duplicar ' + esc(id) + ' ×…</button>' + (D.modulos.length > 1 ? btnSel('lista-mod', 'sec') : '') + (copiasDe(id).length ? '<button class="sec" data-acc="f-aplicar-copias" title="Copia los datos de ' + esc(id) + ' a los módulos duplicados a partir de él">Aplicar ' + esc(id) + ' a sus ' + copiasDe(id).length + ' copias…</button>' : '') + '</div>' + (enSel('lista-mod') ? barraSel('lista-mod') : '') + leyendaChips() + '<div class="f-items">' + lista + '</div></div>' +
+      '<div class="f-detalle">' + cabecera + sPuertas + seccionPerfilL(id) + seccionPiso(id) + sCajones + sOver + sSueltas + sTap + sVivo + '<div class="f-guardar-pie"><button data-acc="f-guardar">' + ICO.save + ' Guardar módulo ' + esc(id) + '</button></div></div></div>';
   }
 
   function nuevoGrupo() { return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
@@ -3337,11 +3522,11 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
 
   /* ---- Agrupaciones (ex pestaña Piezas) ---- */
   function vistaAgrupada() {
-    const TODAS = R.taller;
+    const TODAS = R.taller.filter(p => pasaFiltro(regTaller(p)));
     const ambPorId = {}; D.modulos.forEach(m => ambPorId[String(m.id).trim()] = m.ambiente);
     let h = titlebar('PIEZAS · ' + (VISTAS_TALLER.find(v => v[0] === agruparPor) || [0, ''])[1]);
-    if (!TODAS.length) return h + '<div class="card vacio">Todavía no hay piezas.</div>';
-    const etiqueta = (p) => [p.pieza, p.cortePuerta, p.tipoPuerta].filter(Boolean).join(' · ');
+    if (!TODAS.length) return h + '<div class="card vacio">' + (hayFiltro() ? 'Ninguna pieza coincide con los filtros.' : 'Todavía no hay piezas.') + '</div>';
+    const etiqueta = (p) => [p.pieza, p.cortePuerta, p.tipoPuerta, p.cierreSuave ? 'C. suave' : ''].filter(Boolean).join(' · ');
     if (hayBusqueda()) {
       return h + bloqueBusqueda(TODAS.map(p => ({ titulo: etiqueta(p), detalle: [p.material, [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × '), p.modulos].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor })));
     }
@@ -3548,7 +3733,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   }
   /* ------------------------------------------------------------------ armado general */
   // Pestañas a la vista; las tablas de carga manual viven dentro de “Control manual”.
-  const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['taller', 'Taller'], ['overrides', 'Override'], ['proveedores', 'Cortes'], ['listas', 'Listas'], ['manual', 'Control manual']];
+  const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['manual', 'Control manual'], ['overrides', 'Override'], ['taller', 'Taller'], ['proveedores', 'Cortes'], ['listas', 'Listas']];
   const MANUAL = [['modulos', 'Módulos'], ['puertas', 'Puertas'], ['cajones', 'Cajones'], ['sueltas', 'Piezas Sueltas'], ['tapacantos', 'Tapacantos']];
   const esManual = (k) => MANUAL.some(m => m[0] === k);
   function contador(k) { if (k === 'ficha') return D.modulos.length; if (k === 'manual') return null; return TABLAS[k] ? D[TABLAS[k].arr].length : null; }
@@ -3669,7 +3854,10 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     else if (tab === 'taller') html = panelControl('taller') + vistaTallerTab();
     else if (tab === 'proveedores') html = panelControl('cortes') + vistaCortes();
     else if (tab === 'listas') html = vistaListas();
+    document.querySelectorAll('.tip-obs').forEach(n => n.remove());   // si se redibuja con el globito abierto, no queda colgado
+    const fItems = document.querySelector('.f-items'), fTop = fItems ? fItems.scrollTop : null, fLey = document.querySelector('.f-ley') ? document.querySelector('.f-ley').open : false;   // la columna de módulos conserva su posición al redibujar
     $('#main').innerHTML = html;
+    if (fTop !== null) { const n = document.querySelector('.f-items'); if (n) n.scrollTop = fTop; const ly = document.querySelector('.f-ley'); if (ly && fLey) ly.open = true; }
     const dl = $('#dl-mat'); dl.innerHTML = materialesConocidos().map(m => '<option value="' + esc(m) + '">').join('');
     $('#nombreProyecto').textContent = D.proyecto.nombre || '(proyecto sin nombre)';
     if (act) { const el = document.querySelector('[data-k="' + act.replace(/"/g, '') + '"]'); if (el && el.tagName !== 'SELECT') { sinSel = true; el.focus(); sinSel = false; if (actFresco && el.type === 'number') { el.dataset.sel = '1'; try { el.select(); } catch (er) { /* no aplica */ } } try { if (el.setSelectionRange && el.type !== 'number') el.setSelectionRange(el.value.length, el.value.length); } catch (e) { /* no aplica */ } } }
@@ -3935,7 +4123,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       if (el.dataset.selall !== undefined) { const its = itemsSel(el.dataset.selall); its.forEach(it => { if (el.checked) sel.add(it.id); else sel.delete(it.id); }); render(); return; }
       if (el.dataset.cut !== undefined) { if (el.checked) D.cortadas[el.dataset.cut] = 1; else delete D.cortadas[el.dataset.cut]; cortesTocados(); render(); return; }
       if (el.dataset.oc !== undefined) { ocultarCortadas = el.checked; render(); return; }
-      if (el.dataset.busq !== undefined) { busq[el.dataset.busq] = el.value; render(); return; }
+      if (el.dataset.busq !== undefined) { busq[el.dataset.busq] = limpiaMedida(el.value); render(); return; }
+      if (el.dataset.filtro !== undefined) { filt[el.dataset.filtro] = el.value; render(); return; }
       if (el.dataset.agrupar !== undefined) { agruparPor = el.value; subPieza = ''; render(); return; }
       if (el.dataset.subpieza !== undefined) { subPieza = el.value; render(); return; }
       if (el.dataset.matlista !== undefined) { cambioMateriales(el.value.split('\n')); return; }
@@ -3953,6 +4142,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         m.cortesTaller = arr.filter((x, i) => arr.findIndex(y => y.pieza === x.pieza) === i); tocado(true); render(); return;
       }
       if (el.dataset.perfil !== undefined || el.dataset.perfilCubre !== undefined) { perfilCambio(el); return; }
+      if (el.dataset.piso !== undefined || el.dataset.pisoCubre !== undefined) { pisoCambio(el); return; }
       const k = el.dataset.k; if (!k) return;
       const p = k.split(':');
       if (p[0] === 'amb') {
@@ -3967,7 +4157,12 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     });
     document.addEventListener('input', (e) => {
       const el = e.target;
-      if (el.dataset && el.dataset.busq !== undefined) { busq[el.dataset.busq] = el.value; const pos = el.selectionStart; render(); const n = document.querySelector('[data-busq="' + el.dataset.busq + '"]'); if (n) { n.focus(); } return; }
+      if (el.dataset && el.dataset.busq !== undefined) {   // al escribir se redibuja, pero el cursor vuelve a su lugar y NO se selecciona todo (si no, cada número pisa al anterior)
+        const k = el.dataset.busq, limpio = limpiaMedida(el.value), pos = Math.min(el.selectionStart === null ? limpio.length : el.selectionStart, limpio.length);
+        busq[k] = limpio; render();
+        const n = document.querySelector('[data-busq="' + k + '"]'); if (n) { sinSel = true; n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* no aplica */ } sinSel = false; }
+        return;
+      }
       if (el.classList && el.classList.contains('cat')) mostrarSugerencias(el);
     });
     document.addEventListener('focusin', (e) => {
@@ -3980,12 +4175,38 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     document.addEventListener('beforeinput', (e) => { if (e.target && e.target.dataset && e.target.dataset.sel) delete e.target.dataset.sel; }, true);
     // el mouse coloca el cursor al soltar el clic: se vuelve a seleccionar todo (sólo si todavía no se escribió nada)
     ['mouseup', 'click'].forEach((ev) => document.addEventListener(ev, (e) => { const t = e.target; if (t && t.dataset && t.dataset.sel === '1' && t.type === 'number') { const sel = () => { try { if (t.dataset.sel === '1' && document.activeElement === t) t.select(); } catch (er) { /* no aplica */ } }; sel(); setTimeout(sel, 0); setTimeout(sel, 30); } }));
+    // Observaciones de una pieza en Taller: globito al pasar el mouse; con un clic se despliega (o se pliega) la nota debajo del nombre.
+    let tipObs = null;
+    const ocultarTipObs = () => { if (tipObs) { tipObs.remove(); tipObs = null; } };
+    document.addEventListener('mouseover', (e) => {
+      const td = e.target.closest ? e.target.closest('td.con-obs') : null;
+      if (!td || td.classList.contains('abierta')) { if (!td) ocultarTipObs(); return; }
+      if (tipObs && tipObs.isConnected && tipObs.dataset.k === td.dataset.obsk) return;
+      ocultarTipObs();
+      tipObs = document.createElement('div'); tipObs.className = 'tip-obs'; tipObs.dataset.k = td.dataset.obsk; tipObs.textContent = td.dataset.obs; document.body.appendChild(tipObs);
+      const r = td.getBoundingClientRect(), h = tipObs.offsetHeight;
+      tipObs.style.left = Math.max(8, Math.min(r.left + 8, innerWidth - tipObs.offsetWidth - 8)) + 'px';
+      tipObs.style.top = (r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
+    });
+    document.addEventListener('mouseout', (e) => { const td = e.target.closest ? e.target.closest('td.con-obs') : null; if (td && !td.contains(e.relatedTarget)) ocultarTipObs(); });
+    document.addEventListener('click', (e) => {
+      const td = e.target.closest ? e.target.closest('td.con-obs') : null; if (!td) return;
+      const k = td.dataset.obsk; if (obsAbiertas.has(k)) obsAbiertas.delete(k); else obsAbiertas.add(k);
+      td.classList.toggle('abierta'); ocultarTipObs();
+    });
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.sugerencias') && !(e.target.classList && e.target.classList.contains('cat'))) cerrarSugerencias();
       const ir = e.target.closest('[data-ir-tab]'); if (ir) { e.preventDefault(); irA(ir.dataset.irTab, ir.dataset.irId); return; }
       const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab === 'manual' ? ultimoManual : t.dataset.tab; render(); window.scrollTo(0, 0); return; }
       if (e.target.closest('.chk-sel, .sel-todas')) return;
-      const fm = e.target.closest('[data-ficha]'); if (fm) { fichaSel = fm.dataset.ficha; render(); return; }
+      const fm = e.target.closest('[data-ficha]');
+      if (fm) {
+        fichaSel = fm.dataset.ficha; render();
+        // al cambiar de módulo, el detalle se muestra desde arriba sin tener que subir la página; la lista conserva su posición
+        const d = document.querySelector('.f-detalle');
+        if (d) { const hh = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hh')) || 60, top = d.getBoundingClientRect().top; if (top < hh + 4 && matchMedia('(min-width: 721px)').matches) window.scrollTo(0, Math.max(0, window.scrollY + top - hh - 12)); }
+        return;
+      }
       const b = e.target.closest('[data-acc]'); if (!b) return;
       e.preventDefault();
       accion(b.dataset.acc, b.dataset.i !== undefined ? Number(b.dataset.i) : null, b);
@@ -4026,6 +4247,13 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       ps.forEach(x => { const k = claveCorte(x.id, x.p); if (todas) delete D.cortadas[k]; else D.cortadas[k] = Math.max(1, num(x.p.cantidad)); });
       cortesTocados(); render(); return;
     }
+    if (a === 'piso-ir') { const idp = btn.dataset.id; if (moduloPorId(idp)) { fichaSel = idp; render(); window.scrollTo(0, 0); } return; }
+    if (a === 'piso-quitar-cubre') {
+      D.sueltas.forEach(r => { if (M.esPisoAplicado_(r.categoria) && String(r.idModulo || '').trim() === btn.dataset.dueno && Array.isArray(r.cubre)) r.cubre = r.cubre.filter(x => String(x).trim() !== btn.dataset.id); });
+      tocado(true); render(); return;
+    }
+    if (a === 'piso-suma') { const ip = indicePiso(btn.dataset.id); if (ip < 0) return; D.sueltas[ip].l = sumaPiso(btn.dataset.id, D.sueltas[ip]); tocado(true); render(); return; }
+    if (a === 'piso-quitar') { const ip = indicePiso(btn.dataset.id); if (ip < 0) return; D.sueltas.splice(ip, 1); tocado(true); render(); return; }
     if (a === 'perfil-ir') { const idp = btn.dataset.id; if (moduloPorId(idp)) { fichaSel = idp; render(); window.scrollTo(0, 0); } return; }
     if (a === 'perfil-quitar-cubre') {
       D.sueltas.forEach(r => { if (M.esPerfilL_(r.categoria) && String(r.idModulo || '').trim() === btn.dataset.dueno && Array.isArray(r.cubre)) r.cubre = r.cubre.filter(x => String(x).trim() !== btn.dataset.id); });
@@ -4117,7 +4345,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (a === 'print-cortes') { if (await controlAntes('imprimir', 'cortes')) imprimirCortes(btn.dataset.modo); return; }
     if (a === 'print-sec') { if (await controlAntes('imprimir', destinoControl())) imprimirSeccion(document.getElementById(btn.dataset.target)); return; }
     if (a === 'etiquetas-pdf') { if (await controlAntes('imprimir', 'taller')) await imprimirEtiquetas(); return; }
-    if (a === 'limpiar-busq') { busq = { largo: '', ancho: '', espesor: '' }; render(); return; }
+    if (a === 'limpiar-busq') { busq = { largo: '', ancho: '', espesor: '' }; filt = { pieza: '', material: '', tipoPuerta: '', cortePuerta: '', ambiente: '', modulo: '' }; render(); return; }
     if (a === 'amb-add') {
       const n = (document.getElementById('ambNuevo') || {}).value, c = (document.getElementById('ambCod') || {}).value;
       const nombre = String(n || '').trim(), codigo = String(c || '').trim();
@@ -4167,8 +4395,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     // Orden para importar: cantidad, largo, ancho, nombre de pieza, gira (1 = gira, 0 = no gira), arr, ab, izq, der
     const cols = ['Cantidad', 'Largo', 'Ancho', 'Pieza', 'Gira', 'Arr.', 'Ab.', 'Izq.', 'Der.'];
     const q = (v) => '"' + String(v === undefined || v === null ? '' : v).replace(/"/g, '""') + '"';
-    const ab = window.Dilegno.abreviarNombres(R.proveedor.map(f => f.pieza));   // nombres de pieza abreviados (máx. 10), igual que en el JSON
-    const filas = R.proveedor.map(f => [f.cantidad, f.largo, f.ancho, ab.get(String(f.pieza || '').trim()) || f.pieza, giraDe(f) ? 1 : 0, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
+    const ab = window.Dilegno.descripciones(R.proveedor);   // mismo nombre corto que en el JSON de Dilegno (máx. 10, con el ID del módulo)
+    const filas = R.proveedor.map((f, i) => [f.cantidad, f.largo, f.ancho, ab[i], giraDe(f) ? 1 : 0, f.arr, f.ab, f.izq, f.der].map(q).join(';'));
     St.descargar(St.slug(D.proyecto.nombre) + '-proveedor.csv', '\uFEFF' + [cols.map(q).join(';')].concat(filas).join('\r\n'), 'text/csv;charset=utf-8');
   }
   function elegirArchivo(accept, cb) {
@@ -4585,7 +4813,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   ICO.lock = '<svg class="i" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
   ICO.edit = '<svg class="i" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
   // Lo que se puede hacer en solo lectura: mirar, buscar, imprimir, exportar, marcar piezas cortadas y tocar las listas compartidas (esas se mezclan solas).
-  const ACC_LECTURA = new Set(['cut-mod', 'cut-un', 'perfil-ir', 'cut-clear', 'print', 'print-cortes', 'print-sec', 'etiquetas-pdf', 'limpiar-busq', 'prov-csv', 'prov-json', 'cat-file', 'cat-gh',
+  const ACC_LECTURA = new Set(['cut-mod', 'cut-un', 'perfil-ir', 'piso-ir', 'cut-clear', 'print', 'print-cortes', 'print-sec', 'etiquetas-pdf', 'limpiar-busq', 'prov-csv', 'prov-json', 'cat-file', 'cat-gh',
     'mat-add', 'mat-subir', 'mat-traer', 'tipo-del', 'tipo-guardar', 'f-tipo-guardar', 'lista-add', 'amb-add', 'amb-del', 'bq-reintentar', 'bq-tomar', 'bq-soltar']);
   function accionPermitidaEnLectura(a, btn) {
     if (ACC_LECTURA.has(a)) return true;
@@ -4595,7 +4823,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (!el) return true;
     if (el.closest && el.closest('#tabs')) return true;
     const d = el.dataset || {};
-    if (d.cut !== undefined || d.oc !== undefined || d.busq !== undefined || d.agrupar !== undefined || d.subpieza !== undefined || d.matlista !== undefined || d.compl !== undefined || d.nuevo !== undefined) return true;
+    if (d.cut !== undefined || d.oc !== undefined || d.busq !== undefined || d.filtro !== undefined || d.agrupar !== undefined || d.subpieza !== undefined || d.matlista !== undefined || d.compl !== undefined || d.nuevo !== undefined) return true;
     if (d.k && /^amb:/.test(d.k)) return true;
     if (el.id === 'matNuevo' || el.id === 'ambNuevo' || el.id === 'ambCod') return true;
     if (d.acc) return accionPermitidaEnLectura(d.acc, el);
@@ -4893,7 +5121,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function sincronizarNav() {
     var act = document.querySelector('#tabs a.activa');
     var k = act ? act.getAttribute('data-tab') : '';
-    var enMas = (k === 'manual' || k === 'overrides' || k === 'listas');
+    var enMas = (k === 'proyecto' || k === 'listas');
     if (nav) nav.querySelectorAll('a[data-nav]').forEach(function (a) {
       var n = a.getAttribute('data-nav');
       var on = (n === k) || (n === 'mas' && enMas);
