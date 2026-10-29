@@ -638,11 +638,6 @@ body.solo-lectura main input:disabled, body.solo-lectura main select:disabled, b
 <style id="css-v3">
 .filtros-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; }
 .filtros-g select { width: 100%; min-width: 0; }
-td.con-obs { cursor: help; }
-td.con-obs .obs-ico { font-size: 11px; color: var(--accion); margin-left: 2px; }
-td.con-obs:not(.abierta) .obs-p { display: none; }
-.tip-obs { position: fixed; z-index: 400; max-width: 300px; padding: 7px 10px; border-radius: 9px; background: var(--card); color: var(--txt); border: 1px solid var(--borde2); box-shadow: var(--sombra); font-size: 12.5px; line-height: 1.35; pointer-events: none; white-space: normal; }
-@media print { td.con-obs .obs-p { display: block !important; } td.con-obs .obs-ico, .tip-obs { display: none !important; } }
 .obs-p { font-size: 11.5px; font-weight: 400; font-style: italic; color: var(--mute); margin-top: 2px; line-height: 1.3; white-space: normal; }
 .ficha { grid-template-columns: minmax(0, 244px) minmax(0, 1fr); }
 .f-lista { max-height: calc(100vh - var(--hh) - 22px); max-height: calc(100dvh - var(--hh) - 22px); }
@@ -2655,8 +2650,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   let ultimoManual = 'modulos';  // última tabla abierta dentro de “Control manual”
   let busq = { largo: '', ancho: '', espesor: '' };
   let filt = { pieza: '', material: '', tipoPuerta: '', cortePuerta: '', ambiente: '', modulo: '' };   // filtros de Taller: se combinan (y)
-  const obsAbiertas = new Set();   // piezas de Taller con la observación desplegada
-  let sucioRemoto = false;
+    let sucioRemoto = false;
   let estado = { txt: '', cls: '' };
   let timerGuardado = null;
   let ocultarCortadas = false;   // vista Taller (por módulo) / etiquetas: esconder piezas ya cortadas
@@ -3013,7 +3007,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         '<button class="sec mini cn" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="todo" title="Marcar todas / ninguna">' + n + '/' + N + '</button>' +
         '<button class="sec mini" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="1" title="Marcar una unidad más como cortada"' + (hecha ? ' disabled' : '') + '>+</button></span>';
     const clases = [hecha ? 'cortada' : '', parcial ? 'parcial' : '', ctl.length ? 'ctl-fila' : ''].filter(Boolean).join(' ');
-    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td' + (p.observaciones ? ' class="con-obs' + (obsAbiertas.has(k) ? ' abierta' : '') + '" data-obsk="' + esc(k) + '" data-obs="' + esc(p.observaciones) + '"' : '') + '>' + esc(p.nombreBase) + (p.observaciones ? ' <span class="obs-ico" title="Tiene observaciones: pasá el mouse o hacé clic">✎</span>' : '') + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (ctl.length ? ' <span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? ' <span class="faltan">faltan ' + (N - n) + '</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
+    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td>' + esc(p.nombreBase) + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (ctl.length ? ' <span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? ' <span class="faltan">faltan ' + (N - n) + '</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
       '<td class="n">' + p.cantidad + '</td><td class="n">' + p.largo + '</td><td class="n">' + p.ancho + '</td><td class="n">' + p.espesor + '</td>' + tapsHtml(p) + '</tr>';
   }
   const THEAD_TALLER = '<thead><tr><th class="n">✓</th><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead>';
@@ -3854,7 +3848,6 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     else if (tab === 'taller') html = panelControl('taller') + vistaTallerTab();
     else if (tab === 'proveedores') html = panelControl('cortes') + vistaCortes();
     else if (tab === 'listas') html = vistaListas();
-    document.querySelectorAll('.tip-obs').forEach(n => n.remove());   // si se redibuja con el globito abierto, no queda colgado
     const fItems = document.querySelector('.f-items'), fTop = fItems ? fItems.scrollTop : null, fLey = document.querySelector('.f-ley') ? document.querySelector('.f-ley').open : false;   // la columna de módulos conserva su posición al redibujar
     $('#main').innerHTML = html;
     if (fTop !== null) { const n = document.querySelector('.f-items'); if (n) n.scrollTop = fTop; const ly = document.querySelector('.f-ley'); if (ly && fLey) ly.open = true; }
@@ -4175,25 +4168,6 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     document.addEventListener('beforeinput', (e) => { if (e.target && e.target.dataset && e.target.dataset.sel) delete e.target.dataset.sel; }, true);
     // el mouse coloca el cursor al soltar el clic: se vuelve a seleccionar todo (sólo si todavía no se escribió nada)
     ['mouseup', 'click'].forEach((ev) => document.addEventListener(ev, (e) => { const t = e.target; if (t && t.dataset && t.dataset.sel === '1' && t.type === 'number') { const sel = () => { try { if (t.dataset.sel === '1' && document.activeElement === t) t.select(); } catch (er) { /* no aplica */ } }; sel(); setTimeout(sel, 0); setTimeout(sel, 30); } }));
-    // Observaciones de una pieza en Taller: globito al pasar el mouse; con un clic se despliega (o se pliega) la nota debajo del nombre.
-    let tipObs = null;
-    const ocultarTipObs = () => { if (tipObs) { tipObs.remove(); tipObs = null; } };
-    document.addEventListener('mouseover', (e) => {
-      const td = e.target.closest ? e.target.closest('td.con-obs') : null;
-      if (!td || td.classList.contains('abierta')) { if (!td) ocultarTipObs(); return; }
-      if (tipObs && tipObs.isConnected && tipObs.dataset.k === td.dataset.obsk) return;
-      ocultarTipObs();
-      tipObs = document.createElement('div'); tipObs.className = 'tip-obs'; tipObs.dataset.k = td.dataset.obsk; tipObs.textContent = td.dataset.obs; document.body.appendChild(tipObs);
-      const r = td.getBoundingClientRect(), h = tipObs.offsetHeight;
-      tipObs.style.left = Math.max(8, Math.min(r.left + 8, innerWidth - tipObs.offsetWidth - 8)) + 'px';
-      tipObs.style.top = (r.bottom + 6 + h > innerHeight ? Math.max(8, r.top - h - 6) : r.bottom + 6) + 'px';
-    });
-    document.addEventListener('mouseout', (e) => { const td = e.target.closest ? e.target.closest('td.con-obs') : null; if (td && !td.contains(e.relatedTarget)) ocultarTipObs(); });
-    document.addEventListener('click', (e) => {
-      const td = e.target.closest ? e.target.closest('td.con-obs') : null; if (!td) return;
-      const k = td.dataset.obsk; if (obsAbiertas.has(k)) obsAbiertas.delete(k); else obsAbiertas.add(k);
-      td.classList.toggle('abierta'); ocultarTipObs();
-    });
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.sugerencias') && !(e.target.classList && e.target.classList.contains('cat'))) cerrarSugerencias();
       const ir = e.target.closest('[data-ir-tab]'); if (ir) { e.preventDefault(); irA(ir.dataset.irTab, ir.dataset.irId); return; }
