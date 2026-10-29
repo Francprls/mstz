@@ -301,10 +301,10 @@ input[type=checkbox]:focus-visible { outline: 2px solid var(--madera); outline-o
 .seg a, .chip { white-space: nowrap; }
 /* Escritorio: pestañas en una columna a la izquierda */
 @media (min-width: 1000px) {
-  .app { max-width: 1360px; display: grid; grid-template-columns: 196px minmax(0, 1fr); grid-template-areas: "top top" "nav avisos" "nav main"; column-gap: 32px; align-items: start; }
+  .app { max-width: 1640px; display: grid; grid-template-columns: 204px minmax(0, 1fr); grid-template-areas: "top top" "nav avisos" "nav main"; column-gap: 24px; align-items: start; }
   header.top { grid-area: top; width: 100%; }
   nav.tabs { grid-area: nav; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 2px; margin: 0; border: 0; padding: 0; position: sticky; top: 16px; }
-  nav.tabs a { display: flex; justify-content: space-between; }
+  nav.tabs a { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
   nav.tabs > span { display: none; }
   nav.tabs > button { margin-top: 18px; width: 100%; }
   #avisos { grid-area: avisos; min-width: 0; }
@@ -639,7 +639,7 @@ body.solo-lectura main input:disabled, body.solo-lectura main select:disabled, b
 .filtros-g { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; }
 .filtros-g select { width: 100%; min-width: 0; }
 .obs-p { font-size: 11.5px; font-weight: 400; font-style: italic; color: var(--mute); margin-top: 2px; line-height: 1.3; white-space: normal; }
-.ficha { grid-template-columns: minmax(0, 244px) minmax(0, 1fr); }
+.ficha { grid-template-columns: minmax(0, 184px) minmax(0, 1fr); gap: 12px; }
 .f-lista { max-height: calc(100vh - var(--hh) - 22px); max-height: calc(100dvh - var(--hh) - 22px); }
 .f-items { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; padding-right: 2px; scrollbar-width: thin; }
 .f-botones, .f-ley { flex: 0 0 auto; }
@@ -658,14 +658,26 @@ body.solo-lectura main input:disabled, body.solo-lectura main select:disabled, b
 .f-ley-l > div > span { color: var(--txt2); }
 @media (max-width: 720px) { .ficha { grid-template-columns: minmax(0, 1fr); } .f-lista { max-height: none; } .f-items { overflow: visible; } }
 
-.tag-cs { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 6px; border-radius:99px; background:color-mix(in srgb, #3b82f6 18%, transparent); color:#93c5fd; border:1px solid color-mix(in srgb, #3b82f6 40%, transparent); vertical-align:middle; white-space:nowrap }
+.ir-mod { color: inherit; text-decoration: none; border-bottom: 1px dotted color-mix(in srgb, currentColor 28%, transparent); cursor: pointer }
+nav.tabs a .nl { display: inline-flex; align-items: center; gap: 10px; min-width: 0 }
+nav.tabs a .nl svg { flex: none; width: 18px; height: 18px; opacity: .9 }
+.ir-mod:hover { color: var(--info, var(--madera)); border-bottom-style: solid }
+.ir-flecha { margin-left: 6px; font-size: 12px; border-bottom: 0 }
+@media print { .ir-mod { border: 0; color: inherit !important } .ir-flecha { display: none } }
+button:disabled, button[disabled] { opacity: .45; cursor: not-allowed; filter: saturate(.35); }
+body.solo-lectura button.peligro:disabled { background: var(--soft2); color: var(--mute2); border-color: var(--borde); }
+.nom { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap }
+.tag-push { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 7px; border-radius:99px; background:color-mix(in srgb, #a855f7 18%, transparent); color:#d8b4fe; border:1px solid color-mix(in srgb, #a855f7 42%, transparent); vertical-align:middle; white-space:nowrap; line-height:1.5 }
+:root[data-tema="claro"] .tag-push { color:#7e22ce }
+.tag-cs { line-height:1.5; display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 7px; border-radius:99px; background:color-mix(in srgb, #3b82f6 18%, transparent); color:#93c5fd; border:1px solid color-mix(in srgb, #3b82f6 40%, transparent); vertical-align:middle; white-space:nowrap }
 :root[data-tema="claro"] .tag-cs { color:#1d4ed8 }
 .chips-sel { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-sel { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--borde); border-radius: 999px; font-size: 13px; cursor: pointer; color: var(--txt2); }
 .chip-sel input { width: auto; margin: 0; }
-.cutstep { display: inline-flex; align-items: center; gap: 4px; }
-.cutstep button { padding: 2px 9px; min-width: 30px; line-height: 1.3; }
-.cutstep button.cn { min-width: 52px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.cutstep { display: inline-flex; align-items: center; gap: 2px; }
+.cutstep button { padding: 1px 4px; min-width: 20px; line-height: 1.25; font-size: 12px; }
+.cutstep button.cn { min-width: 36px; font-variant-numeric: tabular-nums; font-weight: 700; }
+@media (pointer: coarse) { .cutstep { gap: 4px; } .cutstep button { padding: 2px 9px; min-width: 30px; font-size: 13px; } .cutstep button.cn { min-width: 48px; } }
 table.tabla-corte td.chk.cnt { width: auto; white-space: nowrap; }
 table.tabla-corte tr.parcial td.chk button.cn { color: var(--warn); border-color: var(--warn); }
 .faltan { color: var(--warn); font-size: 11.5px; font-weight: 600; margin-left: 6px; }
@@ -2640,6 +2652,15 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     tag: '<svg class="i" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1"/></svg>',
     link: '<svg class="i" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'
   };
+  const NAVICO = {
+    proyecto: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
+    ficha: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>',
+    manual: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+    overrides: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>',
+    taller: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></svg>',
+    proveedores: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>',
+    listas: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>'
+  };
   let D = null;            // proyecto abierto
   let R = null;            // último resultado del motor
   let tab = 'proyecto';
@@ -2915,7 +2936,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (c.ocultar && c.ocultar(row)) return '<td class="num"><span class="chip" title="' + (esCompleta(row) ? 'Completa: una sola puerta' : 'Simétrica: siempre son 2 puertas') + '">×' + cantPuerta(row) + '</span></td>';
     const w = c.ancho ? ' style="min-width:' + c.ancho + 'px"' : '';
     switch (c.tipo) {
-      case 'idro': return '<td class="idro"><span class="id-pill">' + esc(val || '(sin ID)') + '</span></td>';
+      case 'idro': return '<td class="idro">' + lnkMod(val, '<span class="id-pill">' + esc(val || '(sin ID)') + '</span>') + '</td>';
       case 'text': return '<td><input data-k="' + key + '" value="' + esc(val) + '"' + dis + (c.ancho ? ' style="width:' + c.ancho + 'px"' : '') + '></td>';
       case 'num': return '<td class="num"><input type="number" inputmode="decimal" step="any" data-k="' + key + '" value="' + esc(val) + '" placeholder="' + esc(ph) + '"' + dis + '></td>';
       case 'chk': return '<td class="chk"><input type="checkbox" data-k="' + key + '"' + ((c.def === false ? val === true : val !== false) ? ' checked' : '') + '></td>';
@@ -2929,7 +2950,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         let html = '<option value="">' + esc(c.vacio || '') + '</option>';
         if (actual !== '' && !hay) html += '<option value="' + esc(actual) + '" selected>' + esc(actual) + ' (no existe)</option>';
         html += opts.map(o => '<option value="' + esc(o.v) + '"' + (String(o.v) === String(actual) ? ' selected' : '') + '>' + esc(o.l) + '</option>').join('');
-        return '<td><select data-k="' + key + '"' + dis + w + '>' + html + '</select></td>';
+        const irF = c.k === 'idModulo' && moduloPorId(String(actual).trim()) ? '<a href="#" class="ir-mod ir-flecha" data-ir-tab="ficha" data-ir-id="' + esc(String(actual).trim()) + '" title="Abrir la ficha de ' + esc(String(actual).trim()) + '">↗ ficha</a>' : '';
+        return '<td><select data-k="' + key + '"' + dis + w + '>' + html + '</select>' + irF + '</td>';
       }
     }
     return '<td></td>';
@@ -2998,6 +3020,18 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function unidadesCortadas(v, N) { if (v === true) return N; const n = Math.floor(Number(v)); return n > 0 ? Math.min(n, N) : 0; }
   function nCortadas(idMod, p) { return unidadesCortadas(D.cortadas && D.cortadas[claveCorte(idMod, p)], Math.max(1, num(p.cantidad))); }
   function estaCortada(idMod, p) { return nCortadas(idMod, p) >= Math.max(1, num(p.cantidad)); }
+  // Enlace a la ficha de un módulo (si el módulo existe): lo usan las listas de piezas y de módulos.
+  function lnkMod(id, inner) {
+    const x = String(id === undefined || id === null ? '' : id).trim();
+    return x && moduloPorId(x) ? '<a href="#" class="ir-mod" data-ir-tab="ficha" data-ir-id="' + esc(x) + '" title="Abrir la ficha de ' + esc(x) + '">' + inner + '</a>' : inner;
+  }
+  const lnkMods = (txt) => String(txt || '').split(/\s*[,;]\s*/).filter(Boolean).map(i => lnkMod(i, esc(i))).join(', ');
+  const nombreVis = (p) => /^push$/i.test(String(p.tipoApertura || '').trim()) ? String(p.nombreBase).replace(/\s+Push$/i, '') : p.nombreBase;
+  // Mecanismos de la puerta que no cambian el corte (sirven para elegir bisagras): globos aparte, no parte del nombre.
+  function chipsMec(p) {
+    return (/^push$/i.test(String(p.tipoApertura || '').trim()) ? '<span class="tag-push" title="Push: lleva otras bisagras. No cambia el corte.">Push</span>' : '') +
+      (p.cierreSuave ? '<span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '');
+  }
   function filaPiezaTaller(p, idMod) {
     const k = claveCorte(idMod, p), N = Math.max(1, num(p.cantidad)), n = nCortadas(idMod, p), hecha = n >= N, parcial = n > 0 && !hecha;
     const ctl = controlDePieza(idMod, p), tit = ctl.map(x => x.texto).join(' · ');
@@ -3007,7 +3041,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
         '<button class="sec mini cn" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="todo" title="Marcar todas / ninguna">' + n + '/' + N + '</button>' +
         '<button class="sec mini" data-acc="cut-un" data-ck="' + esc(k) + '" data-n="' + N + '" data-d="1" title="Marcar una unidad más como cortada"' + (hecha ? ' disabled' : '') + '>+</button></span>';
     const clases = [hecha ? 'cortada' : '', parcial ? 'parcial' : '', ctl.length ? 'ctl-fila' : ''].filter(Boolean).join(' ');
-    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td>' + esc(p.nombreBase) + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (ctl.length ? ' <span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? ' <span class="faltan">faltan ' + (N - n) + '</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
+    return '<tr' + (clases ? ' class="' + clases + '"' : '') + (tit ? ' title="' + esc(tit) + '"' : '') + '><td class="n chk' + (N > 1 ? ' cnt' : '') + '">' + celda + '</td><td><span class="nom">' + lnkMod(idMod, esc(nombreVis(p))) + chipsMec(p) + (ctl.length ? '<span class="ctl-ico" title="' + esc(tit) + '">⚠</span>' : '') + (parcial ? '<span class="faltan">faltan ' + (N - n) + '</span>' : '') + '</span>' + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + (p.material ? '<td class="mat">' + esc(p.material) + '</td>' : '<td class="mat sin">–</td>') +
       '<td class="n">' + p.cantidad + '</td><td class="n">' + p.largo + '</td><td class="n">' + p.ancho + '</td><td class="n">' + p.espesor + '</td>' + tapsHtml(p) + '</tr>';
   }
   const THEAD_TALLER = '<thead><tr><th class="n">✓</th><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead>';
@@ -3037,10 +3071,10 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function planasTaller() {
     const med = (p) => [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × '), out = [];
     if (agruparPor === 'modulo') {
-      R.orden.modulos.forEach(m => m.piezas.forEach(p => { if (pasaFiltro(regOrden(p, m))) out.push({ titulo: m.idModulo + ' · ' + p.nombreBase + (p.cierreSuave ? ' · C. suave' : ''), detalle: [p.material || m.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); }));
+      R.orden.modulos.forEach(m => m.piezas.forEach(p => { if (pasaFiltro(regOrden(p, m))) out.push({ mod: m.idModulo, titulo: m.idModulo + ' · ' + nombreVis(p) + (/^push$/i.test(String(p.tipoApertura || '').trim()) ? ' · Push' : '') + (p.cierreSuave ? ' · C. suave' : ''), detalle: [p.material || m.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); }));
       R.orden.secciones.forEach(s => s.piezas.forEach(p => { if (pasaFiltro(regOrden(p, null))) out.push({ titulo: s.categoria + ' · ' + p.nombreBase, detalle: [p.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); }));
     } else {
-      R.taller.forEach(p => { if (pasaFiltro(regTaller(p))) out.push({ titulo: [p.pieza, p.cortePuerta, p.tipoPuerta, p.cierreSuave ? 'C. suave' : ''].filter(Boolean).join(' · '), detalle: [p.material, med(p), p.modulos].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); });
+      R.taller.forEach(p => { if (pasaFiltro(regTaller(p))) out.push({ mods: p.modulos, titulo: [p.pieza, p.cortePuerta, p.tipoPuerta, p.cierreSuave ? 'C. suave' : ''].filter(Boolean).join(' · '), detalle: [p.material, med(p)].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor }); });
     }
     return out;
   }
@@ -3076,7 +3110,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   }
   function bloqueBusqueda(planas, titulo) {
     const r = clasificar(planas);
-    const filas = (l) => l.map(p => '<div class="pieza-row"><span><strong>' + esc(p.titulo) + '</strong> · ' + esc(p.detalle) + '</span><span class="q">' + (p.cantidad > 1 ? 'x' + p.cantidad : '') + '</span></div>').join('');
+    const filas = (l) => l.map(p => '<div class="pieza-row"><span><strong>' + (p.mod ? lnkMod(p.mod, esc(p.titulo)) : esc(p.titulo)) + '</strong> · ' + esc(p.detalle) + (p.mods && p.mods !== '-' ? ' · ' + lnkMods(p.mods) : '') + '</span><span class="q">' + (p.cantidad > 1 ? 'x' + p.cantidad : '') + '</span></div>').join('');
     let h = '';
     if (r.ex.length) h += '<div class="modulo-card"><div class="modulo-titulo">Coincidencias exactas</div>' + filas(r.ex) + '</div>';
     if (r.ap.length) h += '<div class="modulo-card"><div class="modulo-titulo" style="color:var(--warn)">Aproximados (±1 mm)</div>' + filas(r.ap) + '</div>';
@@ -3356,7 +3390,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     pu: ['Pu', 'Push', '#4C8DE0'], mj: ['Mj', 'Con manija', '#4C8DE0'], bu: ['Bñ', 'Buña', '#4C8DE0'], ab: ['Ab', 'Abatible', '#4C8DE0'],
     cs: ['CS', 'Cierre suave', '#1FB2C9'],
     ap: ['Ap', 'Aplicados', '#6F88B8'], aj: ['Aj', 'Ajustes', '#C9774F'], ot: ['Ot', 'Otros', '#8A8F96'],
-    dg: ['Dg', 'Piezas a Tapacantos / Dilegno', '#7FA33B'], tl: ['Tl', 'Corte en taller', '#E0583D'], ph: ['PH', 'Puertas ya hechas', '#A07CC4'],
+    dg: ['Dg', 'Piezas a Tapacantos / Dilegno', '#7FA33B'], tl: ['Tl', 'Corte en taller', '#E0583D'], ph: ['PH', 'Puertas ya hechas', '#A07CC4'], ta: ['Ta', 'Tapa', '#B08968'],
   };
   function chipsDeModulo(x) {
     const id = String(x.id).trim(), out = new Map();
@@ -3382,7 +3416,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     D.sueltas.filter(r => String(r.idModulo || '').trim() === id).forEach(r => {
       const c = String(r.categoria || '').trim(), cn = c.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
       if (!c) return;
-      if (M.esPerfilL_(c)) poner('pl'); else if (M.esPisoAplicado_(c)) poner('pa'); else if (/^aplicad/.test(cn)) poner('ap'); else if (/^ajust/.test(cn)) poner('aj'); else if (/^otro/.test(cn)) poner('ot');
+      if (M.esPerfilL_(c)) poner('pl'); else if (M.esPisoAplicado_(c)) poner('pa'); else if (/^aplicad/.test(cn)) poner('ap'); else if (/^ajust/.test(cn)) poner('aj'); else if (/^otro/.test(cn)) poner('ot'); else if (/^tapas?$/.test(cn)) poner('ta');
       else poner('x_' + cn, 0, '', c, c.slice(0, 2), '#8A8F96');
     });
     const dp = duenoPerfilL(id); if (dp) poner('pl', 0, 'cubierto por ' + dp);
@@ -3393,8 +3427,18 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     return Array.from(out.values());
   }
   const chipHtml = (c) => '<span class="cp" style="--c:' + c.color + '" title="' + esc(c.tit) + '">' + esc(c.letras) + (c.n > 0 ? '<i>' + c.n + '</i>' : '') + '</span>';
+  // Los de siempre + cualquier tipo de pieza o de puerta que figure en las listas o en el proyecto y no tenga un color propio (para que la leyenda no se quede corta).
+  function chipsLeyenda() {
+    const lista = Object.keys(CHIPS).map(k => CHIPS[k]), vistos = new Set(lista.map(c => c[1].toLowerCase()));
+    const norm = (t) => String(t || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const conocidaPieza = (c) => M.esPerfilL_(c) || M.esPisoAplicado_(c) || /^(aplicad|ajust|otro)/.test(norm(c)) || /^tapas?$/.test(norm(c));
+    const conocidaPuerta = (t) => /perfil\s*l\b|piso|push|manija|buna|abatible/.test(norm(t));
+    opcionesTipoPieza().forEach(c => { if (c && !conocidaPieza(c) && !vistos.has(String(c).toLowerCase())) { vistos.add(String(c).toLowerCase()); lista.push([String(c).trim().slice(0, 2), String(c).trim(), '#8A8F96']); } });
+    opcionesTipoPuerta().forEach(t => { if (t && !conocidaPuerta(t) && !vistos.has(String(t).toLowerCase())) { vistos.add(String(t).toLowerCase()); lista.push([String(t).trim().slice(0, 2), String(t).trim(), '#4C8DE0']); } });
+    return lista;
+  }
   function leyendaChips() {
-    return '<details class="f-ley"><summary>Qué significa cada color</summary><div class="f-ley-l">' + Object.keys(CHIPS).map(k => '<div>' + chipHtml({ letras: CHIPS[k][0], color: CHIPS[k][2], n: 0, tit: CHIPS[k][1] }) + ' <span>' + esc(CHIPS[k][1]) + '</span></div>').join('') + '<p class="hint" style="margin:6px 0 0">El número es la cantidad. Pasá el cursor (o mantené apretado) sobre un chip para ver el detalle.</p></div></details>';
+    return '<details class="f-ley"><summary>Qué significa cada color</summary><div class="f-ley-l">' + chipsLeyenda().map(c => '<div>' + chipHtml({ letras: c[0], color: c[2], n: 0, tit: c[1] }) + ' <span>' + esc(c[1]) + '</span></div>').join('') + '<p class="hint" style="margin:6px 0 0">El número es la cantidad. Pasá el cursor (o mantené apretado) sobre un chip para ver el detalle.</p></div></details>';
   }
   function vistaFicha() {
     if (!D.modulos.length) {
@@ -3444,7 +3488,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       const bm = R.orden.modulos.find(x => x.idModulo === id);
       const prov = R.proveedor.filter(f => f.idModulo === id).reduce((s, f) => s + num(f.cantidad), 0);
       vivo = bm && bm.piezas.length ? '<div class="tabla-wrap"><table class="tabla-corte t-mini"><thead><tr><th>Pieza</th><th>Material</th><th class="n">Cant.</th><th class="n">L</th><th class="n">A</th><th class="n">E</th><th class="n">T.L.</th><th class="n">T.A.</th></tr></thead><tbody>' +
-        bm.piezas.map(p => '<tr><td class="p1">' + esc(p.nombreBase) + (p.cierreSuave ? ' <span class="tag-cs" title="Cierre suave: no cambia el corte, sirve para elegir las bisagras">C. suave</span>' : '') + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + ((p.material || bm.material) ? '<td class="mat p2" data-l="Material">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin p2" data-l="Material">–</td>') + '<td class="n" data-l="Cant.">' + p.cantidad + '</td><td class="n" data-l="L">' + p.largo + '</td><td class="n" data-l="A">' + p.ancho + '</td><td class="n" data-l="E">' + p.espesor + '</td>' + '<td class="n" data-l="T.L.">' + esc(p.tapLargo) + '</td><td class="n" data-l="T.A.">' + esc(p.tapAncho) + '</td>' + '</tr>').join('') + '</tbody></table></div>'
+        bm.piezas.map(p => '<tr><td class="p1"><span class="nom">' + esc(nombreVis(p)) + chipsMec(p) + '</span>' + (p.observaciones ? '<div class="obs-p">' + esc(p.observaciones) + '</div>' : '') + '</td>' + ((p.material || bm.material) ? '<td class="mat p2" data-l="Material">' + esc(p.material || bm.material) + '</td>' : '<td class="mat sin p2" data-l="Material">–</td>') + '<td class="n" data-l="Cant.">' + p.cantidad + '</td><td class="n" data-l="L">' + p.largo + '</td><td class="n" data-l="A">' + p.ancho + '</td><td class="n" data-l="E">' + p.espesor + '</td>' + '<td class="n" data-l="T.L.">' + esc(p.tapLargo) + '</td><td class="n" data-l="T.A.">' + esc(p.tapAncho) + '</td>' + '</tr>').join('') + '</tbody></table></div>'
         : '<div class="vacio">Este módulo todavía no genera piezas. Completá tipo, H, L y P.</div>';
       if (prov) vivo += '<p class="hint" style="margin:8px 0 0">Además, ' + prov + ' pieza(s) de este módulo van al proveedor (no figuran arriba).</p>';
     }
@@ -3522,7 +3566,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (!TODAS.length) return h + '<div class="card vacio">' + (hayFiltro() ? 'Ninguna pieza coincide con los filtros.' : 'Todavía no hay piezas.') + '</div>';
     const etiqueta = (p) => [p.pieza, p.cortePuerta, p.tipoPuerta, p.cierreSuave ? 'C. suave' : ''].filter(Boolean).join(' · ');
     if (hayBusqueda()) {
-      return h + bloqueBusqueda(TODAS.map(p => ({ titulo: etiqueta(p), detalle: [p.material, [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × '), p.modulos].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor })));
+      return h + bloqueBusqueda(TODAS.map(p => ({ titulo: etiqueta(p), mods: p.modulos, detalle: [p.material, [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × ')].filter(Boolean).join(' · '), cantidad: p.cantidad, largo: p.largo, ancho: p.ancho, espesor: p.espesor })));
     }
     if (agruparPor === 'modulos') {
       const porTipo = {}; D.modulos.forEach(m => { if (m.tipo) porTipo[m.tipo] = (porTipo[m.tipo] || 0) + 1; });
@@ -3559,8 +3603,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       const filas = its.map(p => {
         const medida = [p.largo, p.ancho, p.espesor].filter(Boolean).join(' × ');
         const tap = (p.tapLargo || p.tapAncho) ? p.tapLargo + ' en Largo, ' + p.tapAncho + ' en Ancho' : '';
-        const det = []; if (agruparPor !== 'material' && p.material) det.push(p.material); if (medida) det.push(medida); if (tap) det.push(tap); if (p.modulos && p.modulos !== '-') det.push(p.modulos);
-        return '<div class="pieza-row"><span><strong>' + esc(etiqueta(p)) + '</strong> · ' + esc(det.join(' · ')) + '</span><span class="q">x' + p.cantidad + '</span></div>';
+        const det = []; if (agruparPor !== 'material' && p.material) det.push(p.material); if (medida) det.push(medida); if (tap) det.push(tap);
+        return '<div class="pieza-row"><span><strong>' + esc(etiqueta(p)) + '</strong> · ' + esc(det.join(' · ')) + (p.modulos && p.modulos !== '-' ? (det.length ? ' · ' : '') + lnkMods(p.modulos) : '') + '</span><span class="q">x' + p.cantidad + '</span></div>';
       }).join('');
       return '<div class="card"><div class="barra" style="margin-bottom:8px"><h2 style="margin:0">' + esc(k) + '</h2>' + encab + '</div>' + extra + filas + '</div>';
     }).join('');
@@ -3617,7 +3661,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     let h = '<div class="card"><div class="barra"><div><h2>Dilegno · piezas para el proveedor <span class="chip">' + P.length + '</span></h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="sec mini" data-acc="prov-csv">Descargar CSV</button><button class="sec mini" data-acc="prov-json">Descargar JSON Dilegno</button></div></div>' +
       '<p class="hint">Son las piezas cargadas en “Tapacantos”. También figuran en la lista de cortes por material de más abajo. El JSON se arma en el formato de Dilegno (un archivo por placa, en un .zip si hay más de una): necesita el catálogo completo de Dilegno cargado (con medidas y veta). “Gira” siempre es automático: gira si la placa no tiene veta.</p>';
     h += P.length ? '<div class="tabla-wrap"><table class="tabla-corte"><thead><tr><th>ID Módulo</th><th>Pieza</th><th>Material</th><th>Material placa</th><th>Tap. principal</th><th>Tap. secundario</th><th>L</th><th>A</th><th>E</th><th>Cant.</th><th>Gira</th><th>Arr.</th><th>Ab.</th><th>Izq.</th><th>Der.</th></tr></thead><tbody>' +
-      P.map(f => '<tr' + claseControlProv(f) + '><td>' + (f.idModulo ? '<span class="id-pill">' + esc(f.idModulo) + '</span>' : '') + '</td><td>' + esc(f.pieza) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
+      P.map(f => '<tr' + claseControlProv(f) + '><td>' + (f.idModulo ? lnkMod(f.idModulo, '<span class="id-pill">' + esc(f.idModulo) + '</span>') : '') + '</td><td>' + lnkMod(f.idModulo, esc(f.pieza)) + '</td><td class="mat">' + esc(f.material) + '</td><td>' + esc(f.materialPlaca) + '</td><td>' + esc(f.tapacantoPrincipal) + '</td><td>' + esc(f.tapacantoSecundario) + '</td><td class="n">' + f.largo + '</td><td class="n">' + f.ancho + '</td><td class="n">' + f.espesor + '</td><td class="n">' + f.cantidad + '</td><td class="n">' + (giraDe(f) ? 'Sí' : 'No') + '</td><td class="n">' + f.arr + '</td><td class="n">' + f.ab + '</td><td class="n">' + f.izq + '</td><td class="n">' + f.der + '</td></tr>').join('') + '</tbody></table></div>'
       : '<div class="vacio">Ninguna pieza va al proveedor. Se cargan en la pestaña “Tapacantos”.</div>';
     h += '</div>';
 
@@ -3836,7 +3880,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     calcularControl();
     const act = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.k : null;
     const actFresco = !!(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.sel === '1');
-    const nav = PESTANAS.map(([k, t]) => { const n = contador(k); const act = k === tab || (k === 'manual' && esManual(tab)); return '<a data-tab="' + k + '" class="' + (act ? 'activa' : '') + '">' + t + (n ? '<span class="n">' + n + '</span>' : '') + ctlBadge(k) + '</a>'; }).join('') +
+    const nav = PESTANAS.map(([k, t]) => { const n = contador(k); const act = k === tab || (k === 'manual' && esManual(tab)); return '<a data-tab="' + k + '" class="' + (act ? 'activa' : '') + '"><span class="nl">' + (NAVICO[k] || '') + '<span>' + t + '</span></span>' + (n ? '<span class="n">' + n + '</span>' : '') + ctlBadge(k) + '</a>'; }).join('') +
       '<span style="flex:1"></span><button class="mini" data-acc="etiquetas-pdf" title="Genera y descarga el PDF con una etiqueta por pieza">' + ICO.tag + ' Imprimir etiquetas</button>';
     $('#tabs').innerHTML = nav;
     $('#avisos').innerHTML = avisosHtml();
@@ -4590,6 +4634,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       $('#hLista', dlg).innerHTML = '<p class="hint" style="margin:8px 0 4px">VERSIONES CON NOMBRE (' + nombradas.length + ')</p>' + (erroresNom ? '<div class="vacio" style="color:var(--err)">' + esc(erroresNom) + '</div>' : nombradas.length ? nombradas.map(filaNombrada).join('') : '<div class="vacio">Todavía no guardaste ninguna. Tocá “★ Guardar versión con nombre…”.</div>') +
         '<p class="hint" style="margin:14px 0 4px">GUARDADOS A MANO (' + manuales.length + ')</p>' + (manuales.length ? manuales.map(filaCommit).join('') : '<div class="vacio">' + (versiones.length ? 'Ninguno entre las últimas ' + versiones.length + ' versiones.' : 'Este proyecto todavía no se subió a GitHub.') + '</div>') +
         '<details style="margin-top:14px"><summary class="hint" style="cursor:pointer">AUTOGUARDADOS (' + autos.length + ')</summary>' + (autos.length ? autos.map(filaCommit).join('') : '<div class="vacio">Ninguno.</div>') + '</details>';
+      if (soloLectura) dlg.querySelectorAll('[data-v],[data-vn],[data-vndel],[data-gv]').forEach(x => { x.disabled = true; x.title = 'Solo lectura: otra persona está editando'; });
     };
     const cargarDatos = async (datos) => {
       const cab = await St.ghLeer(D.meta.archivo);
@@ -4599,6 +4644,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     dlg.addEventListener('click', async (e) => {
       const b = e.target.closest('button'); if (!b) return;
       if (b.dataset.r === 'x') { dlg.close(); return; }
+      if (soloLectura && (b.dataset.v !== undefined || b.dataset.vn !== undefined || b.dataset.vndel !== undefined || b.dataset.gv !== undefined)) { avisoSoloLectura(); return; }
       if (b.dataset.gv !== undefined) {
         const n = await pedirTexto('Nombre de la versión', '', 'Guardar versión');
         if (!n) return;
@@ -5166,6 +5212,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   }
   if (main) {
     document.addEventListener('focusin', function (e) {
+      if (e.target.closest && e.target.closest('a.ir-mod')) return;   // el enlace a la ficha no activa la fila (si la fila se agranda, el clic se pierde)
       var r = e.target.closest && e.target.closest(SEL);
       if (r && main.contains(r)) marcar(r);
     });
