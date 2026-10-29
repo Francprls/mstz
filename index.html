@@ -666,6 +666,11 @@ nav.tabs a .nl svg { flex: none; width: 18px; height: 18px; opacity: .9 }
 @media print { .ir-mod { border: 0; color: inherit !important } .ir-flecha { display: none } }
 button:disabled, button[disabled] { opacity: .45; cursor: not-allowed; filter: saturate(.35); }
 body.solo-lectura button.peligro:disabled { background: var(--soft2); color: var(--mute2); border-color: var(--borde); }
+.f-ley[open] { flex: 0 1 auto; max-height: min(44vh, 400px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding-right: 4px; border-bottom: 1px solid var(--borde); }
+.f-ley[open] summary { position: sticky; top: 0; background: var(--bg); z-index: 1; padding: 4px 0; }
+.f-ley-l .hint { padding-bottom: 8px; }
+.f-items { min-height: 120px; }
+@media (max-width: 720px) { .f-ley[open] { max-height: none; overflow: visible; } .f-items { min-height: 0; } }
 .nom { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap }
 .tag-push { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 7px; border-radius:99px; background:color-mix(in srgb, #a855f7 18%, transparent); color:#d8b4fe; border:1px solid color-mix(in srgb, #a855f7 42%, transparent); vertical-align:middle; white-space:nowrap; line-height:1.5 }
 :root[data-tema="claro"] .tag-push { color:#7e22ce }
