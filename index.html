@@ -803,6 +803,8 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
 .ag-pl label { display: flex; align-items: center; gap: 8px; min-width: 150px; cursor: pointer; }
 .ag-pl input[type=checkbox] { width: 18px; height: 18px; }
 @media (max-width: 560px) { .ag-cab { padding: 12px 10px; gap: 8px; } .ag-rel { margin-left: 0; flex-basis: 100%; } }
+.ag-ok { color: var(--ok); font-weight: 700; }
+.ag-pl .ag-drive { margin-left: 4px; }
 /* color propio de la pestaña Agenda (el resto de las pestañas ya tiene el suyo) */
 :root { --tc-agenda: #E27BA8; }
 :root[data-tema="claro"] { --tc-agenda: #C2548A; }
@@ -3938,7 +3940,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   const AG_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbz2VQgfKzFSw2UxHPF6oBI72fI-YSgfhnZREE4VMXSIT1Pr3LwWWATLqPzuWXzTf9-h/exec';
   const AG_RUTA_JSON = 'catalogo/agenda.json';      // { "url": "https://script.google.com/macros/s/…/exec" }
   const AG_K = 'despiece:agenda', AG_KC = 'despiece:agenda:cache', AG_KU = 'despiece:agenda:url';
-  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, renombrando: false, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, plan: null, ocupado: false, verConfig: false };
+  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, renombrando: false, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, matsPedido: {}, plan: null, otro: null, planOtro: null, verPlanDe: '', ocupado: false, verConfig: false };
   function agNormCfg(o) {
     o = o || {}; const m = Math.floor(Number(o.margen));
     const um = String(o.urlManual || o.url || '').trim();
@@ -3969,7 +3971,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   const agRender = () => {
     agEncabezado();
     if (tab !== 'agenda') return;
-    const a = document.activeElement; if (a && a.closest && a.closest('.ag-cfg')) return;      // no pisar lo que se está escribiendo
+    const a = document.activeElement; if (a && a.closest && a.closest('.ag-cfg, [data-ag-otro]')) return;      // no pisar lo que se está escribiendo
     render();
   };
   const agUrlOk = (u) => /^https:\/\//.test(String(u || ''));
@@ -4112,7 +4114,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       toast('Cambiando el nombre en el calendario…');
       const r = await agLlamar('renombrarProyecto', { de: viejo, a: nuevo });
       if (AG.datos && AG.datos[viejo]) { AG.datos[nuevo] = AG.datos[viejo].map(e => Object.assign({}, e, { proyecto: nuevo })); delete AG.datos[viejo]; agGuardarCache(); }
-      delete AG.mats[viejo]; delete AG.mats[nuevo];
+      delete AG.mats[viejo]; delete AG.mats[nuevo]; delete AG.matsPedido[viejo]; delete AG.matsPedido[nuevo];
       if (AG.abiertos[viejo]) { AG.abiertos[nuevo] = true; delete AG.abiertos[viejo]; }
       toast('Nombre cambiado en el calendario (' + r.eventos + (r.eventos === 1 ? ' etapa' : ' etapas') + ')' + (r.carpeta ? ' y en Drive' : '') + '.', 'ok');
       agRender();
@@ -4121,36 +4123,57 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     } finally { AG.renombrando = false; }
   }
 
-  // Plan de etapas del proyecto abierto: se propone con el alta y la entrega, se ajusta a mano y recién al confirmar se crea en el calendario.
+  // Plan de etapas: se propone con el alta y la entrega, se ajusta a mano y recién al confirmar se crea en el calendario.
+  // Sirve para el proyecto abierto (sin argumento) o para otro proyecto que se cargue desde la Agenda (AG.otro).
   // Al cambiar el alta o la entrega se vuelven a proponer sólo las fechas que no se tocaron a mano; las editadas (manual) se conservan.
-  function agPlanActual() {
-    const p = D.proyecto, key = [p.nombre, p.fecha, p.fechaEntrega].join('|');
-    if (!AG.plan || AG.plan.key !== key) {
+  function agPlanActual(o) {
+    const p = o || D.proyecto, slot = o ? 'planOtro' : 'plan', key = [p.nombre, p.fecha, p.fechaEntrega].join('|');
+    const pl = AG[slot];
+    if (!pl || pl.key !== key) {
       const prop = agProponer(p.fecha, p.fechaEntrega);
-      const prev = (AG.plan && AG.plan.nombre === p.nombre) ? AG.plan.filas : null;
-      AG.plan = { key, nombre: p.nombre, filas: AG_ETAPAS.map(e => {
+      const prev = (pl && (o || pl.nombre === p.nombre)) ? pl.filas : null;
+      AG[slot] = { key, nombre: p.nombre, filas: AG_ETAPAS.map(e => {
         const x = prop.find(y => y.etapa === e), a = prev && prev.find(f => f.etapa === e);
         if (a && a.manual) return a;
         return { etapa: e, activa: a ? a.activa : AG_PROPUESTA_BASE.indexOf(e) >= 0, fecha: x ? x.fecha : '', manual: false };
       }) };
     }
-    return AG.plan;
+    return AG[slot];
   }
-  async function agConfirmarPlan() {
-    const nombre = String(D.proyecto.nombre || '').trim();
-    if (!nombre) { toast('Ponele nombre al proyecto primero.', 'err'); return; }
-    const sel = agPlanActual().filas.filter(f => f.activa);
+  // Un proyecto está “programado” si ya tiene etapas en el calendario.
+  const agProgramado = (n) => !!(n && AG.datos && AG.datos[n] && AG.datos[n].length);
+
+  async function agConfirmarPlan(esOtro) {
+    const o = esOtro ? AG.otro : null; if (esOtro && !o) return;
+    const p = o || D.proyecto, nombre = String(p.nombre || '').trim();
+    if (!nombre) { toast(o ? 'Escribí el nombre del proyecto.' : 'Ponele nombre al proyecto primero.', 'err'); return; }
+    const sel = agPlanActual(o).filas.filter(f => f.activa);
     if (!sel.length) { toast('Elegí al menos una etapa.', 'err'); return; }
     if (sel.some(f => !agParse(f.fecha))) { toast('Falta la fecha de alguna etapa elegida.', 'err'); return; }
+    if (o && agProgramado(nombre) && !(await confirmar('Ya hay un proyecto llamado "' + nombre + '" en la agenda. ¿Actualizar sus fechas con las de acá? Si es otro proyecto, cambiale el nombre.', 'Actualizar fechas'))) return;
     AG.ocupado = true; agRender();
     try {
       const r = await agLlamar('crearEtapas', { proyecto: nombre, etapas: sel.map(f => ({ etapa: f.etapa, fecha: f.fecha })) });
       // El alta ya ocurrió: si esa etapa recién se creó, queda marcada como hecha con su propia fecha.
       const ini = (r || []).find(x => x.etapa === 'inicio' && x.estado === 'pendiente');
       if (ini && agDias(agHoy(), ini.fecha) <= 0) { try { await agLlamar('marcarEtapa', { eventoId: ini.id, estado: 'hecha', fechaReal: ini.fecha }); } catch (e) { /* queda pendiente: se marca a mano */ } }
-      AG.abiertos[nombre] = true; AG.ocupado = false;
+      AG.abiertos[nombre] = true;
       toast('Etapas de ' + nombre + ' guardadas en el calendario', 'ok');
-      AG.cargando = false; await agCargar();
+      if (o) {
+        // Otro proyecto: si se pidió, también su carpeta de Drive, confirmando la fecha de inicio (por defecto, el alta).
+        if (o.carpeta) {
+          const inicio = await agPedirInicio(nombre, agFechaOk(p.fecha) ? p.fecha : agHoy());
+          if (inicio) {
+            try {
+              const c = await agLlamar('crearCarpetaProyecto', { proyecto: nombre, inicio });
+              toast(c && c.mes ? (c.yaExistia ? 'Ese proyecto ya tenía carpeta (' + c.mes + '): se usó la que estaba.' : 'Carpeta creada en ' + c.mes + (c.mesCreado ? ' (mes nuevo).' : '.')) : 'Carpeta creada, pero el puente es de una versión anterior y no la ordenó por mes: falta publicar la versión 4.', c && c.mes ? 'ok' : 'err');
+            } catch (e) { toast('Las etapas quedaron en el calendario, pero la carpeta de Drive no se pudo crear: ' + e.message, 'err'); }
+          }
+        }
+        delete AG.mats[nombre]; delete AG.matsPedido[nombre];
+        AG.otro = null; AG.planOtro = null;
+      } else AG.verPlanDe = '';
+      AG.ocupado = false; AG.cargando = false; await agCargar();
     } catch (e) { toast('No se pudo crear en el calendario: ' + e.message, 'err'); }
     AG.ocupado = false; agRender();
   }
@@ -4213,23 +4236,51 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     return h + '</div>';
   }
 
+  // Tarjeta “Programar etapas”. Si el proyecto abierto ya está en el calendario, muestra su estado (calendario y Drive) en vez del formulario,
+  // y ofrece programar otro proyecto distinto. El formulario completo sólo aparece para un proyecto sin programar o a pedido.
   function agPlanHtml() {
+    if (AG.otro) return agPlanFormHtml(AG.otro, true);
     const p = D.proyecto, nombre = String(p.nombre || '').trim();
-    if (!nombre) return '<div class="card no-print ag"><h2>Programar etapas</h2><p class="hint">Ponele nombre al proyecto (pestaña Proyecto) para poder programar sus etapas en el calendario.</p></div>';
-    const plan = agPlanActual(), ya = (AG.datos && AG.datos[nombre]) || [];
+    if (!nombre) return '<div class="card no-print ag"><h2>Programar etapas</h2><p class="hint">Ponele nombre al proyecto (pestaña Proyecto) para programar sus etapas en el calendario, o programá otro proyecto distinto.</p><button class="sec" data-ag-otro-nuevo>Programar otro proyecto</button></div>';
+    if (agProgramado(nombre) && AG.verPlanDe !== nombre) return agProgramadoHtml(nombre);
+    return agPlanFormHtml(p, false);
+  }
+  function agProgramadoHtml(nombre) {
+    const et = AG.datos[nombre], hechas = et.filter(e => e.estado === 'hecha').length;
+    if (agListo() && !AG.mats[nombre] && !AG.matsPedido[nombre]) { AG.matsPedido[nombre] = true; setTimeout(() => agMateriales(nombre), 0); }      // comprueba la carpeta de Drive una vez
+    const m = AG.mats[nombre], en = esc(nombre);
+    let drive;
+    if (!m || m.cargando) drive = '<span class="ag-rel" style="margin-left:0">Drive: comprobando…</span>';
+    else if (m.error) drive = '<span class="ag-rel" style="margin-left:0">Drive: no se pudo comprobar</span><button class="sec mini" data-ag-mats="' + en + '">Reintentar</button>';
+    else if (m.datos && m.datos.carpeta) drive = '<span class="ag-ok">✓</span><span>Drive: la carpeta ya está armada</span>' + (agUrlOk(m.datos.carpeta.url) ? '<a class="ag-drive" href="' + esc(m.datos.carpeta.url) + '" target="_blank" rel="noopener">Abrir ↗</a>' : '');
+    else drive = '<span>Drive: todavía sin carpeta</span><button class="mini" data-ag-carpeta="' + en + '">Crear carpeta…</button>';
+    return '<div class="card no-print ag"><h2>Programar etapas</h2>' +
+      '<p class="hint" style="margin:0 0 6px"><strong>' + en + '</strong> ya está programado: no hace falta volver a cargarlo.</p>' +
+      '<div class="ag-pl"><span class="ag-ok">✓</span><span>Calendario: ' + et.length + (et.length === 1 ? ' etapa' : ' etapas') + ' (' + hechas + ' hechas)</span></div>' +
+      '<div class="ag-pl">' + drive + '</div>' +
+      '<p class="hint" style="margin-top:10px">Para cargar un proyecto que todavía no esté en la agenda, usá “Programar otro proyecto”. Las fechas de este se ajustan en su lista, arriba.</p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button data-ag-otro-nuevo>Programar otro proyecto</button><button class="sec" data-ag-plan-ver>Agregar o reprogramar etapas de este</button></div></div>';
+  }
+  function agPlanFormHtml(p, otro) {
+    const nombre = String(p.nombre || '').trim(), plan = agPlanActual(otro ? p : null), ya = (!otro && AG.datos && AG.datos[nombre]) || [], marca = otro ? ' data-ag-o="1"' : '';
     const filas = plan.filas.map(f => {
       const ex = ya.find(x => x.etapa === f.etapa);
-      return '<div class="ag-pl"><label><input type="checkbox" data-ag-pon="' + esc(f.etapa) + '"' + (f.activa ? ' checked' : '') + '> <span class="ag-en">' + esc(f.etapa) + '</span></label>' +
-        '<input type="date" data-ag-pfecha="' + esc(f.etapa) + '" value="' + esc(f.fecha) + '" aria-label="Fecha de ' + esc(f.etapa) + '">' +
+      return '<div class="ag-pl"><label><input type="checkbox" data-ag-pon="' + esc(f.etapa) + '"' + marca + (f.activa ? ' checked' : '') + '> <span class="ag-en">' + esc(f.etapa) + '</span></label>' +
+        '<input type="date" data-ag-pfecha="' + esc(f.etapa) + '"' + marca + ' value="' + esc(f.fecha) + '" aria-label="Fecha de ' + esc(f.etapa) + '">' +
         (ex ? '<span class="ag-rel">en el calendario: ' + esc(agFmt(ex.fecha)) + (ex.estado === 'hecha' ? ' (hecha)' : '') + '</span>' : '') + '</div>';
     }).join('');
-    return '<div class="card no-print ag"><h2>Programar etapas · ' + esc(nombre) + '</h2>' +
-      '<p class="hint">Las fechas se proponen repartiendo las etapas entre el alta y la entrega estimada. Ajustalas como quieras: los eventos se crean en el calendario recién cuando confirmás' + (ya.length ? '. Este proyecto ya tiene etapas: al confirmar sólo se actualizan sus fechas.' : '.') + '</p>' +
-      '<div class="grid2"><div class="campo"><label class="l">Alta del proyecto</label><input type="date" data-ag-proy="fecha" value="' + esc(p.fecha) + '"></div>' +
-      '<div class="campo"><label class="l">Entrega estimada</label><input type="date" data-ag-proy="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '"></div></div>' +
+    const campoAlta = otro ? '<input type="date" data-ag-otro="fecha" value="' + esc(p.fecha || '') + '">' : '<input type="date" data-ag-proy="fecha" value="' + esc(p.fecha) + '">';
+    const campoEnt = otro ? '<input type="date" data-ag-otro="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '">' : '<input type="date" data-ag-proy="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '">';
+    return '<div class="card no-print ag"><h2>' + (otro ? 'Programar otro proyecto' : 'Programar etapas · ' + esc(nombre)) + '</h2>' +
+      '<p class="hint">' + (otro ? 'Cargá un proyecto que todavía no esté en la agenda (no hace falta tenerlo abierto en la app). ' : '') + 'Las fechas se proponen repartiendo las etapas entre el alta y la entrega estimada. Ajustalas como quieras: los eventos se crean en el calendario recién cuando confirmás' + (ya.length ? '. Este proyecto ya tiene etapas: al confirmar sólo se actualizan sus fechas.' : '.') + '</p>' +
+      (otro ? '<div class="campo" style="margin-bottom:10px"><label class="l">Nombre del proyecto</label><input type="text" data-ag-otro="nombre" value="' + esc(p.nombre || '') + '" placeholder="Calle y número, o barrio" autocomplete="off"></div>' : '') +
+      '<div class="grid2"><div class="campo"><label class="l">Alta del proyecto</label>' + campoAlta + '</div>' +
+      '<div class="campo"><label class="l">Entrega estimada</label>' + campoEnt + '</div></div>' +
       (p.fechaEntrega ? '' : '<p class="hint" style="margin-top:8px">Cargá la entrega estimada y se proponen las fechas de cada etapa.</p>') +
       '<div class="ag-plan">' + filas + '</div>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button data-ag-confirmar' + ((!agListo() || AG.ocupado) ? ' disabled' : '') + '>' + (AG.ocupado ? 'Creando…' : 'Confirmar y crear en el calendario') + '</button><button class="sec" data-ag-reproponer>Proponer de nuevo</button></div>' +
+      (otro ? '<label class="ag-pl" style="cursor:pointer;margin-top:6px"><input type="checkbox" data-ag-otro-carp' + (p.carpeta ? ' checked' : '') + '> <span>Crear también la carpeta en Drive (dentro de la carpeta del mes de inicio)</span></label>' : '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button data-ag-confirmar="' + (otro ? 'o' : '') + '"' + ((!agListo() || AG.ocupado) ? ' disabled' : '') + '>' + (AG.ocupado ? 'Creando…' : 'Confirmar y crear en el calendario') + '</button><button class="sec" data-ag-reproponer="' + (otro ? 'o' : '') + '">Proponer de nuevo</button>' +
+      (otro ? '<button class="sec" data-ag-otro-fin>Cancelar</button>' : (AG.verPlanDe === nombre ? '<button class="sec" data-ag-plan-cerrar>Cerrar</button>' : '')) + '</div>' +
       (agListo() ? '' : '<p class="hint" style="margin-top:8px">Primero conectá la agenda (más abajo).</p>') + '</div>';
   }
 
@@ -4302,8 +4353,12 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       if ((b = q('[data-ag-carpeta]'))) { agCrearCarpeta(b.dataset.agCarpeta); return; }
       if (q('[data-ag-actualizar]')) { AG.error = ''; agCargar(); return; }
       if (q('[data-ag-config]')) { AG.verConfig = !AG.verConfig; render(); return; }
-      if (q('[data-ag-reproponer]')) { AG.plan = null; render(); return; }
-      if (q('[data-ag-confirmar]')) { agConfirmarPlan(); return; }
+      if ((b = q('[data-ag-reproponer]'))) { if (b.dataset.agReproponer === 'o') AG.planOtro = null; else AG.plan = null; render(); return; }
+      if ((b = q('[data-ag-confirmar]'))) { agConfirmarPlan(b.dataset.agConfirmar === 'o'); return; }
+      if (q('[data-ag-otro-nuevo]')) { AG.otro = { nombre: '', fecha: agHoy(), fechaEntrega: '', carpeta: true }; AG.planOtro = null; render(); return; }
+      if (q('[data-ag-otro-fin]')) { AG.otro = null; AG.planOtro = null; render(); return; }
+      if (q('[data-ag-plan-ver]')) { AG.verPlanDe = String(D.proyecto.nombre || '').trim(); render(); return; }
+      if (q('[data-ag-plan-cerrar]')) { AG.verPlanDe = ''; render(); return; }
       if (q('[data-ag-guardar-cfg]')) {
         const c = agLeerForm();
         const urlEscrita = ((document.getElementById('agUrl') || {}).value || '').trim();
@@ -4330,10 +4385,14 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       const el = e.target; if (!el.dataset) return;
       if (el.dataset.agEstado !== undefined) { agMarcar(el.dataset.agEstado, el.value); return; }
       if (el.dataset.agFecha !== undefined) { if (agFechaOk(el.value)) agMover(el.dataset.agFecha, el.value); return; }
-      if (el.dataset.agPon !== undefined) { const f = agPlanActual().filas.find(x => x.etapa === el.dataset.agPon); if (f) f.activa = el.checked; return; }
-      if (el.dataset.agPfecha !== undefined) { const f = agPlanActual().filas.find(x => x.etapa === el.dataset.agPfecha); if (f && agFechaOk(el.value, true)) { f.fecha = el.value; f.manual = true; } return; }
+      if (el.dataset.agPon !== undefined) { const f = agPlanActual(el.dataset.agO ? AG.otro : null).filas.find(x => x.etapa === el.dataset.agPon); if (f) f.activa = el.checked; return; }
+      if (el.dataset.agPfecha !== undefined) { const f = agPlanActual(el.dataset.agO ? AG.otro : null).filas.find(x => x.etapa === el.dataset.agPfecha); if (f && agFechaOk(el.value, true)) { f.fecha = el.value; f.manual = true; } return; }
+      if (el.dataset.agOtroCarp !== undefined && AG.otro) { AG.otro.carpeta = el.checked; return; }
+      if (el.dataset.agOtro !== undefined && AG.otro) { const k = el.dataset.agOtro; if (k === 'nombre') { AG.otro.nombre = el.value; return; } if (agFechaOk(el.value, true)) { AG.otro[k] = el.value; render(); } return; }
       if (el.dataset.agProy !== undefined) { if (!agFechaOk(el.value, true)) return; setVal('proyecto', 0, el.dataset.agProy, el.value); render(); }
     });
+    // El nombre del otro proyecto se guarda mientras se escribe (sin redibujar la pantalla, para no perder el foco).
+    document.addEventListener('input', (e) => { const el = e.target; if (el && el.dataset && el.dataset.agOtro === 'nombre' && AG.otro) AG.otro.nombre = el.value; });
     // Las miniaturas de Drive sólo se ven si quien mira tiene acceso al archivo: si no cargan, queda el nombre.
     document.addEventListener('error', (e) => { const t = e.target; if (t && t.classList && t.classList.contains('ag-mini')) t.style.display = 'none'; }, true);
     // Al abrir la app se traen los datos, así el semáforo del encabezado está al día sin entrar a la pestaña Agenda.
