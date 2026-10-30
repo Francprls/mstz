@@ -803,8 +803,14 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
 .ag-pl label { display: flex; align-items: center; gap: 8px; min-width: 150px; cursor: pointer; }
 .ag-pl input[type=checkbox] { width: 18px; height: 18px; }
 @media (max-width: 560px) { .ag-cab { padding: 12px 10px; gap: 8px; } .ag-rel { margin-left: 0; flex-basis: 100%; } }
-.ag-ok { color: var(--ok); font-weight: 700; }
+.ag-tilde { color: var(--ok); font-weight: 700; }
 .ag-pl .ag-drive { margin-left: 4px; }
+/* Botón "Hecha": verde del semáforo, con el texto que corresponde a cada tema (blanco en claro, oscuro en oscuro) */
+.ag-et button.ag-ok { background: var(--ok); border-color: var(--ok); color: var(--on-accion); font-weight: 700; }
+.ag-et button.ag-ok:hover { filter: brightness(1.08); }
+/* Avisos de cada etapa y del encabezado: siguen los colores del semáforo */
+.ag-rel.verde, .ag-txt.verde { color: var(--ok); } .ag-rel.amarillo, .ag-txt.amarillo { color: var(--warn); } .ag-rel.rojo, .ag-txt.rojo { color: var(--err); }
+.ag-rel.verde, .ag-rel.amarillo, .ag-rel.rojo, .ag-txt.verde, .ag-txt.amarillo, .ag-txt.rojo { font-weight: 600; }
 /* color propio de la pestaña Agenda (el resto de las pestañas ya tiene el suyo) */
 :root { --tc-agenda: #E27BA8; }
 :root[data-tema="claro"] { --tc-agenda: #C2548A; }
@@ -3961,7 +3967,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       const n = String((D && D.proyecto && D.proyecto.nombre) || '').trim();
       if (n && agListo() && AG.datos) {
         const inf = agProyecto(AG.datos[n] || [], agHoy(), AG.cfg.margen);
-        h = '<i class="ag-sem sm ' + inf.color + '"></i>' + esc(AG_ROTULO[inf.color]);
+        h = '<i class="ag-sem sm ' + inf.color + '"></i><span class="ag-txt ' + inf.color + '">' + esc(AG_ROTULO[inf.color]) + '</span>';
         if (inf.proxima) { const d = agDias(agHoy(), inf.proxima.fecha); t = 'Próxima: ' + inf.proxima.etapa + ' · ' + agFmt(inf.proxima.fecha) + ' (' + (d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d)) + ')'; }
       }
     } catch (e) { h = ''; t = ''; }
@@ -4195,7 +4201,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       '<input type="date" data-ag-fecha="' + esc(e.id) + '" value="' + esc(e.fecha) + '" aria-label="Fecha de ' + esc(e.etapa) + '">' +
       '<select data-ag-estado="' + esc(e.id) + '" aria-label="Estado de ' + esc(e.etapa) + '">' + AG_ESTADOS.map(s => '<option value="' + s[0] + '"' + (e.estado === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>' +
       (e.estado !== 'hecha' ? '<button class="mini ag-ok" data-ag-hecha="' + esc(e.id) + '" title="Marcar como hecha (anota la fecha de hoy)">✓ Hecha</button>' : '') +
-      '<span class="ag-rel">' + esc(nota) + '</span></div>';
+      '<span class="ag-rel ' + sem + '">' + esc(nota) + '</span></div>';
   }
 
   function agMatsHtml(n) {
@@ -4252,11 +4258,11 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     let drive;
     if (!m || m.cargando) drive = '<span class="ag-rel" style="margin-left:0">Drive: comprobando…</span>';
     else if (m.error) drive = '<span class="ag-rel" style="margin-left:0">Drive: no se pudo comprobar</span><button class="sec mini" data-ag-mats="' + en + '">Reintentar</button>';
-    else if (m.datos && m.datos.carpeta) drive = '<span class="ag-ok">✓</span><span>Drive: la carpeta ya está armada</span>' + (agUrlOk(m.datos.carpeta.url) ? '<a class="ag-drive" href="' + esc(m.datos.carpeta.url) + '" target="_blank" rel="noopener">Abrir ↗</a>' : '');
+    else if (m.datos && m.datos.carpeta) drive = '<span class="ag-tilde">✓</span><span>Drive: la carpeta ya está armada</span>' + (agUrlOk(m.datos.carpeta.url) ? '<a class="ag-drive" href="' + esc(m.datos.carpeta.url) + '" target="_blank" rel="noopener">Abrir ↗</a>' : '');
     else drive = '<span>Drive: todavía sin carpeta</span><button class="mini" data-ag-carpeta="' + en + '">Crear carpeta…</button>';
     return '<div class="card no-print ag"><h2>Programar etapas</h2>' +
       '<p class="hint" style="margin:0 0 6px"><strong>' + en + '</strong> ya está programado: no hace falta volver a cargarlo.</p>' +
-      '<div class="ag-pl"><span class="ag-ok">✓</span><span>Calendario: ' + et.length + (et.length === 1 ? ' etapa' : ' etapas') + ' (' + hechas + ' hechas)</span></div>' +
+      '<div class="ag-pl"><span class="ag-tilde">✓</span><span>Calendario: ' + et.length + (et.length === 1 ? ' etapa' : ' etapas') + ' (' + hechas + ' hechas)</span></div>' +
       '<div class="ag-pl">' + drive + '</div>' +
       '<p class="hint" style="margin-top:10px">Para cargar un proyecto que todavía no esté en la agenda, usá “Programar otro proyecto”. Las fechas de este se ajustan en su lista, arriba.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button data-ag-otro-nuevo>Programar otro proyecto</button><button class="sec" data-ag-plan-ver>Agregar o reprogramar etapas de este</button></div></div>';
