@@ -748,6 +748,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   <datalist id="dl-mat"></datalist>
 </div>
 <div id="sheetMas" class="no-print" role="menu" aria-label="Más secciones" hidden>
+  <a data-tab="agenda" role="menuitem"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg><span>Agenda</span></a>
   <a role="menuitem" data-tab="proyecto"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg><span>Proyecto</span></a>
   <a data-tab="listas" role="menuitem"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Listas</span></a>
   <a data-acc="etiquetas-pdf" role="menuitem" class="sep"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg><span>Imprimir etiquetas</span></a>
@@ -760,6 +761,53 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   <a data-tab="proveedores" data-nav="proveedores" aria-label="Cortes"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg><span>Cortes</span></a>
   <a id="navMas" data-nav="mas" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Más"><svg class="i" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg><span>Más</span></a>
 </nav>
+<style id="agenda-css">
+/* Agenda (Calendar + Drive): usa sólo las variables de color de la app, así sigue el tema claro/oscuro */
+.ag .barra { gap: 10px; flex-wrap: wrap; }
+.ag-estado { font-size: 12.5px; color: var(--mute); margin: 2px 0 10px; }
+.ag-err { color: var(--err); font-size: 13px; margin: 6px 0; }
+.ag-leg { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--mute); margin-bottom: 12px; }
+.ag-leg span { display: inline-flex; align-items: center; gap: 6px; }
+i.ag-sem { display: inline-block; width: 12px; height: 12px; border-radius: 50%; flex: none; background: var(--mute); }
+i.ag-sem.sm { width: 9px; height: 9px; }
+i.ag-sem.verde { background: var(--ok); } i.ag-sem.amarillo { background: var(--warn); } i.ag-sem.rojo { background: var(--err); }
+i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid var(--mute); }
+.ag-proy { border: 1px solid var(--borde); border-left-width: 4px; border-radius: 12px; margin-bottom: 8px; background: var(--card2); }
+.ag-proy.verde { border-left-color: var(--ok); } .ag-proy.amarillo { border-left-color: var(--warn); } .ag-proy.rojo { border-left-color: var(--err); }
+.ag-cab { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; background: transparent; color: var(--txt); border: 0; border-radius: 10px; padding: 12px 14px; cursor: pointer; font: inherit; min-height: 52px; white-space: normal; }
+.ag-cab:hover { background: color-mix(in srgb, var(--txt) 6%, transparent); }
+.ag-pos { min-width: 18px; color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; text-align: right; }
+.ag-nom { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.ag-nom small { flex-basis: 100%; overflow-wrap: anywhere; color: var(--mute); font-size: 12px; line-height: 1.35; }
+.ag-rot { font-size: 11px; border: 1px solid var(--borde2); border-radius: 999px; padding: 1px 8px; color: var(--mute); }
+.ag-rot.verde { color: var(--ok); border-color: var(--ok); } .ag-rot.amarillo { color: var(--warn); border-color: var(--warn); } .ag-rot.rojo { color: var(--err); border-color: var(--err); }
+.ag-ent { flex: none; text-align: right; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ag-ent small { display: block; color: var(--mute); font-size: 11px; }
+.ag-det { padding: 2px 14px 14px; border-top: 1px solid var(--borde); }
+.ag-et { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 9px 0; border-bottom: 1px dashed var(--borde); }
+.ag-en { min-width: 96px; font-weight: 600; text-transform: capitalize; }
+.ag-et input[type=date], .ag-et select, .ag-pl input[type=date] { width: auto; min-width: 0; }
+.ag-rel { font-size: 12px; color: var(--mute); margin-left: auto; }
+.ag-mats { margin-top: 12px; }
+.ag-mats-cab { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.ag-drive { color: var(--info); font-size: 13.5px; font-weight: 600; }
+.ag-cat { margin-top: 10px; }
+.ag-cat-t { font-size: 12px; font-weight: 700; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+.ag-galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.ag-arch { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--borde); border-radius: 10px; padding: 6px; background: var(--card); color: var(--txt); text-decoration: none; font-size: 12px; overflow: hidden; }
+.ag-arch:hover { border-color: var(--borde2); }
+.ag-arch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-mini { width: 100%; height: 84px; object-fit: cover; border-radius: 6px; background: var(--card2); }
+.ag-plan { margin-top: 10px; }
+.ag-pl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 0; border-bottom: 1px dashed var(--borde); }
+.ag-pl label { display: flex; align-items: center; gap: 8px; min-width: 150px; cursor: pointer; }
+.ag-pl input[type=checkbox] { width: 18px; height: 18px; }
+@media (max-width: 560px) { .ag-cab { padding: 12px 10px; gap: 8px; } .ag-rel { margin-left: 0; flex-basis: 100%; } }
+/* color propio de la pestaña Agenda (el resto de las pestañas ya tiene el suyo) */
+:root { --tc-agenda: #E27BA8; }
+:root[data-tema="claro"] { --tc-agenda: #C2548A; }
+[data-tab="agenda"], [data-nav="agenda"] { --tc: var(--tc-agenda); }
+</style>
 <script id="cfg-embebida" type="application/json">null</script>
 <script id="catalogo-embebido" type="application/json">null</script>
 <script>
@@ -1578,7 +1626,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       version: VERSION_DATOS,
       meta: { id: uid(), creado: new Date().toISOString(), modificado: new Date().toISOString(), archivo: '', sha: '' },
       listas: listasPorDefecto(),
-      proyecto: { nombre: nombre || '', cliente: '', fecha: hoyISO(), modoMaterial: 'Uniforme', materialProyecto: '',
+      proyecto: { nombre: nombre || '', cliente: '', fecha: hoyISO(), fechaEntrega: '', modoMaterial: 'Uniforme', materialProyecto: '',
                   materialInteriores: '', materialFrentesBajos: '', materialFrentesAlacenas: '', observaciones: '' },
       modulos: [], puertas: [], cajones: [], overrides: [], sueltas: [], tapacantos: [],
       cortadas: {},   // piezas marcadas como cortadas en la vista Taller: { clave: true }
@@ -2674,6 +2722,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     link: '<svg class="i" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'
   };
   const NAVICO = {
+    agenda: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>',
     proyecto: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>',
     ficha: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg>',
     manual: '<svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
@@ -3023,6 +3072,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       '<div class="campo"><label class="l">Proyecto</label><input data-k="proyecto:nombre" value="' + esc(p.nombre) + '" placeholder="Ej. Chaco"></div>' +
       '<div class="campo"><label class="l">Cliente</label><input data-k="proyecto:cliente" value="' + esc(p.cliente) + '"></div>' +
       '<div class="campo"><label class="l">Fecha</label><input type="date" data-k="proyecto:fecha" value="' + esc(p.fecha) + '"></div>' +
+      '<div class="campo"><label class="l">Entrega estimada</label><input type="date" data-k="proyecto:fechaEntrega" value="' + esc(p.fechaEntrega || '') + '"></div>' +
       '<div class="campo"><label class="l">Modo de material</label><select data-k="proyecto:modoMaterial"><option' + (p.modoMaterial === 'Uniforme' ? ' selected' : '') + '>Uniforme</option><option' + (p.modoMaterial === 'Mixto' ? ' selected' : '') + '>Mixto</option></select></div>' +
       dl('materialProyecto', 'Material proyecto (general)') + dl('materialInteriores', 'Material interiores') +
       dl('materialFrentesBajos', 'Material frentes bajos') + dl('materialFrentesAlacenas', 'Material frentes alacenas') + '</div>' +
@@ -3790,9 +3840,403 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     const comp = St.tiposCompartidos(), nombres = new Set(comp.map(x => String(x.nombre).toLowerCase()));
     return comp.concat((D.listas.modulosTipo || []).filter(x => x && x.nombre && x.modulo && !nombres.has(String(x.nombre).toLowerCase())));
   }
+  /* ------------------------------------------------------------------ Agenda (Google Calendar + Drive, vía el puente de Apps Script) */
+  /* Esta parte no toca el motor ni los datos de despiece: sólo lee y escribe el calendario y la carpeta de Drive.
+     Lo único que suma al proyecto es el campo “Entrega estimada” (proyecto.fechaEntrega). */
+
+  /* AG-PURO-INICIO */
+  // Etapas posibles, en el orden en que suceden. “inicio” es el alta del proyecto.
+  const AG_ETAPAS = ['inicio', 'consulta', 'presupuesto', 'medición', 'diseño', 'producción', 'instalación', 'entrega'];
+  const AG_ESTADOS = [['pendiente', 'Pendiente'], ['en_curso', 'En curso'], ['en_espera', 'En espera'], ['hecha', 'Hecha']];
+  const AG_PROPUESTA_BASE = ['inicio', 'medición', 'producción', 'instalación', 'entrega'];
+  // Días que “pesa” el tramo anterior a cada etapa. Son valores de arranque: se calibran con las fechas reales (fechaReal).
+  const AG_PESOS = { inicio: 0, consulta: 3, presupuesto: 5, 'medición': 7, 'diseño': 10, 'producción': 20, 'instalación': 5, entrega: 2 };
+  const AG_ROTULO = { verde: 'A tiempo', amarillo: 'Ajustado', rojo: 'Atrasado', hecha: 'Hecha', terminado: 'Terminado', sin: 'Sin etapas' };
+
+  function agParse(s) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '')); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null; }
+  function agISO(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function agHoy() { return agISO(new Date()); }
+  function agDias(desde, hasta) { return Math.round((agParse(hasta) - agParse(desde)) / 86400000); }
+  function agSumarDias(iso, n) { const d = agParse(iso); d.setDate(d.getDate() + n); return agISO(d); }
+  function agDiasTxt(n) { return n + (n === 1 ? ' día' : ' días'); }
+  function agRel(d) { return d === 0 ? 'hoy' : d === 1 ? 'mañana' : d === -1 ? 'ayer' : d > 0 ? 'en ' + d + ' días' : 'hace ' + (-d) + ' días'; }
+
+  // Reparte las etapas entre el alta y la entrega según los pesos de arriba. Devuelve [{etapa, fecha}] de TODAS las etapas;
+  // quien arma el plan elige cuáles usar (así una etapa cae en la misma fecha elija lo que elija).
+  function agProponer(alta, entrega) {
+    if (!agParse(alta) || !agParse(entrega)) return [];
+    const span = Math.max(0, agDias(alta, entrega));
+    let total = 0; AG_ETAPAS.forEach(e => { total += AG_PESOS[e]; });
+    let acum = 0;
+    return AG_ETAPAS.map(e => { acum += AG_PESOS[e]; return { etapa: e, fecha: agSumarDias(alta, total ? Math.round(acum / total * span) : 0) }; });
+  }
+
+  // Semáforo de UNA etapa: verde si faltan más de “margen” días, amarillo si faltan margen o menos, rojo si ya pasó y no está hecha.
+  function agEtapaSem(e, hoy, margen) {
+    if (e.estado === 'hecha') return 'hecha';
+    const d = agDias(hoy, e.fecha);
+    return d < 0 ? 'rojo' : d <= margen ? 'amarillo' : 'verde';
+  }
+  // Semáforo de un PROYECTO = el peor color entre sus etapas sin terminar. Con la entrega hecha, el proyecto está terminado.
+  function agProyecto(etapas, hoy, margen) {
+    const todas = etapas.slice().sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
+    const abiertas = todas.filter(e => e.estado !== 'hecha');
+    const ent = todas.find(e => e.etapa === 'entrega') || null;
+    const ref = ent || todas[todas.length - 1] || null;
+    const sems = abiertas.map(e => agEtapaSem(e, hoy, margen));
+    let color;
+    if (!todas.length) color = 'sin';
+    else if (!abiertas.length || (ent && ent.estado === 'hecha')) color = 'terminado';
+    else color = sems.indexOf('rojo') >= 0 ? 'rojo' : sems.indexOf('amarillo') >= 0 ? 'amarillo' : 'verde';
+    return {
+      color, entrega: ref ? ref.fecha : null,
+      proxima: (color === 'terminado' || color === 'sin') ? null : abiertas[0],
+      atrasadas: sems.filter(s => s === 'rojo').length,
+      hechas: todas.length - abiertas.length, total: todas.length,
+      enEspera: abiertas.filter(e => e.estado === 'en_espera').length,
+    };
+  }
+  // Orden de prioridad: primero los atrasados, después los ajustados, después los que van bien; dentro de cada color, la entrega más cercana.
+  function agOrdenar(items) {
+    const rango = { rojo: 0, amarillo: 1, verde: 2, sin: 3, terminado: 4 };
+    return items.slice().sort((a, b) => {
+      const r = rango[a.info.color] - rango[b.info.color]; if (r) return r;
+      const ea = a.info.entrega || '9999-99-99', eb = b.info.entrega || '9999-99-99';
+      if (ea !== eb) return ea < eb ? -1 : 1;
+      return a.nombre < b.nombre ? -1 : a.nombre > b.nombre ? 1 : 0;
+    });
+  }
+  /* AG-PURO-FIN */
+
+  // Dirección del puente de Apps Script (termina en /exec). No es secreta: lo que protege la agenda es la clave.
+  // Orden: 1) catalogo/agenda.json del repositorio (si GitHub está conectado), 2) esta constante, 3) la que se escriba a mano en el navegador.
+  const AG_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbz2VQgfKzFSw2UxHPF6oBI72fI-YSgfhnZREE4VMXSIT1Pr3LwWWATLqPzuWXzTf9-h/exec';
+  const AG_RUTA_JSON = 'catalogo/agenda.json';      // { "url": "https://script.google.com/macros/s/…/exec" }
+  const AG_K = 'despiece:agenda', AG_KC = 'despiece:agenda:cache', AG_KU = 'despiece:agenda:url';
+  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, plan: null, ocupado: false, verConfig: false };
+  function agNormCfg(o) {
+    o = o || {}; const m = Math.floor(Number(o.margen));
+    const um = String(o.urlManual || o.url || '').trim();
+    return { clave: String(o.clave || '').trim(), margen: (Number.isFinite(m) && m >= 0 && m <= 60) ? m : 7, urlManual: agUrlOk(um) ? um : '' };
+  }
+  function agLeerGuardado() {
+    try { AG.cfg = agNormCfg(JSON.parse(localStorage.getItem(AG_K) || 'null')); } catch (e) { /* sin almacenamiento: queda la configuración de esta sesión */ }
+    try { const c = JSON.parse(localStorage.getItem(AG_KC) || 'null'); if (c && c.datos && typeof c.datos === 'object') { AG.datos = c.datos; AG.hora = c.hora || ''; } } catch (e) { /* la copia guardada es opcional */ }
+  }
+  function agGuardarCfg() { try { localStorage.setItem(AG_K, JSON.stringify(AG.cfg)); } catch (e) { /* sólo esta sesión */ } }
+  function agGuardarCache() { try { localStorage.setItem(AG_KC, JSON.stringify({ datos: AG.datos, hora: AG.hora })); } catch (e) { /* opcional */ } }
+  const agListo = () => !!(AG.url && AG.cfg.clave);
+  const agRender = () => {
+    if (tab !== 'agenda') return;
+    const a = document.activeElement; if (a && a.closest && a.closest('.ag-cfg')) return;      // no pisar lo que se está escribiendo
+    render();
+  };
+  const agUrlOk = (u) => /^https:\/\//.test(String(u || ''));
+
+  // Pedido al puente. Va como texto simple (sin Content-Type propio) para que el navegador no haga la consulta previa de CORS.
+  async function agLlamar(accion, datos, cfg) {
+    const c = cfg || AG.cfg;
+    if (!AG.url) throw new Error('Falta la dirección del puente de la agenda.');
+    if (!c.clave) throw new Error('Falta la clave de la agenda.');
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 45000);
+    let r;
+    try { r = await fetch(AG.url, { method: 'POST', body: JSON.stringify(Object.assign({ clave: c.clave, accion }, datos || {})), signal: ctl.signal }); }
+    catch (e) { throw new Error(e && e.name === 'AbortError' ? 'Google tardó demasiado en responder.' : 'No se pudo conectar con la agenda (revisá la dirección y la conexión).'); }
+    finally { clearTimeout(t); }
+    let j; try { j = await r.json(); } catch (e) { throw new Error('La respuesta no se entendió: revisá que la dirección sea la de “Implementar → Aplicación web”.'); }
+    if (!j || !j.ok) throw new Error((j && j.error) || 'Error desconocido en la agenda');
+    return j.datos;
+  }
+
+  function agDefinirUrl() {
+    let g = ''; try { g = localStorage.getItem(AG_KU) || ''; } catch (e) { /* sin almacenamiento */ }
+    if (agUrlOk(g)) { AG.url = g; AG.urlOrigen = 'GitHub'; }
+    else if (agUrlOk(AG_URL_DEFAULT)) { AG.url = AG_URL_DEFAULT; AG.urlOrigen = 'el código de la app'; }
+    else if (AG.cfg.urlManual) { AG.url = AG.cfg.urlManual; AG.urlOrigen = 'este navegador'; }
+    else { AG.url = ''; AG.urlOrigen = ''; }
+  }
+  // Con GitHub conectado, lee catalogo/agenda.json: cambiando ese archivo se cambia la dirección en todos los dispositivos, sin republicar la app.
+  // Sin conexión o con el archivo mal formado se sigue con la última dirección conocida; si el archivo se borra, se vuelve a la de la app.
+  function agTraerUrl() {
+    if (!AG.urlPromesa) AG.urlPromesa = agTraerUrl_();      // una sola consulta por sesión: quien llega después espera la misma
+    return AG.urlPromesa;
+  }
+  async function agTraerUrl_() {
+    try {
+      if (St.ghListo()) {
+        const c = St.ghConfig();
+        const r = await fetch('https://api.github.com/repos/' + encodeURIComponent(c.owner) + '/' + encodeURIComponent(c.repo) + '/contents/' + AG_RUTA_JSON + '?ref=' + encodeURIComponent(c.branch || 'main'),
+          { cache: 'no-store', headers: { 'Authorization': 'Bearer ' + c.token, 'Accept': 'application/vnd.github+json' } });
+        if (r.status === 404) { try { localStorage.removeItem(AG_KU); } catch (e) { /* nada */ } }
+        else if (r.ok) {
+          const j = await r.json(), o = JSON.parse(decodeURIComponent(escape(atob(String(j.content || '').replace(/\n/g, '')))));
+          if (o && agUrlOk(o.url)) { try { localStorage.setItem(AG_KU, String(o.url).trim()); } catch (e) { /* nada */ } }
+        }
+      }
+    } catch (e) { /* se usa la última dirección conocida */ }
+    agDefinirUrl();
+  }
+
+  async function agCargar() {
+    if (AG.cargando) return;
+    AG.cargando = true; AG.refrescado = true; AG.error = ''; agRender();
+    try {
+      await agTraerUrl();
+      AG.datos = await agLlamar('leerTodos') || {};
+      AG.hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      agGuardarCache();
+    } catch (e) { AG.error = e.message; }
+    AG.cargando = false; agRender();
+  }
+  function agBuscar(id) {
+    for (const n of Object.keys(AG.datos || {})) { const e = AG.datos[n].find(x => x.id === id); if (e) return { n, e }; }
+    return null;
+  }
+  async function agMarcar(id, estado, fechaReal) {
+    const f = agBuscar(id); if (!f) return;
+    const antes = Object.assign({}, f.e);
+    f.e.estado = estado; f.e.fechaReal = estado === 'hecha' ? (fechaReal || agHoy()) : null; agRender();
+    try { Object.assign(f.e, await agLlamar('marcarEtapa', { eventoId: id, estado, fechaReal })); agGuardarCache(); }
+    catch (err) {
+      Object.assign(f.e, antes);
+      toast('No se pudo cambiar el estado: ' + err.message + (err.message === 'Estado inválido' ? ' (falta publicar la versión nueva del puente)' : ''), 'err');
+    }
+    agRender();
+  }
+  async function agMover(id, fecha) {
+    const f = agBuscar(id); if (!f || !agParse(fecha)) return;
+    const antes = f.e.fecha; f.e.fecha = fecha; AG.datos[f.n].sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0); agRender();
+    try { Object.assign(f.e, await agLlamar('moverEtapa', { eventoId: id, fecha })); agGuardarCache(); }
+    catch (err) { f.e.fecha = antes; toast('No se pudo mover la fecha: ' + err.message, 'err'); }
+    agRender();
+  }
+  async function agMateriales(n) {
+    AG.mats[n] = { cargando: true }; agRender();
+    try { AG.mats[n] = { datos: await agLlamar('materiales', { proyecto: n }) }; }
+    catch (e) { AG.mats[n] = { error: e.message }; }
+    agRender();
+  }
+  async function agCrearCarpeta(n) {
+    AG.mats[n] = { cargando: true }; agRender();
+    try { await agLlamar('crearCarpetaProyecto', { proyecto: n }); toast('Carpeta creada en Drive', 'ok'); }
+    catch (e) { AG.mats[n] = { error: e.message }; agRender(); return; }
+    agMateriales(n);
+  }
+
+  // Plan de etapas del proyecto abierto: se propone con el alta y la entrega, se ajusta a mano y recién al confirmar se crea en el calendario.
+  function agPlanActual() {
+    const p = D.proyecto, key = [p.nombre, p.fecha, p.fechaEntrega].join('|');
+    if (!AG.plan || AG.plan.key !== key) {
+      const prop = agProponer(p.fecha, p.fechaEntrega);
+      AG.plan = { key, filas: AG_ETAPAS.map(e => { const x = prop.find(y => y.etapa === e); return { etapa: e, activa: AG_PROPUESTA_BASE.indexOf(e) >= 0, fecha: x ? x.fecha : '' }; }) };
+    }
+    return AG.plan;
+  }
+  async function agConfirmarPlan() {
+    const nombre = String(D.proyecto.nombre || '').trim();
+    if (!nombre) { toast('Ponele nombre al proyecto primero.', 'err'); return; }
+    const sel = agPlanActual().filas.filter(f => f.activa);
+    if (!sel.length) { toast('Elegí al menos una etapa.', 'err'); return; }
+    if (sel.some(f => !agParse(f.fecha))) { toast('Falta la fecha de alguna etapa elegida.', 'err'); return; }
+    AG.ocupado = true; agRender();
+    try {
+      const r = await agLlamar('crearEtapas', { proyecto: nombre, etapas: sel.map(f => ({ etapa: f.etapa, fecha: f.fecha })) });
+      // El alta ya ocurrió: si esa etapa recién se creó, queda marcada como hecha con su propia fecha.
+      const ini = (r || []).find(x => x.etapa === 'inicio' && x.estado === 'pendiente');
+      if (ini && agDias(agHoy(), ini.fecha) <= 0) { try { await agLlamar('marcarEtapa', { eventoId: ini.id, estado: 'hecha', fechaReal: ini.fecha }); } catch (e) { /* queda pendiente: se marca a mano */ } }
+      AG.abiertos[nombre] = true; AG.ocupado = false;
+      toast('Etapas de ' + nombre + ' guardadas en el calendario', 'ok');
+      AG.cargando = false; await agCargar();
+    } catch (e) { toast('No se pudo crear en el calendario: ' + e.message, 'err'); }
+    AG.ocupado = false; agRender();
+  }
+
+  function agFmt(iso) {
+    const d = agParse(iso); if (!d) return '—';
+    const o = { day: 'numeric', month: 'short' }; if (d.getFullYear() !== new Date().getFullYear()) o.year = '2-digit';
+    return d.toLocaleDateString('es-AR', o).replace(/\./g, '');
+  }
+
+  function agFilaEtapa(e, hoy, margen) {
+    const sem = agEtapaSem(e, hoy, margen), d = agDias(hoy, e.fecha);
+    let nota;
+    if (e.estado === 'hecha') {
+      const dif = e.fechaReal ? agDias(e.fecha, e.fechaReal) : 0;
+      nota = 'hecha' + (e.fechaReal ? ' el ' + agFmt(e.fechaReal) : '') + (dif > 0 ? ' · ' + agDiasTxt(dif) + ' tarde' : dif < 0 ? ' · ' + agDiasTxt(-dif) + ' antes' : '');
+    } else nota = d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d);
+    return '<div class="ag-et"><i class="ag-sem sm ' + sem + '" title="' + AG_ROTULO[sem] + '"></i><span class="ag-en">' + esc(e.etapa) + '</span>' +
+      '<input type="date" data-ag-fecha="' + esc(e.id) + '" value="' + esc(e.fecha) + '" aria-label="Fecha de ' + esc(e.etapa) + '">' +
+      '<select data-ag-estado="' + esc(e.id) + '" aria-label="Estado de ' + esc(e.etapa) + '">' + AG_ESTADOS.map(s => '<option value="' + s[0] + '"' + (e.estado === s[0] ? ' selected' : '') + '>' + s[1] + '</option>').join('') + '</select>' +
+      (e.estado !== 'hecha' ? '<button class="mini ag-ok" data-ag-hecha="' + esc(e.id) + '" title="Marcar como hecha (anota la fecha de hoy)">✓ Hecha</button>' : '') +
+      '<span class="ag-rel">' + esc(nota) + '</span></div>';
+  }
+
+  function agMatsHtml(n) {
+    const m = AG.mats[n], en = esc(n);
+    if (!m) return '<button class="sec mini" data-ag-mats="' + en + '">Ver materiales (Drive)</button>';
+    if (m.cargando) return '<div class="hint">Cargando materiales…</div>';
+    if (m.error) return '<div class="ag-err">' + esc(m.error) + '</div><button class="sec mini" data-ag-mats="' + en + '">Reintentar</button>';
+    const d = m.datos || {};
+    if (!d.carpeta) return '<div class="hint">Este proyecto todavía no tiene carpeta en Drive.</div><button class="mini" data-ag-carpeta="' + en + '">Crear carpeta con Planos, Renders…</button>';
+    const cats = {}; (d.archivos || []).forEach(a => { (cats[a.categoria] = cats[a.categoria] || []).push(a); });
+    const orden = ['Planos', 'Renders', 'Medicion', 'Otros', 'General'];
+    const claves = Object.keys(cats).sort((a, b) => { const x = orden.indexOf(a), y = orden.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || (a < b ? -1 : 1); });
+    let h = '<div class="ag-mats-cab">' + (agUrlOk(d.carpeta.url) ? '<a class="ag-drive" href="' + esc(d.carpeta.url) + '" target="_blank" rel="noopener">Abrir carpeta en Drive ↗</a>' : '') + '<button class="sec mini" data-ag-mats="' + en + '">Actualizar</button></div>';
+    if (!claves.length) h += '<div class="hint">La carpeta está vacía: subí planos o renders y tocá Actualizar.</div>';
+    claves.forEach(k => {
+      h += '<div class="ag-cat"><div class="ag-cat-t">' + esc(k) + ' <span class="chip">' + cats[k].length + '</span></div><div class="ag-galeria">' +
+        cats[k].map(a => '<a class="ag-arch" href="' + (agUrlOk(a.url) ? esc(a.url) : '#') + '" target="_blank" rel="noopener">' +
+          (agUrlOk(a.miniatura) ? '<img class="ag-mini" loading="lazy" referrerpolicy="no-referrer" alt="" src="' + esc(a.miniatura) + '">' : '') +
+          '<span>' + esc(a.nombre) + '</span></a>').join('') + '</div></div>';
+    });
+    return h;
+  }
+
+  function agBloqueProyecto(it, pos) {
+    const n = it.nombre, inf = it.info, abierto = !!AG.abiertos[n], hoy = agHoy();
+    let sub = '';
+    if (inf.proxima) { const d = agDias(hoy, inf.proxima.fecha); sub = 'Próxima: ' + inf.proxima.etapa + ' · ' + agFmt(inf.proxima.fecha) + ' (' + (d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d)) + ')'; }
+    else if (inf.color === 'terminado') sub = 'Entregado / etapas cerradas';
+    sub += (sub ? ' · ' : '') + inf.hechas + ' de ' + inf.total + ' etapas hechas' + (inf.enEspera ? ' · ' + inf.enEspera + ' en espera' : '');
+    let h = '<div class="ag-proy ' + inf.color + '"><button class="ag-cab" data-ag-abrir="' + esc(n) + '" aria-expanded="' + abierto + '">' +
+      '<span class="ag-pos">' + (pos ? pos : '') + '</span><i class="ag-sem ' + inf.color + '"></i>' +
+      '<span class="ag-nom"><strong>' + esc(n) + '</strong> <span class="ag-rot ' + inf.color + '">' + AG_ROTULO[inf.color] + '</span><small>' + esc(sub) + '</small></span>' +
+      (inf.entrega ? '<span class="ag-ent"><small>Entrega</small>' + esc(agFmt(inf.entrega)) + '</span>' : '') + '</button>';
+    if (abierto) {
+      const orden = it.etapas.slice().sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
+      h += '<div class="ag-det">' + orden.map(e => agFilaEtapa(e, hoy, AG.cfg.margen)).join('') + '<div class="ag-mats">' + agMatsHtml(n) + '</div></div>';
+    }
+    return h + '</div>';
+  }
+
+  function agPlanHtml() {
+    const p = D.proyecto, nombre = String(p.nombre || '').trim();
+    if (!nombre) return '<div class="card no-print ag"><h2>Programar etapas</h2><p class="hint">Ponele nombre al proyecto (pestaña Proyecto) para poder programar sus etapas en el calendario.</p></div>';
+    const plan = agPlanActual(), ya = (AG.datos && AG.datos[nombre]) || [];
+    const filas = plan.filas.map(f => {
+      const ex = ya.find(x => x.etapa === f.etapa);
+      return '<div class="ag-pl"><label><input type="checkbox" data-ag-pon="' + esc(f.etapa) + '"' + (f.activa ? ' checked' : '') + '> <span class="ag-en">' + esc(f.etapa) + '</span></label>' +
+        '<input type="date" data-ag-pfecha="' + esc(f.etapa) + '" value="' + esc(f.fecha) + '" aria-label="Fecha de ' + esc(f.etapa) + '">' +
+        (ex ? '<span class="ag-rel">en el calendario: ' + esc(agFmt(ex.fecha)) + (ex.estado === 'hecha' ? ' (hecha)' : '') + '</span>' : '') + '</div>';
+    }).join('');
+    return '<div class="card no-print ag"><h2>Programar etapas · ' + esc(nombre) + '</h2>' +
+      '<p class="hint">Las fechas se proponen repartiendo las etapas entre el alta y la entrega estimada. Ajustalas como quieras: los eventos se crean en el calendario recién cuando confirmás' + (ya.length ? '. Este proyecto ya tiene etapas: al confirmar sólo se actualizan sus fechas.' : '.') + '</p>' +
+      '<div class="grid2"><div class="campo"><label class="l">Alta del proyecto</label><input type="date" data-ag-proy="fecha" value="' + esc(p.fecha) + '"></div>' +
+      '<div class="campo"><label class="l">Entrega estimada</label><input type="date" data-ag-proy="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '"></div></div>' +
+      (p.fechaEntrega ? '' : '<p class="hint" style="margin-top:8px">Cargá la entrega estimada y se proponen las fechas de cada etapa.</p>') +
+      '<div class="ag-plan">' + filas + '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button data-ag-confirmar' + ((!agListo() || AG.ocupado) ? ' disabled' : '') + '>' + (AG.ocupado ? 'Creando…' : 'Confirmar y crear en el calendario') + '</button><button class="sec" data-ag-reproponer>Proponer de nuevo</button></div>' +
+      (agListo() ? '' : '<p class="hint" style="margin-top:8px">Primero conectá la agenda (más abajo).</p>') + '</div>';
+  }
+
+  function agConfigHtml() {
+    const c = AG.cfg;
+    const corta = AG.url ? AG.url.replace(/^https:\/\//, '').replace(/^(.{22}).*(.{8})$/, '$1…$2') : '';
+    return '<div class="card no-print ag ag-cfg"><h2>Conexión con Google</h2>' +
+      '<p class="hint">' + (AG.url ? 'Sólo hace falta la clave del puente de la agenda. Queda guardada en este navegador.' : 'Todavía no hay dirección del puente cargada: pegala acá abajo (o dejala en <code>' + AG_RUTA_JSON + '</code> del repositorio) y escribí la clave.') + '</p>' +
+      '<div class="grid2"><div class="campo"><label class="l">Clave</label><input id="agClave" type="password" value="' + esc(c.clave) + '" autocomplete="off" placeholder="La clave del puente"></div>' +
+      '<div class="campo"><label class="l">Margen del amarillo (días)</label><input id="agMargen" type="number" min="0" max="60" step="1" value="' + c.margen + '"></div></div>' +
+      (AG.url ? '' : '<div class="campo" style="margin-top:10px"><label class="l">Dirección del puente (termina en /exec)</label><input id="agUrl" value="' + esc(c.urlManual) + '" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false"></div>') +
+      '<p class="hint" style="margin-top:8px">Verde: faltan más de ' + c.margen + ' días. Amarillo: faltan ' + c.margen + ' o menos. Rojo: la fecha pasó y la etapa no está hecha.' +
+      (AG.url ? ' Puente: <code>' + esc(corta) + '</code> (viene de ' + esc(AG.urlOrigen) + ').' : '') + '</p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button data-ag-guardar-cfg>Guardar</button><button class="sec" data-ag-probar>Probar conexión</button>' +
+      (agListo() ? '<button class="sec" data-ag-enlace>' + (St.ghListo() ? 'Copiar enlace completo (GitHub + agenda)' : 'Copiar enlace de la agenda') + '</button>' : '') + '</div></div>';
+  }
+
+  function vistaAgenda() {
+    const hoy = agHoy(), listo = agListo(), margen = AG.cfg.margen;
+    if (!AG.urlPromesa) setTimeout(() => agTraerUrl().then(agRender), 0);
+    if (listo && !AG.refrescado && !AG.cargando && !AG.error) setTimeout(agCargar, 0);
+    const items = agOrdenar(Object.keys(AG.datos || {}).map(n => ({ nombre: n, etapas: AG.datos[n], info: agProyecto(AG.datos[n], hoy, margen) })));
+    let estado;
+    if (!listo) estado = 'Conectá la agenda para ver los proyectos y sus fechas.';
+    else if (AG.cargando) estado = 'Cargando desde Google…' + (AG.hora ? ' (mientras tanto, lo último guardado de las ' + esc(AG.hora) + ')' : '');
+    else estado = AG.hora ? 'Actualizado a las ' + esc(AG.hora) : '';
+    let pos = 0;
+    const lista = items.length ? items.map(it => agBloqueProyecto(it, (it.info.color === 'terminado' || it.info.color === 'sin') ? 0 : ++pos)).join('')
+      : '<p class="hint">' + (listo ? (AG.cargando ? '' : 'Todavía no hay proyectos en el calendario. Programá las etapas del proyecto abierto en la tarjeta de abajo.') : '') + '</p>';
+    return '<div class="card no-print ag"><div class="barra"><h2>Agenda</h2><div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="sec mini" data-ag-actualizar' + (!listo || AG.cargando ? ' disabled' : '') + '>Actualizar</button><button class="sec mini" data-ag-config>Conexión</button></div></div>' +
+      '<div class="ag-estado">' + estado + '</div>' + (AG.error ? '<div class="ag-err">' + esc(AG.error) + '</div>' : '') +
+      '<div class="ag-leg"><span><i class="ag-sem verde"></i>A tiempo (más de ' + margen + ' días)</span><span><i class="ag-sem amarillo"></i>Ajustado (' + margen + ' o menos)</span><span><i class="ag-sem rojo"></i>Atrasado</span></div>' +
+      '<p class="hint" style="margin:-4px 0 12px">Orden de prioridad: primero los atrasados, después los ajustados; dentro de cada color, la entrega más cercana. El color de un proyecto es el de su etapa más comprometida.</p>' +
+      lista + '</div>' + agPlanHtml() + ((!listo || AG.verConfig) ? agConfigHtml() : '');
+  }
+
+  function agLeerForm() { const g = (id) => ((document.getElementById(id) || {}).value || ''); return agNormCfg({ urlManual: document.getElementById('agUrl') ? g('agUrl') : AG.cfg.urlManual, clave: g('agClave'), margen: g('agMargen') }); }
+  // Enlace para otro dispositivo. Con GitHub conectado es UN solo enlace (#cfg=…) con GitHub y agenda; sin GitHub, un enlace sólo de la agenda (#agenda=…).
+  // El #cfg= que arma la app para GitHub no cambia: la parte de la agenda es un campo extra que la lectura de GitHub ignora.
+  function agEnlaceCfg() {
+    const ag = { clave: AG.cfg.clave, margen: AG.cfg.margen }; if (AG.cfg.urlManual) ag.urlManual = AG.cfg.urlManual;      // la dirección ya viaja con la app o con GitHub
+    const b64u = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const base = location.href.replace(/#.*$/, '');
+    if (St.ghListo()) { const g = St.ghConfig(); return { completo: true, enlace: base + '#cfg=' + b64u({ owner: g.owner, repo: g.repo, branch: g.branch, carpeta: g.carpeta, token: g.token, agenda: ag }) }; }
+    return { completo: false, enlace: base + '#agenda=' + b64u(ag) };
+  }
+  // Al abrir un enlace con la agenda (#agenda=… o #cfg=… con campo "agenda"), deja la clave guardada en este dispositivo.
+  // El #cfg= lo limpia la parte de GitHub; el #agenda= lo limpia esta función.
+  function agLeerHash() {
+    const m = /^#(agenda|cfg)=(.+)$/.exec(location.hash || ''); if (!m) return '';
+    try {
+      let t = m[2].replace(/-/g, '+').replace(/_/g, '/'); while (t.length % 4) t += '=';
+      const o = JSON.parse(decodeURIComponent(escape(atob(t))));
+      const a = m[1] === 'agenda' ? o : (o && o.agenda);
+      if (!a || !String(a.clave || '').trim()) return '';
+      AG.cfg = agNormCfg(a); agGuardarCfg(); agDefinirUrl();
+      if (m[1] === 'agenda') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; } }
+      return 'La agenda quedó conectada.';
+    } catch (e) { return ''; }
+  }
+
+  function agendaEventos() {
+    agLeerGuardado(); agDefinirUrl();
+    document.addEventListener('click', async (e) => {
+      const q = (s) => e.target.closest(s); let b;
+      if ((b = q('[data-ag-abrir]'))) { const n = b.dataset.agAbrir; AG.abiertos[n] = !AG.abiertos[n]; render(); return; }
+      if ((b = q('[data-ag-hecha]'))) { agMarcar(b.dataset.agHecha, 'hecha'); return; }
+      if ((b = q('[data-ag-mats]'))) { agMateriales(b.dataset.agMats); return; }
+      if ((b = q('[data-ag-carpeta]'))) { agCrearCarpeta(b.dataset.agCarpeta); return; }
+      if (q('[data-ag-actualizar]')) { AG.error = ''; agCargar(); return; }
+      if (q('[data-ag-config]')) { AG.verConfig = !AG.verConfig; render(); return; }
+      if (q('[data-ag-reproponer]')) { AG.plan = null; render(); return; }
+      if (q('[data-ag-confirmar]')) { agConfirmarPlan(); return; }
+      if (q('[data-ag-guardar-cfg]')) {
+        const c = agLeerForm();
+        const urlEscrita = ((document.getElementById('agUrl') || {}).value || '').trim();
+        if (!c.clave) { toast('Escribí la clave de la agenda.', 'err'); return; }
+        if (urlEscrita && !agUrlOk(urlEscrita)) { toast('La dirección tiene que empezar con https:// (es la de “Implementar → Aplicación web”).', 'err'); return; }
+        AG.cfg = c; agGuardarCfg(); agDefinirUrl();
+        if (!AG.url) { toast('Falta la dirección del puente.', 'err'); render(); return; }
+        AG.error = ''; AG.refrescado = false; AG.verConfig = false; toast('Conexión guardada', 'ok'); render(); return;
+      }
+      if (q('[data-ag-probar]')) {
+        const c = agLeerForm(); const ue = ((document.getElementById('agUrl') || {}).value || '').trim(); if (!AG.url && agUrlOk(ue)) { AG.cfg.urlManual = ue; agDefinirUrl(); }
+        if (!AG.url || !c.clave) { toast('Falta la dirección del puente o la clave para probar.', 'err'); return; }
+        toast('Probando…');
+        try { const r = await agLlamar('ping', null, c); const v = (r && r.version) || 1; toast(v >= 2 ? 'Conectado: el puente responde (versión ' + v + ')' : 'Conectado, pero es la versión 1 del puente: falta publicar la nueva para usar “en curso” y “en espera”.', v >= 2 ? 'ok' : 'err'); }
+        catch (er) { toast('No conectó: ' + er.message, 'err'); }
+        return;
+      }
+      if (q('[data-ag-enlace]')) {
+        try { const l = agEnlaceCfg(); await navigator.clipboard.writeText(l.enlace); toast(l.completo ? 'Enlace completo copiado (GitHub + agenda). Lleva el token y la clave: pasalo sólo por un canal privado.' : 'Enlace de la agenda copiado. Lleva la clave: pasalo sólo por un canal privado.', 'ok'); }
+        catch (er) { toast('No se pudo copiar el enlace automáticamente.', 'err'); }
+      }
+    });
+    document.addEventListener('change', (e) => {
+      const el = e.target; if (!el.dataset) return;
+      if (el.dataset.agEstado !== undefined) { agMarcar(el.dataset.agEstado, el.value); return; }
+      if (el.dataset.agFecha !== undefined) { if (el.value) agMover(el.dataset.agFecha, el.value); return; }
+      if (el.dataset.agPon !== undefined) { const f = agPlanActual().filas.find(x => x.etapa === el.dataset.agPon); if (f) f.activa = el.checked; return; }
+      if (el.dataset.agPfecha !== undefined) { const f = agPlanActual().filas.find(x => x.etapa === el.dataset.agPfecha); if (f) f.fecha = el.value; return; }
+      if (el.dataset.agProy !== undefined) { setVal('proyecto', 0, el.dataset.agProy, el.value); render(); }
+    });
+    // Las miniaturas de Drive sólo se ven si quien mira tiene acceso al archivo: si no cargan, queda el nombre.
+    document.addEventListener('error', (e) => { const t = e.target; if (t && t.classList && t.classList.contains('ag-mini')) t.style.display = 'none'; }, true);
+  }
+
   /* ------------------------------------------------------------------ armado general */
   // Pestañas a la vista; las tablas de carga manual viven dentro de “Control manual”.
-  const PESTANAS = [['proyecto', 'Proyecto'], ['ficha', 'Fichas'], ['manual', 'Control manual'], ['overrides', 'Override'], ['taller', 'Taller'], ['proveedores', 'Cortes'], ['listas', 'Listas']];
+  const PESTANAS = [['proyecto', 'Proyecto'], ['agenda', 'Agenda'], ['ficha', 'Fichas'], ['manual', 'Control manual'], ['overrides', 'Override'], ['taller', 'Taller'], ['proveedores', 'Cortes'], ['listas', 'Listas']];
   const MANUAL = [['modulos', 'Módulos'], ['puertas', 'Puertas'], ['cajones', 'Cajones'], ['sueltas', 'Piezas Sueltas'], ['tapacantos', 'Tapacantos']];
   const esManual = (k) => MANUAL.some(m => m[0] === k);
   function contador(k) { if (k === 'ficha') return D.modulos.length; if (k === 'manual') return null; return TABLAS[k] ? D[TABLAS[k].arr].length : null; }
@@ -3913,6 +4357,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     else if (tab === 'taller') html = panelControl('taller') + vistaTallerTab();
     else if (tab === 'proveedores') html = panelControl('cortes') + vistaCortes();
     else if (tab === 'listas') html = vistaListas();
+    else if (tab === 'agenda') html = vistaAgenda();
     const fItems = document.querySelector('.f-items'), fTop = fItems ? fItems.scrollTop : null, fLey = document.querySelector('.f-ley') ? document.querySelector('.f-ley').open : false;   // la columna de módulos conserva su posición al redibujar
     $('#main').innerHTML = html;
     if (fTop !== null) { const n = document.querySelector('.f-items'); if (n) n.scrollTop = fTop; const ly = document.querySelector('.f-ley'); if (ly && fLey) ly.open = true; }
@@ -4867,6 +5312,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (d.cut !== undefined || d.oc !== undefined || d.busq !== undefined || d.filtro !== undefined || d.agrupar !== undefined || d.subpieza !== undefined || d.matlista !== undefined || d.compl !== undefined || d.nuevo !== undefined) return true;
     if (d.k && /^amb:/.test(d.k)) return true;
     if (el.id === 'matNuevo' || el.id === 'ambNuevo' || el.id === 'ambCod') return true;
+    if (/^ag(Url|Clave|Margen)$/.test(el.id)) return true;
+    if (Object.keys(d).some(k => /^ag[A-Z]/.test(k) && k !== 'agProy')) return true;      // Agenda: no cambia el proyecto
     if (d.acc) return accionPermitidaEnLectura(d.acc, el);
     if (d.selk !== undefined) return /^(amb|tipo):/.test(d.selk);
     if (d.selall !== undefined) return /^l:/.test(d.selall);
@@ -5066,6 +5513,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   /* ------------------------------------------------------------------ arranque */
   async function iniciar() {
     // Enlace de configuración (#cfg=…): deja GitHub conectado y borra el token de la barra de direcciones.
+    const avisoAg = agLeerHash();      // antes de que el enlace de GitHub limpie la barra de direcciones
     const cfgLink = St.configDeHash(location.hash);
     let avisoCfg = '';
     if (cfgLink) {
@@ -5078,7 +5526,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     if (St.ghListo()) {
       (St.materialesEstado().pendiente ? St.ghGuardarListas() : St.ghTraerListas().then(r => ((r && r.noExiste) || St.materialesEstado().pendiente) ? St.ghGuardarListas() : r)).then(() => { if (D) render(); }).catch(() => { /* sin conexión: se usa la lista guardada */ });
     }
-    eventos();
+    eventos(); agendaEventos();
     $('#btnMas').onclick = (e) => { e.stopPropagation(); $('.acciones').classList.toggle('mas-abierto'); };
     document.addEventListener('click', (e) => { if (!e.target.closest('#btnMas') && !e.target.closest('.acciones') || e.target.closest('#menuMas button')) $('.acciones').classList.remove('mas-abierto'); });
     $('#btnUndo').onclick = deshacer; $('#btnRedo').onclick = rehacer;
@@ -5095,7 +5543,9 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
     D = d; recalcular(); reiniciarDeshacer(); if (puedeBloquear()) { modo = 'verificando'; soloLectura = true; } render(); iniciarModo();
     if (!St.localDisponible()) setEstado('Este navegador no permite guardar localmente: descargá el .json seguido', 'warn');
     else setEstado(D.proyecto.nombre ? 'Proyecto abierto' : 'Proyecto nuevo', '');
+    if (avisoAg && avisoCfg) avisoCfg += ' ' + avisoAg;
     if (avisoCfg) { toast(avisoCfg, 'ok'); setEstado(avisoCfg, 'ok'); }
+    else if (avisoAg) { toast(avisoAg, 'ok'); tab = 'agenda'; render(); }
     // Pruebas automáticas / depuración
     window.__app = { get D() { return D; }, get R() { return R; }, get modo() { return modo; }, get soloLectura() { return soloLectura; }, recalcular, render, abrir, sondear, vencerLatido: () => { ultimoLatido = 0; }, setTab: (t) => { tab = t; render(); }, get CTL() { return CTL; }, listaEtiquetas };
   }
@@ -5162,7 +5612,7 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
   function sincronizarNav() {
     var act = document.querySelector('#tabs a.activa');
     var k = act ? act.getAttribute('data-tab') : '';
-    var enMas = (k === 'proyecto' || k === 'listas');
+    var enMas = (k === 'proyecto' || k === 'listas' || k === 'agenda');
     if (nav) nav.querySelectorAll('a[data-nav]').forEach(function (a) {
       var n = a.getAttribute('data-nav');
       var on = (n === k) || (n === 'mas' && enMas);
