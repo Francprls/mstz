@@ -671,6 +671,22 @@ body.solo-lectura button.peligro:disabled { background: var(--soft2); color: var
 .f-ley-l .hint { padding-bottom: 8px; }
 .f-items { min-height: 120px; }
 @media (max-width: 720px) { .f-ley[open] { max-height: none; overflow: visible; } .f-items { min-height: 0; } }
+/* ---- Pestañas de colores: cada sección con su color (barra lateral, barra inferior del celular y menú Más) ---- */
+:root { --tc-proyecto: #A3AB8B; --tc-ficha: #4FBF86; --tc-manual: #EBA05A; --tc-overrides: #A78BE0; --tc-taller: #EA7A5F; --tc-proveedores: #4FB7C2; --tc-listas: #6FA6EA; }
+:root[data-tema="claro"] { --tc-proyecto: #7C8268; --tc-ficha: #2F9E5F; --tc-manual: #D9822B; --tc-overrides: #8C6FD6; --tc-taller: #D1583D; --tc-proveedores: #2E9AA6; --tc-listas: #4C8DE0; }
+[data-tab="proyecto"], [data-nav="proyecto"] { --tc: var(--tc-proyecto); }
+[data-tab="ficha"], [data-nav="ficha"] { --tc: var(--tc-ficha); }
+[data-tab="manual"], [data-nav="manual"] { --tc: var(--tc-manual); }
+[data-tab="overrides"], [data-nav="overrides"] { --tc: var(--tc-overrides); }
+[data-tab="taller"], [data-nav="taller"] { --tc: var(--tc-taller); }
+[data-tab="proveedores"], [data-nav="proveedores"] { --tc: var(--tc-proveedores); }
+[data-tab="listas"], [data-nav="listas"] { --tc: var(--tc-listas); }
+nav.tabs a svg, #sheetMas a svg { color: var(--tc, currentColor); }
+nav.tabs a.activa { background: color-mix(in srgb, var(--tc, var(--info)) 16%, var(--card)); color: color-mix(in srgb, var(--tc, var(--info)) 72%, var(--txt)); box-shadow: inset 3px 0 0 var(--tc, var(--accion)); }
+nav.tabs a .nl svg { stroke-width: 2; }
+#navInf a[data-nav] svg { color: var(--tc); }
+#navInf a.on { color: color-mix(in srgb, var(--tc, var(--info)) 78%, var(--txt)); }
+#navInf a.on svg { background: color-mix(in srgb, var(--tc, var(--info)) 20%, transparent); }
 .nom { display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap }
 .tag-push { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.02em; padding:1px 7px; border-radius:99px; background:color-mix(in srgb, #a855f7 18%, transparent); color:#d8b4fe; border:1px solid color-mix(in srgb, #a855f7 42%, transparent); vertical-align:middle; white-space:nowrap; line-height:1.5 }
 :root[data-tema="claro"] .tag-push { color:#7e22ce }
