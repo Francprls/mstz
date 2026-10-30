@@ -3913,7 +3913,7 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
   const AG_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbz2VQgfKzFSw2UxHPF6oBI72fI-YSgfhnZREE4VMXSIT1Pr3LwWWATLqPzuWXzTf9-h/exec';
   const AG_RUTA_JSON = 'catalogo/agenda.json';      // { "url": "https://script.google.com/macros/s/…/exec" }
   const AG_K = 'despiece:agenda', AG_KC = 'despiece:agenda:cache', AG_KU = 'despiece:agenda:url';
-  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, plan: null, ocupado: false, verConfig: false };
+  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, renombrando: false, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, plan: null, ocupado: false, verConfig: false };
   function agNormCfg(o) {
     o = o || {}; const m = Math.floor(Number(o.margen));
     const um = String(o.urlManual || o.url || '').trim();
@@ -4021,6 +4021,30 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
     try { await agLlamar('crearCarpetaProyecto', { proyecto: n }); toast('Carpeta creada en Drive', 'ok'); }
     catch (e) { AG.mats[n] = { error: e.message }; agRender(); return; }
     agMateriales(n);
+  }
+
+  // Si se cambia el nombre de un proyecto que ya tiene etapas en el calendario, ofrece cambiarlo también allá y en la carpeta de Drive.
+  // Nunca cambia nada sin preguntar; si el nombre nuevo ya existe en el calendario o en Drive, el puente se niega y no toca nada.
+  async function agNombreCambio(viejo, nuevo) {
+    viejo = String(viejo || '').trim(); nuevo = String(nuevo || '').trim();
+    if (!viejo || !nuevo || viejo === nuevo || !AG.cfg.clave || AG.renombrando) return;
+    AG.renombrando = true;
+    try {
+      let etapas;
+      try { await agTraerUrl(); etapas = await agLlamar('leerProyecto', { proyecto: viejo }); } catch (e) { return; }      // sin conexión o sin agenda conectada: no se molesta
+      if (!etapas || !etapas.length) return;
+      const ok = await confirmar('El proyecto "' + viejo + '" tiene ' + etapas.length + ' etapa' + (etapas.length === 1 ? '' : 's') + ' en el calendario. ¿Cambiarle el nombre a "' + nuevo + '" también en el calendario y en su carpeta de Drive? Si cancelás, el calendario sigue con el nombre anterior.', 'Cambiar también allá');
+      if (!ok) { toast('El calendario sigue con el nombre "' + viejo + '".'); return; }
+      toast('Cambiando el nombre en el calendario…');
+      const r = await agLlamar('renombrarProyecto', { de: viejo, a: nuevo });
+      if (AG.datos && AG.datos[viejo]) { AG.datos[nuevo] = AG.datos[viejo].map(e => Object.assign({}, e, { proyecto: nuevo })); delete AG.datos[viejo]; agGuardarCache(); }
+      delete AG.mats[viejo]; delete AG.mats[nuevo];
+      if (AG.abiertos[viejo]) { AG.abiertos[nuevo] = true; delete AG.abiertos[viejo]; }
+      toast('Nombre cambiado en el calendario (' + r.eventos + (r.eventos === 1 ? ' etapa' : ' etapas') + ')' + (r.carpeta ? ' y en Drive' : '') + '.', 'ok');
+      agRender();
+    } catch (e) {
+      toast('No se pudo cambiar el nombre en el calendario: ' + e.message + (/Acción desconocida/.test(e.message) ? ' (falta publicar la versión nueva del puente)' : '') + '. En la app el proyecto ya tiene el nombre nuevo.', 'err');
+    } finally { AG.renombrando = false; }
   }
 
   // Plan de etapas del proyecto abierto: se propone con el alta y la entrega, se ajusta a mano y recién al confirmar se crea en el calendario.
@@ -4213,7 +4237,7 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
         const c = agLeerForm(); const ue = ((document.getElementById('agUrl') || {}).value || '').trim(); if (!AG.url && agUrlOk(ue)) { AG.cfg.urlManual = ue; agDefinirUrl(); }
         if (!AG.url || !c.clave) { toast('Falta la dirección del puente o la clave para probar.', 'err'); return; }
         toast('Probando…');
-        try { const r = await agLlamar('ping', null, c); const v = (r && r.version) || 1; toast(v >= 2 ? 'Conectado: el puente responde (versión ' + v + ')' : 'Conectado, pero es la versión 1 del puente: falta publicar la nueva para usar “en curso” y “en espera”.', v >= 2 ? 'ok' : 'err'); }
+        try { const r = await agLlamar('ping', null, c); const v = (r && r.version) || 1; toast(v >= 3 ? 'Conectado: el puente responde (versión ' + v + ')' : 'Conectado, pero el puente es la versión ' + v + ': falta publicar la versión 3 (estados “en curso” / “en espera” y cambio de nombre).', v >= 3 ? 'ok' : 'err'); }
         catch (er) { toast('No conectó: ' + er.message, 'err'); }
         return;
       }
@@ -4439,7 +4463,7 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
 
   function setVal(tk, i, k, v) {
     if (soloLectura) { avisoSoloLectura(); render(); return; }
-    if (tk === 'proyecto') { D.proyecto[k] = v; tocado(); if (k === 'nombre') $('#nombreProyecto').textContent = v || '(proyecto sin nombre)'; return; }
+    if (tk === 'proyecto') { const nombreViejo = D.proyecto[k]; D.proyecto[k] = v; tocado(); if (k === 'nombre') { $('#nombreProyecto').textContent = v || '(proyecto sin nombre)'; agNombreCambio(nombreViejo, v); } return; }
     const T = TABLAS[tk]; const row = D[T.arr][i]; if (!row) return;
     const viejo = row[k];
     const idAntes = tk === 'modulos' ? String(row.id).trim() : '';
