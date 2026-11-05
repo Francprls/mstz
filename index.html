@@ -824,8 +824,91 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
 .f-detalle .fsec { scroll-margin-top: 110px; }
 .f-sec-res { outline: 2px solid var(--info); outline-offset: 4px; border-radius: 8px; transition: outline-color .6s; }
 /* Semáforo del proyecto abierto, debajo de su nombre (en el celular también se ve) */
-header.top .titulo .sub.ag-sub { display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 500; color: var(--mute); }
+header.top .titulo .sub.ag-sub { position: relative; overflow: visible; text-overflow: clip; white-space: normal; display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 500; color: var(--mute); }
 header.top .titulo .sub.ag-sub:empty { display: none; }
+/* Semáforo del encabezado: botón que lleva al calendario; con el mouse encima muestra el cronograma en miniatura */
+.ag-semb { display: inline-flex; align-items: center; gap: 7px; background: transparent; color: inherit; border: 0; border-radius: 999px; padding: 3px 11px 3px 9px; margin: 0 0 0 -9px; font: inherit; font-weight: 600; cursor: pointer; min-height: 0; }
+.ag-semb:hover, .ag-semb:focus-visible { background: color-mix(in srgb, var(--txt) 9%, transparent); }
+.ag-pop { display: none; position: absolute; left: 0; top: 100%; z-index: 60; padding-top: 8px; width: min(400px, calc(100vw - 32px)); }
+.ag-semb:hover + .ag-pop, .ag-semb:focus-visible + .ag-pop, .ag-pop:hover { display: block; }
+.ag-pop-in { background: var(--card); color: var(--txt); border: 1px solid var(--borde2); border-radius: 14px; box-shadow: 0 16px 44px rgba(0,0,0,.38); padding: 12px 12px 10px; cursor: pointer; font-weight: 400; }
+.ag-pop-tit { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--mute); margin: 0 0 6px 2px; }
+.ag-pop-pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--borde); font-size: 12px; color: var(--mute); line-height: 1.35; }
+.ag-pop-pie b { color: var(--accion); white-space: nowrap; font-size: 12.5px; }
+@media (hover: none) { .ag-pop { display: none !important; } }
+/* Calendario de la agenda: selector, cronograma (grande y en miniatura) y lista por semanas */
+.ag-seg { display: inline-flex; border: 1px solid var(--borde2); border-radius: 999px; padding: 2px; gap: 2px; }
+.ag-seg button { background: transparent; color: var(--mute); border: 0; border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; min-height: 0; }
+.ag-seg button:hover { color: var(--txt); background: color-mix(in srgb, var(--txt) 8%, transparent); }
+.ag-seg button[aria-pressed="true"] { background: var(--txt); color: var(--card); }
+.ag-cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 8px; }
+.ag-cal-nav .rango { font-size: 13px; font-weight: 600; }
+.ag-cal-leg { font-size: 11.5px; color: var(--mute); margin: 0 0 8px; }
+.ag-cr { --lab: 210px; }
+.ag-cr-eje, .ag-cr-row { display: grid; grid-template-columns: var(--lab) minmax(0, 1fr); align-items: center; }
+.ag-cr-eje { border-bottom: 1px solid var(--borde2); }
+.ag-cr-eje .pista { position: relative; height: 38px; }
+.ag-cr-mes { position: absolute; top: 2px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-left: 3px; }
+.ag-cr-t { position: absolute; top: 19px; font-size: 10.5px; color: var(--mute); margin-left: 3px; font-variant-numeric: tabular-nums; }
+.ag-cr-hoyb { position: absolute; top: 17px; transform: translateX(-50%); background: var(--accion); color: var(--on-accion); font-size: 10px; font-weight: 700; border-radius: 9px; padding: 1px 7px; z-index: 3; }
+.ag-cr-row { border-bottom: 1px solid var(--borde); }
+.ag-cr-row.actual { background: color-mix(in srgb, var(--accion) 10%, transparent); }
+.ag-cr-nom { display: flex; align-items: center; gap: 8px; min-width: 0; background: transparent; color: var(--txt); border: 0; border-radius: 10px; padding: 8px 8px 8px 6px; text-align: left; font: inherit; cursor: pointer; min-height: 0; }
+.ag-cr-nom:hover { background: color-mix(in srgb, var(--txt) 7%, transparent); }
+.ag-cr-nom .t { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; }
+.ag-cr-nom strong { font-size: 13px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ag-cr-nom .ag-cr-prox { display: none; flex-basis: 100%; color: var(--mute); font-size: 11.5px; }
+.ag-cr-pista { position: relative; height: 72px; background-image: repeating-linear-gradient(to right, var(--borde) 0, var(--borde) 1px, transparent 1px, transparent calc(100% / 9)); }
+.ag-cr-hecho, .ag-cr-falta { position: absolute; top: 32px; height: 8px; }
+.ag-cr-hecho { background: var(--c); border-radius: 4px 0 0 4px; }
+.ag-cr-falta { background: color-mix(in srgb, var(--c) 38%, var(--card)); border-radius: 0 4px 4px 0; }
+.ag-cr-hecho:last-of-type { border-radius: 4px; }
+.ag-cr-m { position: absolute; top: 30px; width: 12px; height: 12px; margin-left: -6px; transform: rotate(45deg); background: var(--c); border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--c); }
+.ag-cr-m.hecha { background: var(--card); border-color: var(--mute); box-shadow: none; }
+.ag-cr-lab { position: absolute; transform: translateX(-50%); font-size: 10.5px; font-weight: 600; white-space: nowrap; color: var(--c); pointer-events: none; }
+.ag-cr-lab.arriba { top: 12px; } .ag-cr-lab.abajo { top: 47px; }
+.ag-cr-borde { position: absolute; top: 58px; font-size: 10px; color: var(--mute); white-space: nowrap; }
+.ag-cr-borde.izq { left: 4px; } .ag-cr-borde.der { right: 4px; }
+.ag-cr-hoy { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accion); z-index: 2; pointer-events: none; }
+.ag-cr-mas { font-size: 11px; color: var(--mute); padding: 6px 4px 0; }
+.ag-cr.mini { --lab: 100px; font-size: 11px; }
+.ag-cr.mini .ag-cr-eje .pista { height: 24px; }
+.ag-cr.mini .ag-cr-mes { font-size: 10px; top: 1px; }
+.ag-cr.mini .ag-cr-hoyb { top: 11px; font-size: 9.5px; padding: 0 6px; }
+.ag-cr.mini .ag-cr-row { border-bottom: 1px dashed var(--borde); }
+.ag-cr.mini .ag-cr-nom { padding: 3px 4px 3px 2px; gap: 6px; cursor: inherit; }
+.ag-cr.mini .ag-cr-nom:hover { background: transparent; }
+.ag-cr.mini .ag-cr-nom strong { font-size: 11.5px; }
+.ag-cr.mini .ag-cr-pista { height: 26px; }
+.ag-cr.mini .ag-cr-hecho, .ag-cr.mini .ag-cr-falta { top: 9px; }
+.ag-cr.mini .ag-cr-m { top: 8px; width: 10px; height: 10px; margin-left: -5px; }
+.ag-ls-g { display: flex; align-items: center; gap: 8px; margin: 14px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--mute); }
+.ag-ls-g::after { content: ''; flex: 1; height: 1px; background: var(--borde); }
+.ag-ls-g.rojo { color: var(--err); }
+.ag-ls { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card2); color: var(--txt); border: 1px solid var(--borde); border-left-width: 4px; border-radius: 12px; padding: 9px 12px; margin-bottom: 8px; font: inherit; cursor: pointer; min-height: 0; }
+.ag-ls:hover { background: color-mix(in srgb, var(--txt) 7%, var(--card2)); }
+.ag-ls.verde { border-left-color: var(--ok); } .ag-ls.amarillo { border-left-color: var(--warn); } .ag-ls.rojo { border-left-color: var(--err); }
+.ag-ls.actual { background: var(--card); border-top-color: var(--borde2); border-right-color: var(--borde2); border-bottom-color: var(--borde2); }
+.ag-ls-d { width: 46px; flex: none; text-align: center; line-height: 1.15; }
+.ag-ls-d small { display: block; font-size: 10.5px; color: var(--mute); text-transform: uppercase; }
+.ag-ls-d b { font-size: 20px; font-weight: 600; }
+.ag-ls-t { flex: 1; min-width: 0; }
+.ag-ls-t strong { display: block; font-size: 14.5px; }
+.ag-ls-t > span { font-size: 12.5px; color: var(--mute); text-transform: capitalize; }
+.ag-sinc { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: space-between; padding: 10px 2px 0; margin-top: 10px; border-top: 1px solid var(--borde); font-size: 12.5px; color: var(--mute); }
+.ag-sinc span { flex: 1 1 220px; line-height: 1.4; }
+.ag-abrirp { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 0 2px; }
+@media (max-width: 700px) {
+  .ag-cr:not(.mini) .ag-cr-eje, .ag-cr:not(.mini) .ag-cr-row { grid-template-columns: minmax(0, 1fr); }
+  .ag-cr:not(.mini) .ag-cr-eje > :first-child { display: none; }
+  .ag-cr:not(.mini) .ag-cr-pista { height: 40px; }
+  .ag-cr:not(.mini) .ag-cr-hecho, .ag-cr:not(.mini) .ag-cr-falta { top: 16px; }
+  .ag-cr:not(.mini) .ag-cr-m { top: 14px; }
+  .ag-cr:not(.mini) .ag-cr-lab, .ag-cr:not(.mini) .ag-cr-borde { display: none; }
+  .ag-cr:not(.mini) .ag-cr-nom .ag-cr-prox { display: block; }
+  .ag-cr:not(.mini) .ag-cr-row { padding-bottom: 4px; }
+  .ag-seg button { padding: 6px 11px; }
+}
 </style>
 <script id="cfg-embebida" type="application/json">null</script>
 <script id="catalogo-embebido" type="application/json">null</script>
@@ -3950,8 +4033,8 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   // Orden: 1) catalogo/agenda.json del repositorio (si GitHub está conectado), 2) esta constante, 3) la que se escriba a mano en el navegador.
   const AG_URL_DEFAULT = 'https://script.google.com/macros/s/AKfycbz2VQgfKzFSw2UxHPF6oBI72fI-YSgfhnZREE4VMXSIT1Pr3LwWWATLqPzuWXzTf9-h/exec';
   const AG_RUTA_JSON = 'catalogo/agenda.json';      // { "url": "https://script.google.com/macros/s/…/exec" }
-  const AG_K = 'despiece:agenda', AG_KC = 'despiece:agenda:cache', AG_KU = 'despiece:agenda:url';
-  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, renombrando: false, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, matsPedido: {}, plan: null, otro: null, planOtro: null, verPlanDe: '', ocupado: false, verConfig: false };
+  const AG_K = 'despiece:agenda', AG_KC = 'despiece:agenda:cache', AG_KU = 'despiece:agenda:url', AG_KV = 'despiece:agenda:vista';
+  const AG = { cfg: { clave: '', margen: 7, urlManual: '' }, url: '', urlOrigen: '', urlPromesa: null, renombrando: false, datos: null, hora: '', cargando: false, refrescado: false, error: '', abiertos: {}, mats: {}, matsPedido: {}, plan: null, otro: null, planOtro: null, verPlanDe: '', ocupado: false, verConfig: false, vista: 'cron', calOff: 0, abriendo: '' };
   function agNormCfg(o) {
     o = o || {}; const m = Math.floor(Number(o.margen));
     const um = String(o.urlManual || o.url || '').trim();
@@ -3959,6 +4042,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   }
   function agLeerGuardado() {
     try { AG.cfg = agNormCfg(JSON.parse(localStorage.getItem(AG_K) || 'null')); } catch (e) { /* sin almacenamiento: queda la configuración de esta sesión */ }
+    try { const v = localStorage.getItem(AG_KV); if (v === 'cron' || v === 'lista') AG.vista = v; } catch (e) { /* queda el cronograma */ }
     try { const c = JSON.parse(localStorage.getItem(AG_KC) || 'null'); if (c && c.datos && typeof c.datos === 'object') { AG.datos = c.datos; AG.hora = c.hora || ''; } } catch (e) { /* la copia guardada es opcional */ }
   }
   function agGuardarCfg() { try { localStorage.setItem(AG_K, JSON.stringify(AG.cfg)); } catch (e) { /* sólo esta sesión */ } }
@@ -3976,17 +4060,20 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       const n = String((D && D.proyecto && D.proyecto.nombre) || '').trim();
       if (n && agListo() && AG.datos) {
         const inf = agProyecto(AG.datos[n] || [], agHoy(), AG.cfg.margen);
-        h = '<i class="ag-sem sm ' + inf.color + '"></i><span class="ag-txt ' + inf.color + '">' + esc(AG_ROTULO[inf.color]) + '</span>';
         if (inf.proxima) { const d = agDias(agHoy(), inf.proxima.fecha); t = 'Próxima: ' + inf.proxima.etapa + ' · ' + agFmt(inf.proxima.fecha) + ' (' + (d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d)) + ')'; }
+        // El semáforo es un botón: lleva al calendario grande. En escritorio, con el mouse encima, se ve el cronograma en miniatura.
+        h = '<button type="button" class="ag-semb" data-ag-cal aria-label="Abrir el calendario de la agenda"><i class="ag-sem sm ' + inf.color + '"></i><span class="ag-txt ' + inf.color + '">' + esc(AG_ROTULO[inf.color]) + '</span></button>' +
+          '<div class="ag-pop"><div class="ag-pop-in" data-ag-cal><div class="ag-pop-tit">Cronograma</div>' + agCronoHtml({ mini: true }) +
+          '<div class="ag-pop-pie"><span>' + esc(t) + '</span><b>Abrir calendario ›</b></div></div></div>';
       }
     } catch (e) { h = ''; t = ''; }
     if (el.dataset.v === h + '|' + t) return;
-    el.dataset.v = h + '|' + t; el.innerHTML = h; el.title = t;
+    el.dataset.v = h + '|' + t; el.innerHTML = h; el.title = '';
   }
   const agRender = () => {
     agEncabezado();
     if (tab !== 'agenda') return;
-    const a = document.activeElement; if (a && a.closest && a.closest('.ag-cfg, [data-ag-otro]')) return;      // no pisar lo que se está escribiendo
+    const a = document.activeElement; if (a && a.closest && a.closest('.ag-cfg, [data-ag-otro], [data-ag-fecha], [data-ag-proy], [data-ag-pfecha]')) return;      // no pisar lo que se está escribiendo
     render();
   };
   const agUrlOk = (u) => /^https:\/\//.test(String(u || ''));
@@ -4062,11 +4149,12 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     agRender();
   }
   async function agMover(id, fecha) {
-    const f = agBuscar(id); if (!f || !agParse(fecha)) return;
-    const antes = f.e.fecha; f.e.fecha = fecha; AG.datos[f.n].sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0); agRender();
+    const f = agBuscar(id); if (!f || !agParse(fecha)) return false;
+    const antes = f.e.fecha; let ok = true; f.e.fecha = fecha; AG.datos[f.n].sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0); agRender();
     try { Object.assign(f.e, await agLlamar('moverEtapa', { eventoId: id, fecha })); agGuardarCache(); }
-    catch (err) { f.e.fecha = antes; toast('No se pudo mover la fecha: ' + err.message, 'err'); }
+    catch (err) { ok = false; f.e.fecha = antes; toast('No se pudo mover la fecha: ' + err.message, 'err'); }
     agRender();
+    return ok;
   }
   async function agMateriales(n) {
     AG.mats[n] = { cargando: true }; agRender();
@@ -4247,7 +4335,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       (inf.entrega ? '<span class="ag-ent"><small>Entrega</small>' + esc(agFmt(inf.entrega)) + '</span>' : '') + '</button>';
     if (abierto) {
       const orden = it.etapas.slice().sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
-      h += '<div class="ag-det">' + orden.map(e => agFilaEtapa(e, hoy, AG.cfg.margen)).join('') + '<div class="ag-mats">' + agMatsHtml(n) + '</div></div>';
+      h += '<div class="ag-det"><div class="ag-abrirp"><button class="sec mini" data-ag-abrirp="' + esc(n) + '">' + (actual ? 'Ir al despiece' : 'Abrir proyecto') + '</button></div>' + orden.map(e => agFilaEtapa(e, hoy, AG.cfg.margen)).join('') + '<div class="ag-mats">' + agMatsHtml(n) + '</div></div>';
     }
     return h + '</div>';
   }
@@ -4323,8 +4411,167 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       (agListo() ? '<button class="sec" data-ag-enlace>' + (St.ghListo() ? 'Copiar enlace completo (GitHub + agenda)' : 'Copiar enlace de la agenda') + '</button>' : '') + '</div></div>';
   }
 
-  // Orden de la pantalla: 1) encabezado con colores, 2) el proyecto abierto en la app (su ficha, o el formulario para agregarlo si todavía no está),
-  // 3) el resto de los proyectos por prioridad, 4) programar etapas / otro proyecto, 5) conexión.
+  /* ---- Calendario: cronograma (grande y miniatura), lista por semanas, actualizar fechas, abrir proyecto ---- */
+  const AG_VISTAS = [['cron', 'Cronograma'], ['lista', 'Lista por semanas']];
+  const AG_VAR = { verde: '--ok', amarillo: '--warn', rojo: '--err', hecha: '--mute' };
+  const agNz = (x) => String(x || '').trim().toLowerCase();
+  function agLunes(iso) { const d = agParse(iso); return agSumarDias(iso, -((d.getDay() + 6) % 7)); }
+  // Proyectos para el calendario: los que tienen etapas y no están terminados, en el orden de prioridad de siempre.
+  function agItemsCal() {
+    const hoy = agHoy(), m = AG.cfg.margen;
+    return agOrdenar(Object.keys(AG.datos || {}).map(n => ({ nombre: n, etapas: AG.datos[n], info: agProyecto(AG.datos[n], hoy, m) })))
+      .filter(it => it.info.color !== 'terminado' && it.info.color !== 'sin');
+  }
+  // Ventana del cronograma: 9 semanas desde el lunes anterior al de esta semana; las flechas la corren de a 4 semanas.
+  const AG_DIAS_CAL = 63;
+  const agIniCal = (off) => agSumarDias(agLunes(agHoy()), -7 + 7 * (off || 0));
+  function agRangoCal(off) { const i = agIniCal(off); return agFmt(i) + ' – ' + agFmt(agSumarDias(i, AG_DIAS_CAL - 1)); }
+  function agCronoHtml(o) {
+    o = o || {}; const mini = !!o.mini, hoy = agHoy(), dias = AG_DIAS_CAL, ini = agIniCal(mini ? 0 : o.off), margen = AG.cfg.margen, actualN = agNz(agNombreActual());
+    let items = agItemsCal(); const mas = mini && items.length > 8 ? items.length - 8 : 0; if (mini) items = items.slice(0, 8);
+    if (!items.length) return '<p class="hint">No hay etapas pendientes para mostrar.</p>';
+    const pm = (iso) => ((agDias(ini, iso) + 0.5) / dias * 100);
+    const ti = agDias(ini, hoy) + 0.5, xt = ti / dias * 100;
+    // eje: meses y números de los lunes
+    const meses = [{ i: 0, t: AG_MESES[agParse(ini).getMonth()] }]; let ticks = '';
+    for (let i = 0; i < dias; i++) {
+      const d = agParse(agSumarDias(ini, i));
+      if (d.getDate() === 1 && i > 0) { if (i < 12) meses.shift(); meses.push({ i, t: AG_MESES[d.getMonth()] }); }
+      if (!mini && d.getDay() === 1) ticks += '<span class="ag-cr-t" style="left:' + (i / dias * 100).toFixed(2) + '%">' + d.getDate() + '</span>';
+    }
+    const eje = meses.map(m => '<span class="ag-cr-mes" style="left:' + (m.i / dias * 100).toFixed(2) + '%">' + esc(mini ? m.t.slice(0, 3) : m.t) + '</span>').join('') + ticks +
+      (xt >= 0 && xt <= 100 ? '<span class="ag-cr-hoyb" style="left:' + xt.toFixed(2) + '%">hoy</span>' : '');
+    const filas = items.map((it, k) => {
+      const n = it.nombre, c = it.info.color, actual = agNz(n) === actualN;
+      const et = it.etapas.slice().sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
+      const f0 = agDias(ini, et[0].fecha), f1 = agDias(ini, et[et.length - 1].fecha) + 1, x0 = Math.max(0, f0), x1 = Math.min(dias, f1);
+      let pista = '';
+      if (x1 > x0) {
+        const mid = Math.max(x0, Math.min(x1, ti));
+        if (mid > x0) pista += '<i class="ag-cr-hecho" style="left:' + (x0 / dias * 100).toFixed(2) + '%;width:' + ((mid - x0) / dias * 100).toFixed(2) + '%"></i>';
+        if (x1 > mid) pista += '<i class="ag-cr-falta" style="left:' + (mid / dias * 100).toFixed(2) + '%;width:' + ((x1 - mid) / dias * 100).toFixed(2) + '%"></i>';
+      }
+      let pend = 0;
+      et.forEach(e => {
+        const idx = agDias(ini, e.fecha); if (idx < 0 || idx >= dias) return;
+        const sem = agEtapaSem(e, hoy, margen), dd = agParse(e.fecha), x = pm(e.fecha).toFixed(2);
+        pista += '<b class="ag-cr-m' + (e.estado === 'hecha' ? ' hecha' : '') + '" style="left:' + x + '%;--c:var(' + AG_VAR[sem] + ')" title="' + esc(e.etapa + ' · ' + agFmt(e.fecha)) + '"></b>';
+        if (!mini && e.estado !== 'hecha') {
+          pista += '<span class="ag-cr-lab ' + (pend % 2 ? 'abajo' : 'arriba') + '" style="left:' + Math.min(93, Math.max(7, Number(x))).toFixed(2) + '%;--c:var(' + AG_VAR[sem] + ')">' + esc(e.etapa) + ' ' + dd.getDate() + '/' + (dd.getMonth() + 1) + '</span>';
+          pend++;
+        }
+      });
+      if (!mini && f0 < 0) pista += '<span class="ag-cr-borde izq">‹ desde ' + esc(agFmt(et[0].fecha)) + '</span>';
+      if (!mini && f1 > dias) pista += '<span class="ag-cr-borde der">hasta ' + esc(agFmt(et[et.length - 1].fecha)) + ' ›</span>';
+      if (xt >= 0 && xt <= 100) pista += '<i class="ag-cr-hoy" style="left:' + xt.toFixed(2) + '%"></i>';
+      let nom;
+      if (mini) nom = '<span class="ag-cr-nom"><i class="ag-sem sm ' + c + '"></i><strong title="' + esc(n) + '">' + esc(n) + '</strong></span>';
+      else {
+        const p = it.info.proxima, d = p ? agDias(hoy, p.fecha) : 0;
+        nom = '<button type="button" class="ag-cr-nom" data-ag-ir="' + esc(n) + '"><span class="ag-pos">' + (k + 1) + '</span><i class="ag-sem ' + c + '"></i><span class="t"><strong>' + esc(n) + '</strong><span class="ag-rot ' + c + '">' + AG_ROTULO[c] + '</span>' + (actual ? '<span class="ag-actual-badge">Abierto</span>' : '') +
+          (p ? '<small class="ag-cr-prox">Próxima: ' + esc(p.etapa) + ' · ' + esc(agFmt(p.fecha)) + ' (' + (d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d)) + ')</small>' : '') + '</span></button>';
+      }
+      return '<div class="ag-cr-row' + (actual ? ' actual' : '') + '" style="--c:var(' + (AG_VAR[c] || '--mute') + ')">' + nom + '<div class="ag-cr-pista">' + pista + '</div></div>';
+    });
+    return '<div class="ag-cr' + (mini ? ' mini' : '') + '"><div class="ag-cr-eje"><span></span><div class="pista">' + eje + '</div></div>' + filas.join('') + (mas ? '<div class="ag-cr-mas">y ' + mas + (mas === 1 ? ' proyecto más…' : ' proyectos más…') + '</div>' : '') + '</div>';
+  }
+  function agListaHtml(items) {
+    const hoy = agHoy(), lun0 = agLunes(hoy), actualN = agNz(agNombreActual()), marg = AG.cfg.margen, filas = [];
+    items.forEach(it => it.etapas.forEach(e => { if (e.estado !== 'hecha') filas.push({ n: it.nombre, e, sem: agEtapaSem(e, hoy, marg) }); }));
+    filas.sort((a, b) => a.e.fecha < b.e.fecha ? -1 : a.e.fecha > b.e.fecha ? 1 : a.n < b.n ? -1 : 1);
+    const grupos = [], poner = (clave, titulo, cls) => { let g = grupos.find(x => x.clave === clave); if (!g) { g = { clave, titulo, cls, filas: [] }; grupos.push(g); } return g; };
+    filas.forEach(f => {
+      if (f.sem === 'rojo') { poner('a', 'Atrasado', 'rojo').filas.push(f); return; }
+      const lun = agLunes(f.e.fecha), w = Math.round(agDias(lun0, lun) / 7);
+      if (w < 6) poner('s' + lun, (w === 0 ? 'Esta semana' : w === 1 ? 'Semana que viene' : 'Semana del ' + agFmt(lun)) + ' · ' + agFmt(lun) + ' – ' + agFmt(agSumarDias(lun, 6)), '').filas.push(f);
+      else poner('z', 'Más adelante', '').filas.push(f);
+    });
+    if (!grupos.length) return '<p class="hint">No hay etapas pendientes.</p>';
+    return grupos.map(g => '<div class="ag-ls-g ' + g.cls + '">' + esc(g.titulo) + '</div>' + g.filas.map(f => {
+      const d = agParse(f.e.fecha), dif = agDias(hoy, f.e.fecha), act = agNz(f.n) === actualN;
+      const dsem = d.toLocaleDateString('es-AR', { weekday: 'short' }).replace(/\./g, ''), mes = d.toLocaleDateString('es-AR', { month: 'short' }).replace(/\./g, '');
+      return '<button type="button" class="ag-ls ' + f.sem + (act ? ' actual' : '') + '" data-ag-ir="' + esc(f.n) + '"><span class="ag-ls-d"><small>' + esc(dsem) + '</small><b>' + d.getDate() + '</b><small>' + esc(mes) + '</small></span>' +
+        '<span class="ag-ls-t"><strong>' + esc(f.n) + (act ? ' <span class="ag-actual-badge">Abierto</span>' : '') + '</strong><span>' + esc(f.e.etapa) + '</span></span><span class="ag-rel ' + f.sem + '">' + (dif < 0 ? 'atrasada ' + agDiasTxt(-dif) : agRel(dif)) + '</span></button>';
+    }).join('')).join('');
+  }
+  // Tarjeta del calendario grande: todos los proyectos, con selector de vista (cronograma / lista por semanas).
+  function agCalendarioHtml() {
+    if (!AG.datos) return '';
+    const items = agItemsCal();
+    const seg = '<div class="ag-seg" role="group" aria-label="Vista del calendario">' + AG_VISTAS.map(v => '<button type="button" data-ag-vista="' + v[0] + '" aria-pressed="' + (AG.vista === v[0]) + '">' + v[1] + '</button>').join('') + '</div>';
+    let cuerpo;
+    if (!items.length) cuerpo = '<p class="hint">Todavía no hay proyectos con etapas pendientes en el calendario.</p>';
+    else if (AG.vista === 'lista') cuerpo = agListaHtml(items);
+    else cuerpo = '<div class="ag-cal-nav"><span class="rango">' + esc(agRangoCal(AG.calOff)) + '</span><div style="display:flex;gap:6px"><button type="button" class="sec mini" data-ag-nav="ant" aria-label="Semanas anteriores">‹</button><button type="button" class="sec mini" data-ag-nav="hoy">Hoy</button><button type="button" class="sec mini" data-ag-nav="sig" aria-label="Semanas siguientes">›</button></div></div>' +
+      '<div class="ag-cal-leg">◆ etapa pendiente · ◇ etapa hecha · barra clara = lo que falta · línea = hoy. Tocá un proyecto para ver su detalle más abajo.</div>' + agCronoHtml({ off: AG.calOff });
+    return '<div class="card no-print ag" id="agCal"><div class="barra"><h2>Calendario</h2>' + seg + '</div>' + cuerpo + '</div>';
+  }
+  // Al tocar un proyecto del calendario: se despliega su ficha en la lista y se lleva la vista hasta ahí.
+  function agIrAProyecto(n) {
+    AG.abiertos[n] = true; render();
+    const b = Array.prototype.find.call(document.querySelectorAll('[data-ag-abrir]'), x => x.dataset.agAbrir === n);
+    if (b) b.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  // “Actualizar fechas”: las fechas de Proyecto (alta y entrega estimada) no se pasan solas al calendario; este botón las manda cuando cambian.
+  function agDifFechas() {
+    const n = agNombreActual(); if (!n || !AG.datos || !AG.datos[n]) return [];
+    const p = D.proyecto, ev = AG.datos[n], out = [];
+    [['inicio', p.fecha], ['entrega', p.fechaEntrega]].forEach(([et, f]) => { const e = ev.find(x => x.etapa === et); if (e && agFechaOk(f) && e.fecha !== f) out.push({ id: e.id, etapa: et, de: e.fecha, a: f }); });
+    return out;
+  }
+  function agSincHtml() {
+    const dif = agDifFechas();
+    const txt = dif.length
+      ? 'Las fechas de la pestaña Proyecto cambiaron: ' + dif.map(x => (x.etapa === 'inicio' ? 'alta ' : 'entrega ') + agFmt(x.de) + ' → ' + agFmt(x.a)).join(' · ') + '. Las demás etapas no se mueven.'
+      : 'Las fechas de alta y entrega de la pestaña Proyecto coinciden con las del calendario.';
+    return '<div class="ag-sinc"><span>' + esc(txt) + '</span><button type="button" class="mini" data-ag-sinc' + (dif.length && agListo() && !AG.ocupado ? '' : ' disabled') + '>' + (AG.ocupado ? 'Actualizando…' : 'Actualizar fechas') + '</button></div>';
+  }
+  async function agActualizarFechas() {
+    const dif = agDifFechas(); if (!dif.length || AG.ocupado || !agListo()) return;
+    AG.ocupado = true; agRender();
+    let ok = 0;
+    for (const x of dif) { if (await agMover(x.id, x.a)) ok++; else break; }
+    AG.ocupado = false;
+    if (ok === dif.length) toast('Fechas actualizadas en el calendario', 'ok');
+    agRender();
+  }
+
+  // “Abrir proyecto”: abre en la app el despiece del proyecto de la agenda (se lo busca por nombre: primero en GitHub, si no, en este navegador).
+  async function agAbrirProyecto(n) {
+    if (agNz(n) === agNz(agNombreActual())) { tab = 'ficha'; render(); window.scrollTo(0, 0); return; }
+    if (AG.abriendo) return;
+    AG.abriendo = n;
+    try {
+      if (sucioRemoto && !soloLectura && !(await confirmar('El proyecto abierto tiene cambios que todavía no se subieron a GitHub (quedan guardados en este navegador). ¿Abrir "' + n + '" igual?', 'Abrir'))) return;
+      let datos = null, aviso = '';
+      if (St.ghListo()) {
+        try {
+          const arch = await St.ghListar(), nombres = arch.length ? await St.ghNombres(arch) : new Map();
+          const f = arch.find(a => agNz(nombres.get(a.nombre)) === agNz(n));
+          if (f) { const r = await St.ghLeer(f.nombre); const ex = St.indice().find(x => x.archivo === f.nombre); if (ex) r.datos.meta.id = ex.id; r.datos.meta.archivo = f.nombre; r.datos.meta.sha = r.sha; datos = r.datos; }
+        } catch (e) { aviso = ' (no pude leer GitHub: ' + e.message + ')'; }
+      }
+      if (!datos) { const loc = St.indice().find(x => agNz(x.nombre) === agNz(n)); if (loc) datos = St.cargarLocal(loc.id); }
+      if (!datos) { toast('No encontré el despiece de "' + n + '" en GitHub ni en este navegador' + aviso + '. Abrilo desde el botón Proyectos.', 'err'); return; }
+      if (!soloLectura && D && D.meta) St.guardarLocal(D);
+      abrir(datos); tab = 'ficha'; render(); window.scrollTo(0, 0);
+      toast('Proyecto abierto: ' + n, 'ok');
+    } finally { AG.abriendo = ''; }
+  }
+  // Fechas escritas con el teclado: el navegador avisa del cambio apenas la fecha es válida (al escribir “1” ya es una fecha) y, si en ese momento se redibuja,
+  // el campo se reinicia. Por eso, mientras se tipea se espera: se guarda al salir del campo o con Enter. Con el calendario desplegable se guarda enseguida.
+  const AG_FECHA_SEL = '[data-ag-fecha], [data-ag-proy], [data-ag-otro]';
+  function agFechaCambio(el) {
+    const d = el.dataset, v = el.value;
+    if (d.agFecha !== undefined) { if (agFechaOk(v)) agMover(d.agFecha, v); return; }
+    if (d.agOtro !== undefined && AG.otro) { const k = d.agOtro; if (k === 'nombre') return; if (agFechaOk(v, true)) { AG.otro[k] = v; render(); } return; }
+    if (d.agProy !== undefined) { if (!agFechaOk(v, true)) return; setVal('proyecto', 0, d.agProy, v); render(); }
+  }
+
+  // Orden de la pantalla: 1) encabezado con colores, 2) calendario de todos los proyectos (cronograma o lista por semanas),
+  // 3) el proyecto abierto en la app (su ficha, o el formulario para agregarlo si todavía no está), 4) el resto de los proyectos por prioridad,
+  // 5) programar etapas / otro proyecto, 6) conexión.
   function vistaAgenda() {
     const hoy = agHoy(), listo = agListo(), margen = AG.cfg.margen, actualN = agNombreActual();
     if (!AG.urlPromesa) setTimeout(() => agTraerUrl().then(agRender), 0);
@@ -4345,7 +4592,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       '<div class="ag-leg"><span><i class="ag-sem verde"></i>A tiempo (más de ' + margen + ' días)</span><span><i class="ag-sem amarillo"></i>Ajustado (' + margen + ' o menos)</span><span><i class="ag-sem rojo"></i>Atrasado</span></div></div>';
     // Proyecto abierto: si ya está en el calendario, su ficha desplegada y marcada; si no, el formulario para agregarlo.
     const arriba = actual
-      ? '<div class="card no-print ag ag-actual-card"><h2>Proyecto abierto</h2>' + agBloqueProyecto(actual, posDe[actual.nombre] || 0, true) + '</div>'
+      ? '<div class="card no-print ag ag-actual-card"><h2>Proyecto abierto</h2>' + agBloqueProyecto(actual, posDe[actual.nombre] || 0, true) + agSincHtml() + '</div>'
       : agPlanHtml(true);
     let aviso = '';
     if (!resto.length && listo && !AG.cargando) aviso = actual ? 'No hay otros proyectos en el calendario.' : 'Todavía no hay proyectos en el calendario.' + (actualN && AG.datos ? ' Agregá el proyecto abierto en la tarjeta de arriba.' : '');
@@ -4354,7 +4601,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
         (resto.length ? '<p class="hint" style="margin:-4px 0 12px">Orden de prioridad: primero los atrasados, después los ajustados; dentro de cada color, la entrega más cercana. El color de un proyecto es el de su etapa más comprometida.</p>' +
           resto.map(it => agBloqueProyecto(it, posDe[it.nombre] || 0, false)).join('') : '<p class="hint">' + aviso + '</p>') + '</div>'
       : '';
-    return cab + arriba + lista + agPlanHtml(false) + ((!listo || AG.verConfig) ? agConfigHtml() : '');
+    return cab + agCalendarioHtml() + arriba + lista + agPlanHtml(false) + ((!listo || AG.verConfig) ? agConfigHtml() : '');
   }
 
   function agLeerForm() { const g = (id) => ((document.getElementById(id) || {}).value || ''); return agNormCfg({ urlManual: document.getElementById('agUrl') ? g('agUrl') : AG.cfg.urlManual, clave: g('agClave'), margen: g('agMargen') }); }
@@ -4386,6 +4633,12 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     agLeerGuardado(); agDefinirUrl();
     document.addEventListener('click', async (e) => {
       const q = (s) => e.target.closest(s); let b;
+      if (q('[data-ag-cal]')) { tab = 'agenda'; render(); window.scrollTo(0, 0); return; }
+      if ((b = q('[data-ag-vista]'))) { AG.vista = b.dataset.agVista === 'lista' ? 'lista' : 'cron'; try { localStorage.setItem(AG_KV, AG.vista); } catch (er) { /* sólo esta sesión */ } render(); return; }
+      if ((b = q('[data-ag-nav]'))) { const k = b.dataset.agNav; AG.calOff = k === 'hoy' ? 0 : AG.calOff + (k === 'sig' ? 4 : -4); render(); return; }
+      if ((b = q('[data-ag-ir]'))) { agIrAProyecto(b.dataset.agIr); return; }
+      if ((b = q('[data-ag-abrirp]'))) { agAbrirProyecto(b.dataset.agAbrirp); return; }
+      if (q('[data-ag-sinc]')) { agActualizarFechas(); return; }
       if ((b = q('[data-ag-abrir]'))) { const n = b.dataset.agAbrir; AG.abiertos[n] = !agAbierto(n); render(); return; }
       if ((b = q('[data-ag-hecha]'))) { agMarcar(b.dataset.agHecha, 'hecha'); return; }
       if ((b = q('[data-ag-mats]'))) { agMateriales(b.dataset.agMats); return; }
@@ -4423,12 +4676,24 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     document.addEventListener('change', (e) => {
       const el = e.target; if (!el.dataset) return;
       if (el.dataset.agEstado !== undefined) { agMarcar(el.dataset.agEstado, el.value); return; }
-      if (el.dataset.agFecha !== undefined) { if (agFechaOk(el.value)) agMover(el.dataset.agFecha, el.value); return; }
+      if (el.matches && el.matches(AG_FECHA_SEL) && el.type === 'date') { if (el._agTecla && el._agFoco) { el._agPend = true; return; } el._agTecla = false; agFechaCambio(el); return; }
       if (el.dataset.agPon !== undefined) { const f = agPlanActual(el.dataset.agO ? AG.otro : null).filas.find(x => x.etapa === el.dataset.agPon); if (f) f.activa = el.checked; return; }
       if (el.dataset.agPfecha !== undefined) { const f = agPlanActual(el.dataset.agO ? AG.otro : null).filas.find(x => x.etapa === el.dataset.agPfecha); if (f && agFechaOk(el.value, true)) { f.fecha = el.value; f.manual = true; } return; }
       if (el.dataset.agOtroCarp !== undefined && AG.otro) { AG.otro.carpeta = el.checked; return; }
-      if (el.dataset.agOtro !== undefined && AG.otro) { const k = el.dataset.agOtro; if (k === 'nombre') { AG.otro.nombre = el.value; return; } if (agFechaOk(el.value, true)) { AG.otro[k] = el.value; render(); } return; }
-      if (el.dataset.agProy !== undefined) { if (!agFechaOk(el.value, true)) return; setVal('proyecto', 0, el.dataset.agProy, el.value); render(); }
+      if (el.dataset.agOtro !== undefined && AG.otro && el.dataset.agOtro === 'nombre') { AG.otro.nombre = el.value; return; }
+    });
+    // Tecleo en un campo de fecha: se marca para esperar al final (Enter o salir del campo) antes de guardar y redibujar.
+    document.addEventListener('keydown', (e) => {
+      const el = e.target; if (!el || !el.matches || !el.matches(AG_FECHA_SEL) || el.type !== 'date') return;
+      if (e.key === 'Enter') { el._agTecla = false; el._agPend = false; el.blur(); agFechaCambio(el); return; }
+      if (/^[0-9]$|^Arrow|^Backspace$|^Delete$/.test(e.key)) el._agTecla = true;
+    });
+    document.addEventListener('focusin', (e) => { if (e.target && e.target.matches && e.target.matches(AG_FECHA_SEL)) e.target._agFoco = true; });
+    document.addEventListener('focusout', (e) => {
+      const el = e.target; if (!el) return; el._agFoco = false;
+      if (!el._agPend) return;
+      el._agPend = false; el._agTecla = false;
+      setTimeout(() => agFechaCambio(el), 300);      // un instante, para que el toque en otro botón no se pierda por el redibujado
     });
     // El nombre del otro proyecto se guarda mientras se escribe (sin redibujar la pantalla, para no perder el foco).
     document.addEventListener('input', (e) => { const el = e.target; if (el && el.dataset && el.dataset.agOtro === 'nombre' && AG.otro) AG.otro.nombre = el.value; });
