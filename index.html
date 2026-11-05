@@ -811,6 +811,11 @@ i.ag-sem.hecha, i.ag-sem.terminado { background: transparent; border: 2px solid 
 /* Avisos de cada etapa y del encabezado: siguen los colores del semáforo */
 .ag-rel.verde, .ag-txt.verde { color: var(--ok); } .ag-rel.amarillo, .ag-txt.amarillo { color: var(--warn); } .ag-rel.rojo, .ag-txt.rojo { color: var(--err); }
 .ag-rel.verde, .ag-rel.amarillo, .ag-rel.rojo, .ag-txt.verde, .ag-txt.amarillo, .ag-txt.rojo { font-weight: 600; }
+/* Proyecto abierto en la app: etiqueta “Abierto” (invierte texto y fondo, así sirve en el tema claro y en el oscuro) y ficha resaltada */
+.ag-actual-badge { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: var(--txt); color: var(--card); border-radius: 999px; padding: 2px 9px; white-space: nowrap; line-height: 1.4; }
+.ag h2 .ag-actual-badge { vertical-align: middle; margin-left: 6px; }
+.ag-actual-card h2 { margin-bottom: 10px; }
+.ag-proy.actual { background: var(--card); border-top-color: var(--borde2); border-right-color: var(--borde2); border-bottom-color: var(--borde2); margin-bottom: 0; }
 /* color propio de la pestaña Agenda (el resto de las pestañas ya tiene el suyo) */
 :root { --tc-agenda: #E27BA8; }
 :root[data-tema="claro"] { --tc-agenda: #C2548A; }
@@ -3959,6 +3964,10 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   function agGuardarCfg() { try { localStorage.setItem(AG_K, JSON.stringify(AG.cfg)); } catch (e) { /* sólo esta sesión */ } }
   function agGuardarCache() { try { localStorage.setItem(AG_KC, JSON.stringify({ datos: AG.datos, hora: AG.hora })); } catch (e) { /* opcional */ } }
   const agListo = () => !!(AG.url && AG.cfg.clave);
+  // Nombre del proyecto abierto en la app (vacío si todavía no tiene).
+  const agNombreActual = () => String((typeof D !== 'undefined' && D && D.proyecto && D.proyecto.nombre) || '').trim();
+  // ¿Está desplegado un proyecto en la lista? Si nadie lo tocó, el proyecto abierto en la app arranca desplegado y los demás cerrados.
+  const agAbierto = (n) => Object.prototype.hasOwnProperty.call(AG.abiertos, n) ? !!AG.abiertos[n] : (!!n && n === agNombreActual());
   // Semáforo del proyecto abierto, debajo de su nombre en el encabezado (reemplaza al subtítulo de la app).
   function agEncabezado() {
     const el = document.getElementById('agSub'); if (!el) return;
@@ -4225,15 +4234,16 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     return h;
   }
 
-  function agBloqueProyecto(it, pos) {
-    const n = it.nombre, inf = it.info, abierto = !!AG.abiertos[n], hoy = agHoy();
+  // Un proyecto de la lista. “actual” = es el proyecto abierto en la app: se marca con “Abierto” y arranca desplegado.
+  function agBloqueProyecto(it, pos, actual) {
+    const n = it.nombre, inf = it.info, abierto = agAbierto(n), hoy = agHoy();
     let sub = '';
     if (inf.proxima) { const d = agDias(hoy, inf.proxima.fecha); sub = 'Próxima: ' + inf.proxima.etapa + ' · ' + agFmt(inf.proxima.fecha) + ' (' + (d < 0 ? 'atrasada ' + agDiasTxt(-d) : agRel(d)) + ')'; }
     else if (inf.color === 'terminado') sub = 'Entregado / etapas cerradas';
     sub += (sub ? ' · ' : '') + inf.hechas + ' de ' + inf.total + ' etapas hechas' + (inf.enEspera ? ' · ' + inf.enEspera + ' en espera' : '');
-    let h = '<div class="ag-proy ' + inf.color + '"><button class="ag-cab" data-ag-abrir="' + esc(n) + '" aria-expanded="' + abierto + '">' +
+    let h = '<div class="ag-proy ' + inf.color + (actual ? ' actual' : '') + '"><button class="ag-cab" data-ag-abrir="' + esc(n) + '" aria-expanded="' + abierto + '">' +
       '<span class="ag-pos">' + (pos ? pos : '') + '</span><i class="ag-sem ' + inf.color + '"></i>' +
-      '<span class="ag-nom"><strong>' + esc(n) + '</strong> <span class="ag-rot ' + inf.color + '">' + AG_ROTULO[inf.color] + '</span><small>' + esc(sub) + '</small></span>' +
+      '<span class="ag-nom"><strong>' + esc(n) + '</strong> <span class="ag-rot ' + inf.color + '">' + AG_ROTULO[inf.color] + '</span>' + (actual ? ' <span class="ag-actual-badge">Abierto</span>' : '') + '<small>' + esc(sub) + '</small></span>' +
       (inf.entrega ? '<span class="ag-ent"><small>Entrega</small>' + esc(agFmt(inf.entrega)) + '</span>' : '') + '</button>';
     if (abierto) {
       const orden = it.etapas.slice().sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0);
@@ -4242,14 +4252,22 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     return h + '</div>';
   }
 
-  // Tarjeta “Programar etapas”. Si el proyecto abierto ya está en el calendario, muestra su estado (calendario y Drive) en vez del formulario,
-  // y ofrece programar otro proyecto distinto. El formulario completo sólo aparece para un proyecto sin programar o a pedido.
-  function agPlanHtml() {
-    if (AG.otro) return agPlanFormHtml(AG.otro, true);
+  // Tarjetas de programación.
+  // arriba=true: lo que va arriba de todo, que es el formulario para AGREGAR a la agenda el proyecto abierto cuando todavía no está.
+  // arriba=false: lo que va abajo: el estado del proyecto abierto si ya está programado (o su formulario de reprogramación),
+  // el formulario de “otro proyecto”, o un acceso a “Programar otro proyecto”.
+  function agPlanHtml(arriba) {
+    if (AG.otro) return arriba ? '' : agPlanFormHtml(AG.otro, true);
     const p = D.proyecto, nombre = String(p.nombre || '').trim();
+    const conocido = !agListo() || !!AG.datos;      // con la agenda conectada, hasta que no llegan los datos no se sabe si el proyecto está o no
+    const prog = agProgramado(nombre);
+    if (arriba) return (nombre && conocido && !prog) ? agPlanFormHtml(p, false) : '';
     if (!nombre) return '<div class="card no-print ag"><h2>Programar etapas</h2><p class="hint">Ponele nombre al proyecto (pestaña Proyecto) para programar sus etapas en el calendario, o programá otro proyecto distinto.</p><button class="sec" data-ag-otro-nuevo>Programar otro proyecto</button></div>';
-    if (agProgramado(nombre) && AG.verPlanDe !== nombre) return agProgramadoHtml(nombre);
-    return agPlanFormHtml(p, false);
+    if (prog) return AG.verPlanDe === nombre ? agPlanFormHtml(p, false) : agProgramadoHtml(nombre);
+    return agOtroHtml();
+  }
+  function agOtroHtml() {
+    return '<div class="card no-print ag"><h2>Otro proyecto</h2><p class="hint">Para cargar en la agenda un proyecto que no está abierto en la app.</p><button class="sec" data-ag-otro-nuevo>Programar otro proyecto</button></div>';
   }
   function agProgramadoHtml(nombre) {
     const et = AG.datos[nombre], hechas = et.filter(e => e.estado === 'hecha').length;
@@ -4277,8 +4295,9 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     }).join('');
     const campoAlta = otro ? '<input type="date" data-ag-otro="fecha" value="' + esc(p.fecha || '') + '">' : '<input type="date" data-ag-proy="fecha" value="' + esc(p.fecha) + '">';
     const campoEnt = otro ? '<input type="date" data-ag-otro="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '">' : '<input type="date" data-ag-proy="fechaEntrega" value="' + esc(p.fechaEntrega || '') + '">';
-    return '<div class="card no-print ag"><h2>' + (otro ? 'Programar otro proyecto' : 'Programar etapas · ' + esc(nombre)) + '</h2>' +
-      '<p class="hint">' + (otro ? 'Cargá un proyecto que todavía no esté en la agenda (no hace falta tenerlo abierto en la app). ' : '') + 'Las fechas se proponen repartiendo las etapas entre el alta y la entrega estimada. Ajustalas como quieras: los eventos se crean en el calendario recién cuando confirmás' + (ya.length ? '. Este proyecto ya tiene etapas: al confirmar sólo se actualizan sus fechas.' : '.') + '</p>' +
+    const titulo = otro ? 'Programar otro proyecto' : (ya.length ? 'Programar etapas · ' + esc(nombre) : 'Agregar a la agenda · ' + esc(nombre) + ' <span class="ag-actual-badge">Abierto</span>');
+    return '<div class="card no-print ag"><h2>' + titulo + '</h2>' +
+      '<p class="hint">' + (otro ? 'Cargá un proyecto que todavía no esté en la agenda (no hace falta tenerlo abierto en la app). ' : (ya.length ? '' : 'Este proyecto todavía no está en la agenda. ')) + 'Las fechas se proponen repartiendo las etapas entre el alta y la entrega estimada. Ajustalas como quieras: los eventos se crean en el calendario recién cuando confirmás' + (ya.length ? '. Este proyecto ya tiene etapas: al confirmar sólo se actualizan sus fechas.' : '.') + '</p>' +
       (otro ? '<div class="campo" style="margin-bottom:10px"><label class="l">Nombre del proyecto</label><input type="text" data-ag-otro="nombre" value="' + esc(p.nombre || '') + '" placeholder="Calle y número, o barrio" autocomplete="off"></div>' : '') +
       '<div class="grid2"><div class="campo"><label class="l">Alta del proyecto</label>' + campoAlta + '</div>' +
       '<div class="campo"><label class="l">Entrega estimada</label>' + campoEnt + '</div></div>' +
@@ -4304,8 +4323,10 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       (agListo() ? '<button class="sec" data-ag-enlace>' + (St.ghListo() ? 'Copiar enlace completo (GitHub + agenda)' : 'Copiar enlace de la agenda') + '</button>' : '') + '</div></div>';
   }
 
+  // Orden de la pantalla: 1) encabezado con colores, 2) el proyecto abierto en la app (su ficha, o el formulario para agregarlo si todavía no está),
+  // 3) el resto de los proyectos por prioridad, 4) programar etapas / otro proyecto, 5) conexión.
   function vistaAgenda() {
-    const hoy = agHoy(), listo = agListo(), margen = AG.cfg.margen;
+    const hoy = agHoy(), listo = agListo(), margen = AG.cfg.margen, actualN = agNombreActual();
     if (!AG.urlPromesa) setTimeout(() => agTraerUrl().then(agRender), 0);
     if (listo && !AG.refrescado && !AG.cargando && !AG.error) setTimeout(agCargar, 0);
     const items = agOrdenar(Object.keys(AG.datos || {}).map(n => ({ nombre: n, etapas: AG.datos[n], info: agProyecto(AG.datos[n], hoy, margen) })));
@@ -4313,15 +4334,27 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     if (!listo) estado = 'Conectá la agenda para ver los proyectos y sus fechas.';
     else if (AG.cargando) estado = 'Cargando desde Google…' + (AG.hora ? ' (mientras tanto, lo último guardado de las ' + esc(AG.hora) + ')' : '');
     else estado = AG.hora ? 'Actualizado a las ' + esc(AG.hora) : '';
-    let pos = 0;
-    const lista = items.length ? items.map(it => agBloqueProyecto(it, (it.info.color === 'terminado' || it.info.color === 'sin') ? 0 : ++pos)).join('')
-      : '<p class="hint">' + (listo ? (AG.cargando ? '' : 'Todavía no hay proyectos en el calendario. Programá las etapas del proyecto abierto en la tarjeta de abajo.') : '') + '</p>';
-    return '<div class="card no-print ag"><div class="barra"><h2>Agenda</h2><div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    // El número de prioridad es el del orden general, también para el proyecto abierto aunque se muestre arriba aparte.
+    const posDe = {}; let pos = 0;
+    items.forEach(it => { if (it.info.color !== 'terminado' && it.info.color !== 'sin') posDe[it.nombre] = ++pos; });
+    const actual = actualN ? (items.find(it => it.nombre === actualN) || null) : null;
+    const resto = items.filter(it => it !== actual);
+    const cab = '<div class="card no-print ag"><div class="barra"><h2>Agenda</h2><div style="display:flex;gap:8px;flex-wrap:wrap">' +
       '<button class="sec mini" data-ag-actualizar' + (!listo || AG.cargando ? ' disabled' : '') + '>Actualizar</button><button class="sec mini" data-ag-config>Conexión</button></div></div>' +
       '<div class="ag-estado">' + estado + '</div>' + (AG.error ? '<div class="ag-err">' + esc(AG.error) + '</div>' : '') +
-      '<div class="ag-leg"><span><i class="ag-sem verde"></i>A tiempo (más de ' + margen + ' días)</span><span><i class="ag-sem amarillo"></i>Ajustado (' + margen + ' o menos)</span><span><i class="ag-sem rojo"></i>Atrasado</span></div>' +
-      '<p class="hint" style="margin:-4px 0 12px">Orden de prioridad: primero los atrasados, después los ajustados; dentro de cada color, la entrega más cercana. El color de un proyecto es el de su etapa más comprometida.</p>' +
-      lista + '</div>' + agPlanHtml() + ((!listo || AG.verConfig) ? agConfigHtml() : '');
+      '<div class="ag-leg"><span><i class="ag-sem verde"></i>A tiempo (más de ' + margen + ' días)</span><span><i class="ag-sem amarillo"></i>Ajustado (' + margen + ' o menos)</span><span><i class="ag-sem rojo"></i>Atrasado</span></div></div>';
+    // Proyecto abierto: si ya está en el calendario, su ficha desplegada y marcada; si no, el formulario para agregarlo.
+    const arriba = actual
+      ? '<div class="card no-print ag ag-actual-card"><h2>Proyecto abierto</h2>' + agBloqueProyecto(actual, posDe[actual.nombre] || 0, true) + '</div>'
+      : agPlanHtml(true);
+    let aviso = '';
+    if (!resto.length && listo && !AG.cargando) aviso = actual ? 'No hay otros proyectos en el calendario.' : 'Todavía no hay proyectos en el calendario.' + (actualN && AG.datos ? ' Agregá el proyecto abierto en la tarjeta de arriba.' : '');
+    const lista = (resto.length || aviso)
+      ? '<div class="card no-print ag"><h2>' + (actual ? 'Otros proyectos' : 'Proyectos') + '</h2>' +
+        (resto.length ? '<p class="hint" style="margin:-4px 0 12px">Orden de prioridad: primero los atrasados, después los ajustados; dentro de cada color, la entrega más cercana. El color de un proyecto es el de su etapa más comprometida.</p>' +
+          resto.map(it => agBloqueProyecto(it, posDe[it.nombre] || 0, false)).join('') : '<p class="hint">' + aviso + '</p>') + '</div>'
+      : '';
+    return cab + arriba + lista + agPlanHtml(false) + ((!listo || AG.verConfig) ? agConfigHtml() : '');
   }
 
   function agLeerForm() { const g = (id) => ((document.getElementById(id) || {}).value || ''); return agNormCfg({ urlManual: document.getElementById('agUrl') ? g('agUrl') : AG.cfg.urlManual, clave: g('agClave'), margen: g('agMargen') }); }
@@ -4353,7 +4386,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     agLeerGuardado(); agDefinirUrl();
     document.addEventListener('click', async (e) => {
       const q = (s) => e.target.closest(s); let b;
-      if ((b = q('[data-ag-abrir]'))) { const n = b.dataset.agAbrir; AG.abiertos[n] = !AG.abiertos[n]; render(); return; }
+      if ((b = q('[data-ag-abrir]'))) { const n = b.dataset.agAbrir; AG.abiertos[n] = !agAbierto(n); render(); return; }
       if ((b = q('[data-ag-hecha]'))) { agMarcar(b.dataset.agHecha, 'hecha'); return; }
       if ((b = q('[data-ag-mats]'))) { agMateriales(b.dataset.agMats); return; }
       if ((b = q('[data-ag-carpeta]'))) { agCrearCarpeta(b.dataset.agCarpeta); return; }
