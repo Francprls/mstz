@@ -910,6 +910,57 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   .ag-seg button { padding: 6px 11px; }
 }
 </style>
+<style id="css-auditoria">
+/* ===== Ajustes de la auditoría UI/UX (nov 2026) ===== */
+
+/* Taller en el celular: cada pieza es una tarjeta, así las medidas (L, A, E) y los tapacantos se ven sin deslizar de costado */
+@media (max-width: 640px) {
+  .tabla-wrap:has(> table.t-taller) { overflow: visible; }
+  table.t-taller, table.t-taller tbody { display: block; width: 100%; }
+  table.t-taller thead { display: none; }
+  table.t-taller tr { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px 8px; align-items: center; padding: 12px 2px; border-top: 1px solid var(--borde); }
+  table.t-taller td { display: block; padding: 0; border: 0; white-space: normal; text-align: left; }
+  table.t-taller td:nth-child(2) { grid-column: 1 / -1; grid-row: 1; font-size: 15px; }
+  table.t-taller td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; font-size: 12.5px; }
+  table.t-taller td:nth-child(3).sin { display: none; }
+  table.t-taller td:nth-child(n+4) { grid-row: 3; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--txt); }
+  table.t-taller td:nth-child(1) { grid-column: 1 / -1; grid-row: 4; display: flex; align-items: center; gap: 10px; width: auto; text-align: left; }
+  table.t-taller td:nth-child(1)::before { content: 'Cortada'; font-size: 13px; color: var(--mute); }
+  table.t-taller td.cnt:nth-child(1)::before { content: 'Cortadas'; }
+  table.t-taller td:nth-child(1) input[type=checkbox] { margin: 0; }
+  table.t-taller td:nth-child(n+4)::before { display: block; font-size: 11.5px; font-weight: 500; color: var(--mute); }
+  table.t-taller td:nth-child(4)::before { content: 'Cant.'; }
+  table.t-taller td:nth-child(5)::before { content: 'L'; }
+  table.t-taller td:nth-child(6)::before { content: 'A'; }
+  table.t-taller td:nth-child(7)::before { content: 'E'; }
+  table.t-taller td:nth-child(8)::before { content: 'T.L.'; }
+  table.t-taller td:nth-child(9)::before { content: 'T.A.'; }
+  table.t-taller tr.cortada td { text-decoration: none; }
+  table.t-taller tr.cortada td:nth-child(2) { text-decoration: line-through; }
+  table.t-taller tr.ctl-fila td { background: none; box-shadow: none !important; }
+  table.t-taller tr.ctl-fila { background: rgba(224, 143, 124, .12); box-shadow: inset 3px 0 0 var(--err); padding-left: 8px; }
+}
+
+/* Pantallas táctiles: lo que se toca mientras se corta (casillas, − / +, Marcar todas) tiene al menos 44 px */
+@media (pointer: coarse) {
+  table.tabla-corte td.chk input[type=checkbox] { width: 44px; height: 44px; margin: 0; border-radius: 8px; }
+  table.tabla-corte td.chk input[type=checkbox]:checked::after { width: 10px; height: 19px; border-width: 0 3px 3px 0; }
+  .cutstep { gap: 6px; }
+  .cutstep button { min-width: 44px; min-height: 44px; padding: 0 10px; font-size: 16px; }
+  .cutstep button.cn { min-width: 60px; }
+  .modulo-titulo button.mini { min-height: 44px; padding: 0 16px; }
+}
+
+/* Tema claro: los globitos del menú de abajo llevan número blanco (con texto oscuro no se leía) */
+:root[data-tema="claro"] #navInf a.ctl::after { color: #FFFFFF; }
+/* Tema claro: el ícono naranja de "Control manual" un poco más oscuro, para que se distinga sobre blanco */
+:root[data-tema="claro"] { --tc-manual: #B86A1E; }
+
+/* "Hecha" en la agenda: salvia (igual que en la app del taller), así no se confunde con el verde "A tiempo" del semáforo */
+:root { --hecha: #A9B191; --on-hecha: #1C1A17; }
+:root[data-tema="claro"] { --hecha: #5C6347; --on-hecha: #FFFFFF; }
+.ag-et button.ag-ok { background: var(--hecha); border-color: var(--hecha); color: var(--on-hecha); }
+</style>
 <script id="cfg-embebida" type="application/json">null</script>
 <script id="catalogo-embebido" type="application/json">null</script>
 <script>
@@ -3271,7 +3322,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   function cajaFiltros(opts) {
     const sel = ([k, t]) => opts[k].length ? '<div class="campo"><label class="l">' + t + '</label><select data-filtro="' + k + '"><option value="">Todos</option>' + opts[k].map(o => '<option value="' + esc(o) + '"' + (filt[k] === o ? ' selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></div>' : '';
     const inp = (k, ph) => '<input type="text" inputmode="decimal" autocomplete="off" data-busq="' + k + '" placeholder="' + ph + '" value="' + esc(busq[k]) + '">';
-    return '<div class="card no-print"><div class="barra" style="margin-bottom:6px"><label class="l" style="margin:0">Filtrar (los filtros se combinan entre sí)</label><a href="#" data-acc="limpiar-busq" style="font-size:12px;color:#A9B08F;font-weight:600;text-decoration:none">Limpiar todo</a></div>' +
+    return '<div class="card no-print"><div class="barra" style="margin-bottom:6px"><label class="l" style="margin:0">Filtrar (los filtros se combinan entre sí)</label><a href="#" data-acc="limpiar-busq" style="font-size:12px;color:var(--accion);font-weight:600;text-decoration:none">Limpiar todo</a></div>' +
       '<div class="filtros-g">' + FILTROS.map(sel).join('') + '</div>' +
       '<label class="l" style="margin-top:10px">Medida (mm)</label><div class="row3">' + inp('largo', 'Largo') + inp('ancho', 'Ancho') + inp('espesor', 'Espesor') + '</div>' +
       '<p class="hint">Dejá en blanco lo que no quieras filtrar. Con una medida, además de la coincidencia exacta se arma una sección aparte con lo que está a ±1 mm.</p>' +
@@ -3301,7 +3352,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     return h || '<div class="vacio">Ninguna pieza coincide con esa medida.</div>';
   }
   function cajaBusqueda() {
-    return '<div class="card no-print"><div class="barra" style="margin-bottom:2px"><label class="l" style="margin:0">Buscar por medida (mm)</label><a href="#" data-acc="limpiar-busq" style="font-size:12px;color:#A9B08F;font-weight:600;text-decoration:none">Limpiar</a></div>' +
+    return '<div class="card no-print"><div class="barra" style="margin-bottom:2px"><label class="l" style="margin:0">Buscar por medida (mm)</label><a href="#" data-acc="limpiar-busq" style="font-size:12px;color:var(--accion);font-weight:600;text-decoration:none">Limpiar</a></div>' +
       '<p class="hint">Dejá en blanco lo que no quieras filtrar — además de la coincidencia exacta, se arma una sección aparte con lo que está a ±1 mm.</p>' +
       '<div class="row3"><input type="number" data-busq="largo" placeholder="Largo" value="' + esc(busq.largo) + '"><input type="number" data-busq="ancho" placeholder="Ancho" value="' + esc(busq.ancho) + '"><input type="number" data-busq="espesor" placeholder="Espesor" value="' + esc(busq.espesor) + '"></div></div>';
   }
@@ -3374,7 +3425,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
       if (!ps.length) return '';
       const hechasMod = piezas.filter(p => estaCortada(id, p)).length;
       return '<div class="modulo-card"><div class="modulo-titulo"' + (estiloTitulo ? ' style="' + estiloTitulo + '"' : '') + '><span>' + (String(id).charAt(0) === '§' ? esc(titulo) : '<span class="id-pill id-grande">' + esc(titulo) + '</span>') + '</span>' + chipControlModulo(id) + '<button class="sec mini no-print" data-acc="cut-mod" data-id="' + esc(id) + '" title="Marcar o desmarcar todas las piezas de este módulo">' + (hechasMod === piezas.length ? 'Desmarcar todas' : 'Marcar todas') + '</button></div>' +
-        (sub && sub.length ? '<div class="modulo-sub">' + (Array.isArray(sub) ? sub.map((t, n) => '<span class="tag' + (n === sub.length - 1 && sub.obs ? ' obs' : '') + '">' + esc(t) + '</span>').join('') : esc(sub)) + '</div>' : '') + '<div class="tabla-wrap"><table class="tabla-corte">' + THEAD_TALLER + '<tbody>' + ps.map(p => filaPiezaTaller(p, id)).join('') + '</tbody></table></div></div>';
+        (sub && sub.length ? '<div class="modulo-sub">' + (Array.isArray(sub) ? sub.map((t, n) => '<span class="tag' + (n === sub.length - 1 && sub.obs ? ' obs' : '') + '">' + esc(t) + '</span>').join('') : esc(sub)) + '</div>' : '') + '<div class="tabla-wrap"><table class="tabla-corte t-taller">' + THEAD_TALLER + '<tbody>' + ps.map(p => filaPiezaTaller(p, id)).join('') + '</tbody></table></div></div>';
     };
     h += mods.map(m => bloqueMod(m.idModulo, m.idModulo, [m.tipo, m.material, m.h + ' x ' + m.l + ' x ' + m.p, m.observaciones].filter(Boolean), m.piezas)).join('');
     h += secs.map(s => bloqueMod('§' + s.categoria, 'Sección: ' + s.categoria, '', s.piezas, 'color:var(--madera)')).join('');
