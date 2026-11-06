@@ -734,6 +734,8 @@ nav.tabs a .n.ctl-b.err { color: var(--err); }
       <button id="btnGuardar" title="Guardar" aria-label="Guardar"><svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v6h8V3"/><path d="M7 21v-7h10v7"/></svg><span>Guardar</span></button>
       <button id="btnMas" class="ib" title="Más opciones" aria-label="Más opciones"><svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
       <div class="mas" id="menuMas">
+        <button id="btnUndoMenu" class="sec" title="Deshacer el último cambio" disabled><svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Deshacer</button>
+        <button id="btnRedoMenu" class="sec" title="Rehacer lo que se deshizo" disabled><svg class="i" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></svg>Rehacer</button>
         <button id="btnTemaMenu" class="sec" title="Cambiar entre tema claro y oscuro">Cambiar tema</button>
         <button id="btnJson" class="sec" title="Descargar una copia del proyecto como archivo .json">Descargar .json</button>
         <button id="btnHist" class="sec" style="display:none">Historial</button>
@@ -955,6 +957,15 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
 :root[data-tema="claro"] #navInf a.ctl::after { color: #FFFFFF; }
 /* Tema claro: el ícono naranja de "Control manual" un poco más oscuro, para que se distinga sobre blanco */
 :root[data-tema="claro"] { --tc-manual: #B86A1E; }
+
+/* Celular: Deshacer y Rehacer pasan al menú "Más", así el nombre del proyecto tiene lugar y los botones de arriba quedan en 44 px */
+#btnUndoMenu, #btnRedoMenu { display: none; }
+@media (max-width: 640px) {
+  #btnUndo, #btnRedo { display: none; }
+  #btnUndoMenu, #btnRedoMenu { display: flex; gap: 10px; }
+  #btnRedoMenu { border-bottom: 1px solid var(--borde) !important; border-radius: 8px 8px 0 0; margin-bottom: 4px; padding-bottom: 13px; }
+  .acciones > button { width: 44px; height: 44px; }
+}
 
 /* "Hecha" en la agenda: salvia (igual que en la app del taller), así no se confunde con el verde "A tiempo" del semáforo */
 :root { --hecha: #A9B191; --on-hecha: #1C1A17; }
@@ -4924,7 +4935,7 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
   }
   function actualizarBotones() {
     const gh = St.ghListo();
-    $('#btnUndo').disabled = soloLectura || !pilaUndo.length; $('#btnRedo').disabled = soloLectura || !pilaRedo.length; $('#btnGuardar').disabled = soloLectura;
+    $('#btnUndo').disabled = $('#btnUndoMenu').disabled = soloLectura || !pilaUndo.length; $('#btnRedo').disabled = $('#btnRedoMenu').disabled = soloLectura || !pilaRedo.length; $('#btnGuardar').disabled = soloLectura;
     $('#btnHist').style.display = gh && D.meta.archivo ? '' : 'none';
   }
 
@@ -6054,8 +6065,15 @@ header.top .titulo .sub.ag-sub:empty { display: none; }
     }
     eventos(); agendaEventos();
     $('#btnMas').onclick = (e) => { e.stopPropagation(); $('.acciones').classList.toggle('mas-abierto'); };
-    document.addEventListener('click', (e) => { if (!e.target.closest('#btnMas') && !e.target.closest('.acciones') || e.target.closest('#menuMas button')) $('.acciones').classList.remove('mas-abierto'); });
-    $('#btnUndo').onclick = deshacer; $('#btnRedo').onclick = rehacer;
+    // El menú se cierra al tocar afuera o al elegir una opción; Deshacer y Rehacer lo dejan abierto para poder tocarlos varias veces seguidas.
+    // El toque afuera sólo cierra el menú: no aprieta lo que haya debajo.
+    document.addEventListener('click', (e) => {
+      const acc = $('.acciones');
+      if (!acc.classList.contains('mas-abierto')) return;
+      if (!e.target.closest('.acciones')) { e.preventDefault(); e.stopPropagation(); acc.classList.remove('mas-abierto'); return; }
+      if (e.target.closest('#menuMas button') && !e.target.closest('#btnUndoMenu, #btnRedoMenu')) acc.classList.remove('mas-abierto');
+    }, true);
+    $('#btnUndo').onclick = deshacer; $('#btnRedo').onclick = rehacer; $('#btnUndoMenu').onclick = deshacer; $('#btnRedoMenu').onclick = rehacer;
     $('#btnProy').onclick = dialogoProyectos;
     $('#btnGuardar').onclick = guardar;
     $('#btnJson').onclick = () => St.descargar(St.slug(D.proyecto.nombre) + '.json', St.serializar(D));
