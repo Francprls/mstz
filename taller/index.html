@@ -110,39 +110,54 @@ svg.i.f{ fill:currentColor; stroke:none; }
 
 /* ---------- resumen (filtros) ---------- */
 .saludo{ font-size:1.25rem; margin:4px 2px 12px; font-weight:500; }
-.res{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:6px 2px 24px; }
-.rt{ border:0; border-radius:22px; padding:14px 14px 12px; text-align:left; display:flex; flex-direction:column; gap:4px; min-height:92px; }
-.rt .n{ font-size:2.1rem; font-weight:800; line-height:1; display:flex; align-items:center; gap:10px; }
-.rt .t{ font-size:.88rem; font-weight:700; }
-.rt.rojo{ background:var(--rojo-bg); color:var(--rojo-fg); }
-.rt.amarillo{ background:var(--amar-bg); color:var(--amar-fg); }
-.rt.verde{ background:var(--verde-bg); color:var(--verde-fg); }
-.rt.terminado{ background:var(--gris-bg); color:var(--gris-fg); }
-.rt.rojo{ box-shadow:0 12px 26px color-mix(in srgb, var(--rojo) 38%, transparent), 0 3px 8px color-mix(in srgb, var(--rojo) 26%, transparent); }
-.rt.amarillo{ box-shadow:0 12px 26px color-mix(in srgb, var(--amar) 40%, transparent), 0 3px 8px color-mix(in srgb, var(--amar) 28%, transparent); }
-.rt.verde{ box-shadow:0 12px 26px color-mix(in srgb, var(--verde) 38%, transparent), 0 3px 8px color-mix(in srgb, var(--verde) 26%, transparent); }
-.rt.terminado{ box-shadow:0 12px 26px color-mix(in srgb, var(--gris) 40%, transparent), 0 3px 8px color-mix(in srgb, var(--gris) 28%, transparent); }
-:root[data-tema="oscuro"] .rt.rojo{ box-shadow:0 0 0 1px color-mix(in srgb, var(--rojo) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--rojo) 22%, transparent); }
-:root[data-tema="oscuro"] .rt.amarillo{ box-shadow:0 0 0 1px color-mix(in srgb, var(--amar) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--amar) 22%, transparent); }
-:root[data-tema="oscuro"] .rt.verde{ box-shadow:0 0 0 1px color-mix(in srgb, var(--verde) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--verde) 22%, transparent); }
-:root[data-tema="oscuro"] .rt.terminado{ box-shadow:0 0 0 1px color-mix(in srgb, var(--gris) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--gris) 22%, transparent); }
-.rt.on{ outline:4px solid var(--ink); outline-offset:3px; }
-.rt.cero{ opacity:.6; }
+/* Resumen: una sola tarjeta. Arriba, una barra con el peso de cada grupo; abajo, cuatro columnas que filtran.
+   Orden: a tiempo, ajustado, atrasado, terminado. Cada columna tiene ícono, número y nombre (nada depende sólo del color). */
+.res{ background:var(--card); border-radius:24px; box-shadow:var(--sombra); margin:6px 0 24px; padding-top:14px; overflow:hidden; }
+:root[data-tema="oscuro"] .res{ box-shadow:0 0 0 1px var(--linea), var(--sombra); }
+.res-bar{ display:flex; gap:4px; height:10px; margin:0 14px 4px; }
+.res-bar i{ border-radius:6px; min-width:10px; }
+.res-col{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); }
+.rt{ position:relative; border:0; background:none; color:var(--ink); display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 4px 14px; min-height:100px; }
+.rt + .rt{ border-left:1px solid var(--linea); }
+.rt svg.i{ width:1.4rem; height:1.4rem; color:var(--fg); }
+.rt .n{ font-size:1.75rem; font-weight:700; line-height:1.05; font-variant-numeric:tabular-nums; }
+.rt .t{ font-size:.8rem; font-weight:600; color:var(--mute); }
+.rt::after{ content:""; position:absolute; left:22%; right:22%; bottom:0; height:4px; border-radius:4px 4px 0 0; background:var(--c); }
+.rt.on{ background:var(--tint); }
+.rt.on .t{ color:var(--fg); font-weight:700; }
+.rt.on::after{ left:0; right:0; border-radius:0; }
+.rt.cero .n, .rt.cero svg.i{ opacity:.45; }
+.verde{ --c:var(--verde); --fg:var(--verde-fg); --tint:var(--verde-bg); }
+.amarillo{ --c:var(--amar); --fg:var(--amar-fg); --tint:var(--amar-bg); }
+.rojo{ --c:var(--rojo); --fg:var(--rojo-fg); --tint:var(--rojo-bg); }
+.terminado{ --c:var(--gris); --fg:var(--gris-fg); --tint:var(--gris-bg); }
 .filtro-av{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:-4px 2px 12px; font-weight:600; }
-.filtro-av button{ min-height:48px; border-radius:24px; border:0; background:var(--card); box-shadow:var(--sombra-c); padding:0 18px; font-weight:700; }
+.filtro-av > span{ min-width:0; }
+/* Quitar el filtro: una X y la palabra "Filtros", siempre en una sola línea */
+.filtro-av button{ flex:none; display:inline-flex; align-items:center; gap:6px; min-height:44px; border-radius:22px; border:0; background:var(--card); color:var(--ink); box-shadow:var(--sombra-c); padding:0 16px 0 12px; font-weight:700; white-space:nowrap; }
+.filtro-av button svg.i{ width:1.15em; height:1.15em; }
 
 /* ---------- tarjeta de proyecto ---------- */
-.pc{ display:block; width:100%; text-align:left; background:var(--card); border:0; border-radius:26px; box-shadow:var(--sombra); padding:18px; margin-bottom:22px; }
+/* Ficha de proyecto: sombra neutra; la fecha de la etapa de ahora va al frente, teñida con el color del estado */
+.pc{ display:flex; align-items:stretch; width:100%; text-align:left; background:var(--card); color:var(--ink); border:0; border-radius:22px; box-shadow:var(--sombra); padding:0; margin-bottom:16px; overflow:hidden; }
 :root[data-tema="oscuro"] .pc, :root[data-tema="oscuro"] .ec, :root[data-tema="oscuro"] .av{ box-shadow:0 0 0 1px var(--linea), var(--sombra); }
 .pc:active{ transform:scale(.985); }
-.pc.rojo{ box-shadow:0 12px 26px color-mix(in srgb, var(--rojo) 38%, transparent), 0 3px 8px color-mix(in srgb, var(--rojo) 26%, transparent); }
-.pc.amarillo{ box-shadow:0 12px 26px color-mix(in srgb, var(--amar) 40%, transparent), 0 3px 8px color-mix(in srgb, var(--amar) 28%, transparent); }
-.pc.verde{ box-shadow:0 12px 26px color-mix(in srgb, var(--verde) 38%, transparent), 0 3px 8px color-mix(in srgb, var(--verde) 26%, transparent); }
-.pc.terminado{ box-shadow:0 12px 26px color-mix(in srgb, var(--gris) 40%, transparent), 0 3px 8px color-mix(in srgb, var(--gris) 28%, transparent); }
-:root[data-tema="oscuro"] .pc.rojo{ box-shadow:0 0 0 1px color-mix(in srgb, var(--rojo) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--rojo) 22%, transparent); }
-:root[data-tema="oscuro"] .pc.amarillo{ box-shadow:0 0 0 1px color-mix(in srgb, var(--amar) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--amar) 22%, transparent); }
-:root[data-tema="oscuro"] .pc.verde{ box-shadow:0 0 0 1px color-mix(in srgb, var(--verde) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--verde) 22%, transparent); }
-:root[data-tema="oscuro"] .pc.terminado{ box-shadow:0 0 0 1px color-mix(in srgb, var(--gris) 55%, transparent), 0 10px 24px rgba(0,0,0,.55), 0 0 22px color-mix(in srgb, var(--gris) 22%, transparent); }
+.pc-f{ flex:none; width:78px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:var(--tint); color:var(--fg); }
+.pc-f svg.i{ width:1.4rem; height:1.4rem; }
+.pc-f .d{ font-size:2rem; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; }
+.pc-f .m{ font-size:.8rem; font-weight:700; line-height:1; letter-spacing:.08em; text-transform:uppercase; }
+.pc-c{ flex:1; min-width:0; display:flex; flex-direction:column; gap:12px; padding:16px; }
+.pc-c .cab{ display:flex; flex-direction:column; gap:4px; }
+.pc-c .pc-n{ font-size:1.2rem; font-weight:700; line-height:1.2; margin:0; }
+.pc-c .est{ font-size:.82rem; font-weight:700; line-height:1.2; letter-spacing:.05em; text-transform:uppercase; color:var(--fg); }
+.pc-c .eta{ font-size:1rem; font-weight:700; line-height:1.2; }
+.pc-c .eta.mute{ color:var(--mute); font-weight:600; }
+.pc-c .av2{ display:flex; flex-direction:column; gap:10px; }
+.pc-c .seg{ margin:0; gap:4px; }
+.pc-c .seg i{ height:6px; border-radius:3px; }
+.pc-c .pc-pie{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0; font-size:.875rem; font-weight:600; line-height:1.2; color:var(--mute); }
+.pc-c .pc-pie .com{ display:inline-flex; align-items:center; gap:5px; color:var(--ink); }
+.pc-c .pc-pie .com svg.i{ width:1rem; height:1rem; }
 .pc-n{ font-size:1.35rem; font-weight:800; line-height:1.15; overflow-wrap:anywhere; margin-bottom:10px; }
 .sem{ display:inline-flex; align-items:center; gap:8px; padding:8px 16px 8px 12px; border-radius:999px; font-weight:800; font-size:.85rem; letter-spacing:.05em; text-transform:uppercase; }
 .sem svg.i{ width:1.3em; height:1.3em; }
@@ -529,18 +544,25 @@ textarea:focus,input:focus{ outline:3px solid var(--ink); outline-offset:2px; bo
   }
 
   function tarjetaProyecto(it, h) {
-    const i = it.info, p = i.proxima;
-    let ahora = '';
+    const i = it.info, p = i.proxima, c = i.color;
+    // La fecha al frente es la de la etapa de ahora (la que define el color); si está terminado, la de la entrega
+    const fRef = p ? p.fecha : i.entrega, dt = parse(fRef);
+    let est, eta;
     if (p) {
-      const d = dias(h, p.fecha), s = semEtapa(p, h, S.cfg.margen);
-      ahora = '<p class="pc-sub">Ahora: <b>' + esc(nombreEtapa(p.etapa)) + '</b> · ' + esc(NOM_EST[p.estado]) + '<br><span class="' + (s === 'rojo' ? 'atr' : 'nor') + '">' + esc(fmt(p.fecha)) + ' · ' + esc(relLargo(d)) + '</span></p>';
-    } else ahora = '<p class="pc-sub mute">Entregado. Todas las etapas están hechas.</p>';
-    const ent = i.entrega ? 'Entrega: ' + fmt(i.entrega) : '';
-    return '<button class="pc ' + i.color + '" data-act="abrir" data-p="' + esc(it.nombre) + '">' +
-      '<div class="pc-n">' + esc(it.nombre) + '</div>' +
-      semBadge(i.color) + (i.atrasadas ? ' <span class="pill tarde">' + plural(i.atrasadas, 'etapa', 'etapas') + ' tarde</span>' : '') +
-      ahora + segmentos(it.etapas, h) +
-      '<div class="pc-pie"><span>' + i.hechas + ' de ' + i.total + ' hechas · ' + esc(ent) + '</span>' + (i.comentarios ? '<span class="com">' + ico('com') + i.comentarios + '</span>' : '') + '</div></button>';
+      const d = dias(h, p.fecha);
+      est = c === 'rojo' ? 'Atrasado ' + plural(Math.max(1, -d), 'día', 'días')
+        : ROTULO[c] + ' · ' + (d < 0 ? 'atrasada ' + plural(-d, 'día', 'días') : d === 0 ? 'es hoy' : d === 1 ? 'es mañana' : 'faltan ' + d + ' días');
+      eta = '<span class="eta">' + esc(nombreEtapa(p.etapa)) + ' · ' + esc(NOM_EST[p.estado]) + '</span>';
+    } else {
+      est = 'Terminado';
+      eta = '<span class="eta mute">Todas las etapas hechas</span>';
+    }
+    const fecha = dt ? '<span class="pc-f" aria-hidden="true">' + ico(c) + '<span class="d">' + dt.getDate() + '</span><span class="m">' + esc(MESES[dt.getMonth()]) + '</span></span>' : '';
+    return '<button class="pc ' + c + '" data-act="abrir" data-p="' + esc(it.nombre) + '">' + fecha +
+      '<span class="pc-c"><span class="cab"><span class="pc-n">' + esc(it.nombre) + '</span>' +
+      '<span class="est">' + esc(est) + (dt ? '<span class="vh">, ' + esc(p ? fmt(fRef) : 'entregado el ' + fmt(fRef)) + '</span>' : '') + '</span></span>' + eta +
+      '<span class="av2">' + segmentos(it.etapas, h).replace('<div class="seg"', '<span class="seg"').replace(/<\/div>$/, '</span>') +
+      '<span class="pc-pie"><span>' + (i.entrega ? 'Entrega: ' + esc(fmt(i.entrega)) : '') + '</span>' + (i.comentarios ? '<span class="com">' + ico('com') + i.comentarios + '<span class="vh"> ' + plural(i.comentarios, 'comentario', 'comentarios').replace(/^\d+ /, '') + '</span></span>' : '') + '</span></span></span></button>';
   }
 
   function tarjetaEtapa(e, h, esSig, mostrarProyecto) {
@@ -590,15 +612,19 @@ textarea:focus,input:focus{ outline:3px solid var(--ink); outline-offset:2px; bo
     const h = hoy(), items = itemsProyectos();
     const cuenta = { rojo: 0, amarillo: 0, verde: 0, terminado: 0 };
     items.forEach((it) => { cuenta[it.info.color]++; });
-    const tile = (k, t) => '<button class="rt ' + k + (S.filtro === k ? ' on' : '') + (cuenta[k] ? '' : ' cero') + '" data-act="filtro" data-k="' + k + '" aria-pressed="' + (S.filtro === k) + '"><span class="n">' + ico(k) + cuenta[k] + '</span><span class="t">' + t + '</span></button>';
+    // Orden del resumen: a tiempo, ajustado, atrasado, terminado
+    const ORD = [['verde', 'A tiempo'], ['amarillo', 'Ajustado'], ['rojo', 'Atrasado'], ['terminado', 'Terminado']];
+    const total = items.length;
+    const bar = total ? '<div class="res-bar" aria-hidden="true">' + ORD.filter(([k]) => cuenta[k]).map(([k]) => '<i class="' + k + '" style="flex:' + cuenta[k] + ';background:var(--c)"></i>').join('') + '</div>' : '';
+    const tile = (k, t) => '<button class="rt ' + k + (S.filtro === k ? ' on' : '') + (cuenta[k] ? '' : ' cero') + '" data-act="filtro" data-k="' + k + '" aria-pressed="' + (S.filtro === k) + '">' + ico(k) + '<span class="n">' + cuenta[k] + '</span><span class="t">' + t + '</span></button>';
     const lista = items.filter((it) => S.filtro ? it.info.color === S.filtro : it.info.color !== 'terminado');
     let cuerpo;
     if (!S.datos) cuerpo = '<div class="vacio">' + ico('refrescar') + '<br>Cargando los proyectos…</div>';
     else if (!lista.length) cuerpo = '<div class="vacio">' + ico('vacio') + '<br>' + (S.filtro ? 'No hay proyectos en este grupo.' : 'No hay proyectos en marcha.') + '</div>';
     else cuerpo = lista.map((it) => tarjetaProyecto(it, h)).join('');
     return barra('Hola, <em>' + esc(S.cfg.nombre || '') + '</em>') +
-      '<div class="cont"><div class="res">' + tile('rojo', 'Atrasados') + tile('amarillo', 'Ajustados') + tile('verde', 'A tiempo') + tile('terminado', 'Terminados') + '</div>' +
-      (S.filtro ? '<div class="filtro-av"><span>Viendo: <b>' + esc(({ rojo: 'Atrasados', amarillo: 'Ajustados', verde: 'A tiempo', terminado: 'Terminados' })[S.filtro]) + '</b></span><button data-act="filtro" data-k="">Ver los de siempre</button></div>' : '') +
+      '<div class="cont"><div class="res">' + bar + '<div class="res-col">' + ORD.map(([k, t]) => tile(k, t)).join('') + '</div></div>' +
+      (S.filtro ? '<div class="filtro-av"><span>Viendo: <b>' + esc(({ rojo: 'Atrasados', amarillo: 'Ajustados', verde: 'A tiempo', terminado: 'Terminados' })[S.filtro]) + '</b></span><button data-act="filtro" data-k="" aria-label="Quitar el filtro">' + ico('cerrar') + 'Filtros</button></div>' : '') +
       cuerpo + '</div>';
   }
 
